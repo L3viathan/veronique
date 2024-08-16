@@ -41,3 +41,17 @@ class creature(PropertyType):
                 {"".join(parts)}
             </select>
         """
+
+class number(PropertyType):
+    def display_html(self, value):
+        return f'<span style="color: orange">{value}</span>'
+
+    def input_html(self, creature_id):
+        return """<input type="number" step="any" name="value"></input>"""
+
+class color(PropertyType):
+    def display_html(self, value):
+        return f'<span style="color: {value}; text-shadow: 0 0 3px black;">&#9632;</span> {value}'
+
+    def input_html(self, creature_id):
+        return """<input type="color" name="value"></input>"""

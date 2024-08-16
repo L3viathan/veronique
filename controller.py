@@ -6,11 +6,15 @@ PAGE_SIZE = 20
 
 ENCODERS = {
     "string": str,
+    "number": str,
+    "color": str,
 }
 
 DECODERS = {
     "string": str,
-    "creature": lambda _: None
+    "creature": lambda _: None,
+    "number": float,
+    "color": str,
 }
 SELF = object()
 

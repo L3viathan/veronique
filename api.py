@@ -24,6 +24,7 @@ async def index(request):
                 <nav>
                     <a hx-get="/creatures" hx-target="#container">Creatures</a>
                     <a hx-get="/properties" hx-target="#container">Properties</a>
+                    <a hx-get="/types" hx-target="#container">Types</a>
                 </nav>
                 <hr>
                 <div id="container"></div>
@@ -31,6 +32,11 @@ async def index(request):
         </html>
         """
     )
+
+
+@app.get("/types")
+async def list_types(request):
+    return html("<br>".join(TYPES))
 
 
 @app.get("/creatures")
