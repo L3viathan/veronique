@@ -1,8 +1,15 @@
+from datetime import datetime
 import sqlite3
 
 conn = sqlite3.connect("veronique.db")
 
 PAGE_SIZE = 20
+
+def float_int(val):
+    val = float(val)
+    if val.is_integer():
+        val = int(val)
+    return val
 
 ENCODERS = {
     "string": str,
@@ -11,16 +18,18 @@ ENCODERS = {
     "date": str,
     "boolean": lambda v: v or "off",
     "enum": str,
+    "age": str,
 }
 
 DECODERS = {
     "string": str,
     "creature": lambda _: None,
-    "number": float,
+    "number": float_int,
     "color": str,
     "date": str,
     "boolean": "on".__eq__,
     "enum": str,
+    "age": float_int,
 }
 SELF = object()
 
