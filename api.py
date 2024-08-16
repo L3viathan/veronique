@@ -100,7 +100,7 @@ async def view_creature(request, creature_id: int):
     display_facts = []
     for row in chain.from_iterable(facts.values()):
         display_facts.append(
-            f"<li>{row['label']}: {TYPES[row['type']].display_html(row['value'])}{_display_created(row['created_at'])}</li>"
+            f"<li>{row['label']}: {TYPES[row['type']].display_html(row['value'], created_at=row['created_at'])}{_display_created(row['created_at'])}</li>"
         )
     return html(
         f"""
@@ -150,7 +150,7 @@ async def new_fact(request, creature_id: int):
     # FIXME: replace value with value from DB
     return html(
         f"""
-        <li>{label}: {TYPES[type].display_html(value)}{_display_created()}</li>
+        <li>{label}: {TYPES[type].display_html(value, created_at=None)}{_display_created()}</li>
         <button hx-get="/facts/new/{creature_id}" hx-swap="outerHTML">New fact</button>
         """
     )

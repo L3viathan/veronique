@@ -112,7 +112,7 @@ def get_creature_facts(creature_id):
                 "value": other_creature_id or DECODERS[type](value),
                 "label": label,
                 "type": type,
-                "created_at": created_at,
+                "created_at": datetime.fromisoformat(created_at),
             }
         )
     return facts

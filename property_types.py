@@ -1,4 +1,4 @@
-from datetime import date as datetime_date
+import datetime
 import controller as ctrl
 
 TYPES = {}
@@ -8,7 +8,7 @@ class PropertyType:
     def __init_subclass__(cls):
         TYPES[cls.__name__] = cls()
 
-    def display_html(self, value):
+    def display_html(self, value, created_at=None):
         return f"placeholder, not implemented for type {type(self).__name__}."
 
     def input_html(self, creature_id, extra_data):
@@ -17,9 +17,12 @@ class PropertyType:
     def next_step(self, args):
         return None
 
+    def encode_extra_data(self, form):
+        return None
+
 
 class string(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, created_at=None):
         return f'<span style="color: #57e389;">"{value}"</span>'
 
     def input_html(self, creature_id, extra_data):
@@ -27,7 +30,7 @@ class string(PropertyType):
 
 
 class creature(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, created_at=None):
         name = ctrl.get_creature_name(value)
         return f'<a hx-target="#container" hx-get="/creatures/{value}">🔗 {name}</a>'
 
@@ -67,7 +70,7 @@ class creature(PropertyType):
 
 
 class number(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, created_at=None):
         return f'<span style="color: orange">{value}</span>'
 
     def input_html(self, creature_id, extra_data):
@@ -75,7 +78,7 @@ class number(PropertyType):
 
 
 class color(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, created_at=None):
         return f"""
             <span style="color: {value}; text-shadow: 0 0 3px black;">&#9632;</span>
             {value}
@@ -86,9 +89,9 @@ class color(PropertyType):
 
 
 class date(PropertyType):
-    def display_html(self, value):
-        d = datetime_date.fromisoformat(value)
-        today = datetime_date.today()
+    def display_html(self, value, created_at=None):
+        d = datetime.date.fromisoformat(value)
+        today = datetime.date.today()
         td = today - d
         postposition = "ago" if abs(td) == td else "from now"
         years = td.days // 365
@@ -109,7 +112,7 @@ class date(PropertyType):
 
 
 class boolean(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, created_at=None):
         if value:
             return """<span style="color: green">✔</span>"""
         else:
@@ -120,7 +123,7 @@ class boolean(PropertyType):
 
 
 class enum(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, created_at=None):
         return f"""<span style="color: #be5128;">{value}</span>"""
 
     def input_html(self, creature_id, extra_data):
@@ -138,3 +141,20 @@ class enum(PropertyType):
 
     def encode_extra_data(self, form):
         return form["choices"]
+
+
+class age(PropertyType):
+    def display_html(self, value, created_at=None):
+        if not created_at:
+            return f"""<span style="color: #2889be;">{value}</span>"""
+        now = datetime.datetime.now()
+        years_passed = (now - created_at).days // 365
+        value += years_passed
+        if now.day == created_at.day:
+            return f"""<span style="color: #2889be;">{value}</span>"""
+        return f"""<span style="color: #2889be;">{value}?</span>"""
+
+    def input_html(self, creature_id, extra_data):
+        return """
+            <input type="number" min=0 name="value"></input>
+        """
