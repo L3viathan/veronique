@@ -11,8 +11,8 @@ def D(multival_dict):
 
 def _display_created(timestamp=None):
     if timestamp:
-        return f'<span style="font-size: xx-small;">created {timestamp}</span>'
-    return '<span style="font-size: xx-small;">created just now</span>'
+        return f' <span class="hovercreated" style="font-size: xx-small;">created {timestamp}</span>'
+    return ' <span class="hovercreated" style="font-size: xx-small;">created just now</span>'
 
 
 @app.get("/")
@@ -24,6 +24,15 @@ async def index(request):
             <head>
                 <script src="htmx.js"></script>
                 <title>Veronique</title>
+                <style>
+                    .hovercreated {
+                        font-size: 50%;
+                        display: none;
+                    }
+                    li:hover .hovercreated {
+                        display: inline;
+                    }
+                </style>
             </head>
             <body>
                 <nav>
