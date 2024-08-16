@@ -73,6 +73,7 @@ def list_creatures(page=1):
             LEFT JOIN facts f ON f.creature_id = c.id
             LEFT JOIN properties p ON f.property_id = p.id
             WHERE p.label = 'name'
+            GROUP BY c.id
             LIMIT 20 OFFSET ?
         """,
         (offset,),
@@ -251,21 +252,22 @@ def delete_fact(fact_id):
     conn.commit()
 
 
-# setup_tables()
-# lover = add_property("lover", "creature", reflected_property_name=SELF)
-# parent = add_property("parent", "creature", reflected_property_name="child")
-# name = add_property("name", "string")
-# # delete_property(1)
-# # delete_property(3)
+if __name__ == "__main__":
+    setup_tables()
+    lover = add_property("lover", "creature", reflected_property_name=SELF)
+    parent = add_property("parent", "creature", reflected_property_name="child")
+    name = add_property("name", "string")
+    # delete_property(1)
+    # delete_property(3)
 
-# jonathan = add_creature()
-# add_fact(jonathan, name, "Jonathan")
-# laura = add_creature()
-# add_fact(laura, name, "Laura")
-# we_be_lovers = add_fact(laura, lover, jonathan)
+    jonathan = add_creature()
+    add_fact(jonathan, name, "Jonathan")
+    laura = add_creature()
+    add_fact(laura, name, "Laura")
+    we_be_lovers = add_fact(laura, lover, jonathan)
 
-# # delete_fact(we_be_lovers)
+    # delete_fact(we_be_lovers)
 
-# # example properties
-# # cur.lastrowid
-# # add_creature()
+    # example properties
+    # cur.lastrowid
+    # add_creature()
