@@ -19,7 +19,7 @@ def setup_tables():
         CREATE TABLE properties
         (
             id INTEGER PRIMARY KEY,
-            label VARCHAR(32),
+            label VARCHAR(32) UNIQUE,
             type VARCHAR(32),
             reflected_property_id INTEGER,
             FOREIGN KEY(reflected_property_id) REFERENCES properties(id)
@@ -44,6 +44,20 @@ def setup_tables():
         )
         """
     )
+
+
+def add_creature():
+    cur = conn.cursor()
+    cur.execute("INSERT INTO creatures DEFAULT VALUES")
+    conn.commit()
+    return cur.lastrowid
+
+
+def delete_creature(creature_id):
+    cur = conn.cursor()
+    cur.execute("DELETE FROM creatures WHERE id = ?", (creature_id,))
+    conn.commit()
+
 
 def add_property(label, type, *, reflected_property_name=None):
     if reflected_property_name and type != "creature":
@@ -76,22 +90,8 @@ def delete_property(property_id):
         "SELECT reflected_property_id FROM properties WHERE id = ?",
         (property_id,),
     ).fetchone()
-    ids_to_delete = {property_id, reflected_property_id} - {None}
-    for id_to_delete in ids_to_delete:
+    for id_to_delete in {property_id, reflected_property_id} - {None}:
         cur.execute("DELETE FROM properties WHERE id = ?", (id_to_delete,))
-    conn.commit()
-
-
-def add_creature():
-    cur = conn.cursor()
-    cur.execute("INSERT INTO creatures DEFAULT VALUES")
-    conn.commit()
-    return cur.lastrowid
-
-
-def delete_creature(creature_id):
-    cur = conn.cursor()
-    cur.execute("DELETE FROM creatures WHERE id = ?", (creature_id,))
     conn.commit()
 
 
@@ -151,6 +151,17 @@ def add_fact(creature_id, property_id, value):
     return first_fact_id
 
 
+def delete_fact(fact_id):
+    cur = conn.cursor()
+    [reflected_fact_id] = cur.execute(
+        "SELECT reflected_fact_id FROM facts WHERE id = ?",
+        (fact_id,)
+    ).fetchone()
+    for id_to_delete in {fact_id, reflected_fact_id} - {None}:
+        cur.execute("DELETE FROM facts WHERE id = ?", (id_to_delete,))
+    conn.commit()
+
+
 setup_tables()
 lover = add_property("lover", "creature", reflected_property_name=SELF)
 parent = add_property("parent", "creature", reflected_property_name="child")
@@ -162,7 +173,9 @@ jonathan = add_creature()
 add_fact(jonathan, name, "Jonathan")
 laura = add_creature()
 add_fact(laura, name, "Laura")
-add_fact(laura, lover, jonathan)
+we_be_lovers = add_fact(laura, lover, jonathan)
+
+# delete_fact(we_be_lovers)
 
 # example properties
 # cur.lastrowid
