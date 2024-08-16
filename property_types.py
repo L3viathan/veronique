@@ -105,3 +105,13 @@ class date(PropertyType):
 
     def input_html(self, creature_id):
         return """<input type="date" name="value"></input>"""
+
+class boolean(PropertyType):
+    def display_html(self, value):
+        if value:
+            return """<span style="color: green">✔</span>"""
+        else:
+            return """<span style="color: red">✘</span>"""
+
+    def input_html(self, creature_id):
+        return """<input type="checkbox" name="value"></input>"""

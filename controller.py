@@ -9,6 +9,7 @@ ENCODERS = {
     "number": str,
     "color": str,
     "date": str,
+    "boolean": lambda v: v or "off",
 }
 
 DECODERS = {
@@ -17,6 +18,7 @@ DECODERS = {
     "number": float,
     "color": str,
     "date": str,
+    "boolean": "on".__eq__,
 }
 SELF = object()
 
