@@ -260,9 +260,18 @@ def delete_fact(fact_id):
 
 if __name__ == "__main__":
     setup_tables()
-    lover = add_property("in a relationship with", "creature", reflected_property_name=SELF)
+    married = add_property("married to", "creature", reflected_property_name=SELF)
     parent = add_property("parent of", "creature", reflected_property_name="child of")
+    haircolor = add_property("haircolor", "color")
+    birthday = add_property("birthday", "date")
+    nickname = add_property("nickname", "string")
 
     jonathan = add_creature("Jonathan")
     laura = add_creature("Laura")
-    we_be_lovers = add_fact(laura, lover, jonathan)
+    david = add_creature("David")
+    add_fact(laura, parent, david)
+    add_fact(jonathan, parent, david)
+    add_fact(laura, married, jonathan)
+    add_fact(laura, haircolor, "#2889be")
+    add_fact(laura, birthday, "1991-03-29")
+    add_fact(laura, nickname, "sarnthil")
