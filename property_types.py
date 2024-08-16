@@ -37,6 +37,7 @@ class creature(PropertyType):
             )
         return f"""
             <select name="value">
+                <option selected disabled>--Creature--</option>
                 {"".join(parts)}
             </select>
         """

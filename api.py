@@ -6,6 +6,9 @@ from property_types import TYPES
 app = Sanic("Veronique")
 
 
+def D(multival_dict):
+    return {key: val[0] for key, val in multival_dict.items()}
+
 
 @app.get("/")
 async def index(request):
@@ -37,7 +40,8 @@ async def list_creatures(request):
         "<br>".join(
             f'<a hx-get="/creatures/{id}" hx-target="#container">{name}</a>'
             for id, name in ctrl.list_creatures(page=page)
-        ) + """
+        )
+        + """
         <br>
         <button hx-get="/creatures/new" hx-swap="outerHTML">New creature</button>
         """
@@ -46,25 +50,29 @@ async def list_creatures(request):
 
 @app.get("/creatures/new")
 async def new_creature_form(request):
-    return html("""
+    return html(
+        """
         <form hx-post="/creatures/new" hx-swap="outerHTML">
             <input name="name" placeholder="name"></input>
             <button type="submit">»</button>
         </form>
-    """)
+    """
+    )
 
 
 @app.post("/creatures/new")
 async def new_creature(request):
-    name = request.form["name"][0]
+    name = D(request.form)["name"]
     creature = ctrl.add_creature()
     prop = next(id for id, label, type in ctrl.list_properties() if label == "name")
     creature_id = ctrl.add_fact(creature, prop, name)
-    return html(f"""
+    return html(
+        f"""
         <a hx-get="/creatures/{creature_id}" hx-target="#container">{name}</a>
         <br>
         <button hx-get="/creatures/new" hx-swap="outerHTML">New creature</button>
-    """)
+    """
+    )
 
 
 @app.get("/creatures/<creature_id>")
@@ -76,7 +84,9 @@ async def view_creature(request, creature_id: int):
         name = "(no name)"
     display_facts = []
     for row in chain.from_iterable(facts.values()):
-        display_facts.append(f"<li>{row['label']}: {TYPES[row['type']].display_html(row['value'])}</li>")
+        display_facts.append(
+            f"<li>{row['label']}: {TYPES[row['type']].display_html(row['value'])}</li>"
+        )
     return html(
         f"""
         <h2>{name}</h2>
@@ -95,7 +105,7 @@ async def new_fact_form(request, creature_id: int):
         f"""
         <form hx-post="/facts/new/{creature_id}" hx-swap="outerHTML">
             <select name="property" hx-get="/facts/new/{creature_id}/property" hx-target="#valueinput">
-                <option value="">--Property--</option>
+                <option selected disabled>--Property--</option>
                 {"".join(f'''<option value="{id}">{label} <em>({type})</em></option>''' for id, label, type in props)}
             </select>
             <div id="valueinput"></div>
@@ -106,7 +116,7 @@ async def new_fact_form(request, creature_id: int):
 
 @app.get("/facts/new/<creature_id>/property")
 async def new_fact_form_property_input(request, creature_id: int):
-    label, type = ctrl.get_property(int(request.args["property"][0]))
+    label, type = ctrl.get_property(int(D(request.args)["property"]))
     return html(
         f"""
         {TYPES[type].input_html(creature_id)}
@@ -117,9 +127,10 @@ async def new_fact_form_property_input(request, creature_id: int):
 
 @app.post("/facts/new/<creature_id>")
 async def new_fact(request, creature_id: int):
-    property_id = int(request.form["property"][0])
+    form = D(request.form)
+    property_id = int(form["property"])
     label, type = ctrl.get_property(property_id)
-    value = request.form["value"][0]
+    value = form["value"]
     ctrl.add_fact(creature_id, property_id, value)
     # FIXME: replace value with value from DB
     return html(
@@ -134,10 +145,81 @@ async def new_fact(request, creature_id: int):
 async def list_properties(request):
     return html(
         "<br>".join(
-            f"{label} <em>({type})</em>"
-            for id, label, type in ctrl.list_properties()
+            f"{label} <em>({type})</em>" for id, label, type in ctrl.list_properties()
         )
+        + """
+        <br>
+        <button hx-get="/properties/new" hx-swap="outerHTML">New property</button>
+        """
     )
+
+
+@app.get("/properties/new")
+async def new_property_form(request):
+    return html(
+        f"""
+        <form hx-post="/properties/new" hx-swap="outerHTML">
+            <input name="label" placeholder="label"></input>
+            <select name="type" hx-get="/properties/new/step2" hx-target="#step2">
+            <option selected disabled>--Type--</option>
+            {"".join(f'''<option value="{type}">{type}</option>''' for type in TYPES)}
+            </select>
+            <div id="step2"></div>
+        </form>
+    """
+    )
+
+
+@app.get("/properties/new/step2")
+async def new_property_form_step2(request):
+    type = D(request.args)["type"]
+    if type != "creature":
+        return html('<button type="submit">»</button>')
+    return html(
+        """
+        <select name="reflectivity" hx-get="/properties/new/step3" hx-target="#step3">
+            <option selected disabled>--Reflectivity--</option>
+            <option value="none">unidirectional</option>
+            <option value="self">self-reflected</option>
+            <option value="other">reflected</option>
+        </select>
+        <div id="step3"></div>
+    """
+    )
+
+
+@app.get("/properties/new/step3")
+async def new_property_form_step3(request):
+    reflectivity = D(request.args)["reflectivity"]
+    if reflectivity in ("none", "self"):
+        return html('<button type="submit">»</button>')
+    return html(
+        """
+        <input name="inversion"></input>
+        <button type="submit">»</button>
+    """
+    )
+
+
+@app.post("/properties/new")
+async def new_property(request):
+    form = D(request.form)
+    ctrl.add_property(
+        form["label"],
+        form["type"],
+        reflected_property_name=(
+            None
+            if form.get("reflectivity", "none") == "none"
+            else ctrl.SELF
+            if form["reflectivity"] == "self"
+            else form["inversion"]
+        ),
+    )
+    return html(f"""
+        {form['label']} <em>({form['type']})</em>
+        <br>
+        <button hx-get="/properties/new" hx-swap="outerHTML">New property</button>
+    """)
 
 
 @app.get("/htmx.js")
