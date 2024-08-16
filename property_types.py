@@ -14,6 +14,9 @@ class PropertyType:
     def input_html(self, creature_id):
         return f"placeholder, not implemented for type {type(self).__name__}."
 
+    def next_step(self, args):
+        return None
+
 
 class string(PropertyType):
     def display_html(self, value):
@@ -42,6 +45,25 @@ class creature(PropertyType):
                 {"".join(parts)}
             </select>
         """
+
+    def next_step(self, args):
+        if "reflectivity" in args:
+            if args["reflectivity"] in ("none", "self"):
+                return None
+            return """
+                <input name="inversion"></input>
+                <button type="submit">»</button>
+            """
+        return """
+            <select name="reflectivity" hx-get="/properties/new/steps" hx-target="#step2" hx-swap="innerHTML" hx-include="[name='type']">
+                <option selected disabled>--Reflectivity--</option>
+                <option value="none">unidirectional</option>
+                <option value="self">self-reflected</option>
+                <option value="other">reflected</option>
+            </select>
+            <span id="step2"></span>
+        """
+
 
 class number(PropertyType):
     def display_html(self, value):

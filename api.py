@@ -166,45 +166,23 @@ async def new_property_form(request):
         f"""
         <form hx-post="/properties/new" hx-swap="outerHTML">
             <input name="label" placeholder="label"></input>
-            <select name="type" hx-get="/properties/new/step2" hx-target="#step2" hx-swap="innerHTML">
+            <select name="type" hx-get="/properties/new/steps" hx-target="#steps" hx-swap="innerHTML">
             <option selected disabled>--Type--</option>
             {"".join(f'''<option value="{type}">{type}</option>''' for type in TYPES)}
             </select>
-            <span id="step2"></span>
+            <span id="steps"></span>
         </form>
     """
     )
 
 
-@app.get("/properties/new/step2")
-async def new_property_form_step2(request):
-    type = D(request.args)["type"]
-    if type != "creature":
-        return html('<button type="submit">»</button>')
-    return html(
-        """
-        <select name="reflectivity" hx-get="/properties/new/step3" hx-target="#step3" hx-swap="innerHTML">
-            <option selected disabled>--Reflectivity--</option>
-            <option value="none">unidirectional</option>
-            <option value="self">self-reflected</option>
-            <option value="other">reflected</option>
-        </select>
-        <span id="step3"></span>
-    """
-    )
-
-
-@app.get("/properties/new/step3")
-async def new_property_form_step3(request):
-    reflectivity = D(request.args)["reflectivity"]
-    if reflectivity in ("none", "self"):
-        return html('<button type="submit">»</button>')
-    return html(
-        """
-        <input name="inversion"></input>
-        <button type="submit">»</button>
-    """
-    )
+@app.get("/properties/new/steps")
+async def new_property_form_steps(request):
+    args = D(request.args)
+    type = TYPES[args["type"]]
+    if response := type.next_step(args):
+        return html(response)
+    return html('<button type="submit">»</button>')
 
 
 @app.post("/properties/new")
