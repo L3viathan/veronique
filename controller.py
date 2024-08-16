@@ -9,6 +9,7 @@ ENCODERS = {
 DECODERS = {
     "string": str,
 }
+SELF = object()
 
 def setup_tables():
     cur = conn.cursor()
@@ -20,7 +21,8 @@ def setup_tables():
             id INTEGER PRIMARY KEY,
             label VARCHAR(32),
             type VARCHAR(32),
-            reflexivity INTEGER
+            reflected_property_id INTEGER,
+            FOREIGN KEY(reflected_property_id) REFERENCES properties(id)
         )
         """
     )
@@ -33,33 +35,35 @@ def setup_tables():
             property_id INTEGER NOT NULL,
             value TEXT, -- for anything other than relations
             other_creature_id INTEGER,  -- for relations
+            reflected_fact_id INTEGER,
             -- valid_from, valid_until
             FOREIGN KEY(creature_id) REFERENCES creatures(id),
             FOREIGN KEY(property_id) REFERENCES property(id)
             FOREIGN KEY(other_creature_id) REFERENCES creatures(id)
+            FOREIGN KEY(reflected_fact_id) REFERENCES facts(id)
         )
         """
     )
 
-def add_property(label, type, *, reflexivity=None):
-    if reflexivity and type != "creature":
+def add_property(label, type, *, reflected_property_name=None):
+    if reflected_property_name and type != "creature":
         raise ValueError("Reflexivity only makes sense with creatures.")
     cur = conn.cursor()
     cur.execute("INSERT INTO properties (label, type) VALUES (?, ?)", (label, type))
     first_property_id = cur.lastrowid
-    if reflexivity:
-        if reflexivity is True:  # self-reflexivity
+    if reflected_property_name:
+        if reflected_property_name is SELF:
             cur.execute(
-                "UPDATE properties SET reflexivity = ? WHERE id = ?",
+                "UPDATE properties SET reflected_property_id = ? WHERE id = ?",
                 (first_property_id, first_property_id),
             )
         else:
             cur.execute(
-                "INSERT INTO properties (label, type, reflexivity) VALUES (?, ?, ?)",
-                (reflexivity, type, first_property_id),
+                "INSERT INTO properties (label, type, reflected_property_id) VALUES (?, ?, ?)",
+                (reflected_property_name, type, first_property_id),
             )
             cur.execute(
-                "UPDATE properties SET reflexivity = ? WHERE id = ?",
+                "UPDATE properties SET reflected_property_id = ? WHERE id = ?",
                 (cur.lastrowid, first_property_id),
             )
     conn.commit()
@@ -68,11 +72,11 @@ def add_property(label, type, *, reflexivity=None):
 
 def delete_property(property_id):
     cur = conn.cursor()
-    [reflexivity] = cur.execute(
-        "SELECT reflexivity FROM properties WHERE id = ?",
+    [reflected_property_id] = cur.execute(
+        "SELECT reflected_property_id FROM properties WHERE id = ?",
         (property_id,),
     ).fetchone()
-    ids_to_delete = {property_id, reflexivity} - {None}
+    ids_to_delete = {property_id, reflected_property_id} - {None}
     for id_to_delete in ids_to_delete:
         cur.execute("DELETE FROM properties WHERE id = ?", (id_to_delete,))
     conn.commit()
@@ -93,8 +97,8 @@ def delete_creature(creature_id):
 
 def add_fact(creature_id, property_id, value):
     cur = conn.cursor()
-    [type, reflexivity] = cur.execute(
-        "SELECT type, reflexivity FROM properties WHERE id = ?",
+    [type, reflected_property_id] = cur.execute(
+        "SELECT type, reflected_property_id FROM properties WHERE id = ?",
         (property_id,),
     ).fetchone()
     if type == "creature":
@@ -109,24 +113,26 @@ def add_fact(creature_id, property_id, value):
                 creature_id, property_id, value
             ),
         )
-        if reflexivity:
-            # ISSUE: what if you have several relations with the same triple?
-            # What do you do when deleting? It doesn't seem to matter at the
-            # moment (where we have no additional columns), just delete one
-            # (need to ensure that!) When we add more stuff (e.g. valid_from)
-            # we need to make sure to always change one matching other fact.
-            # Or maybe we need to link the facts to eachother, similar to how
-            # the properties have that reflexivity column...
+        first_fact_id = cur.lastrowid
+        if reflected_property_id:
             cur.execute(
                 """
                     INSERT INTO facts
-                        (creature_id, property_id, other_creature_id)
+                        (creature_id, property_id, other_creature_id, reflected_fact_id)
                     VALUES
-                        (?, ?, ?)
+                        (?, ?, ?, ?)
                 """,
                 (
-                    value, reflexivity, creature_id
+                    value, reflected_property_id, creature_id, first_fact_id
                 ),
+            )
+            cur.execute(
+                """
+                    UPDATE facts
+                    SET reflected_fact_id = ?
+                    WHERE id = ?
+                """,
+                (cur.lastrowid, first_fact_id),
             )
     else:
         value = ENCODERS[type](value)
@@ -140,12 +146,14 @@ def add_fact(creature_id, property_id, value):
                 creature_id, property_id, value
             ),
         )
+        first_fact_id = cur.lastrowid
     conn.commit()
+    return first_fact_id
 
 
 setup_tables()
-lover = add_property("lover", "creature", reflexivity=True)
-parent = add_property("parent", "creature", reflexivity="child")
+lover = add_property("lover", "creature", reflected_property_name=SELF)
+parent = add_property("parent", "creature", reflected_property_name="child")
 name = add_property("name", "string")
 # delete_property(1)
 # delete_property(3)
