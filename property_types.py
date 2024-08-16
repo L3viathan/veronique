@@ -20,7 +20,7 @@ class PropertyType:
 
 class string(PropertyType):
     def display_html(self, value):
-        return f'<span style="color: lime;">"{value}"</span>'
+        return f'<span style="color: #57e389;">"{value}"</span>'
 
     def input_html(self, creature_id):
         return """<input type="text" name="value"></input>"""
