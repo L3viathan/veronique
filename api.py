@@ -136,7 +136,7 @@ async def new_fact(request, creature_id: int):
     form = D(request.form)
     property_id = int(form["property"])
     label, type = ctrl.get_property(property_id)
-    value = form["value"]
+    value = form.get("value")
     ctrl.add_fact(creature_id, property_id, value)
     # FIXME: replace value with value from DB
     return html(
