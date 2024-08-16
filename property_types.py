@@ -11,7 +11,7 @@ class PropertyType:
     def display_html(self, value):
         return f"placeholder, not implemented for type {type(self).__name__}."
 
-    def input_html(self, creature_id):
+    def input_html(self, creature_id, extra_data):
         return f"placeholder, not implemented for type {type(self).__name__}."
 
     def next_step(self, args):
@@ -22,15 +22,16 @@ class string(PropertyType):
     def display_html(self, value):
         return f'<span style="color: #57e389;">"{value}"</span>'
 
-    def input_html(self, creature_id):
+    def input_html(self, creature_id, extra_data):
         return """<input type="text" name="value"></input>"""
+
 
 class creature(PropertyType):
     def display_html(self, value):
         name = ctrl.get_creature_name(value)
         return f'<a hx-target="#container" hx-get="/creatures/{value}">🔗 {name}</a>'
 
-    def input_html(self, creature_id):
+    def input_html(self, creature_id, extra_data):
         # this won't scale, but good enough for now
         parts = []
         for other_creature_id, name in ctrl.list_creatures():
@@ -69,7 +70,7 @@ class number(PropertyType):
     def display_html(self, value):
         return f'<span style="color: orange">{value}</span>'
 
-    def input_html(self, creature_id):
+    def input_html(self, creature_id, extra_data):
         return """<input type="number" step="any" name="value"></input>"""
 
 
@@ -80,7 +81,7 @@ class color(PropertyType):
             {value}
         """
 
-    def input_html(self, creature_id):
+    def input_html(self, creature_id, extra_data):
         return """<input type="color" name="value"></input>"""
 
 
@@ -103,8 +104,9 @@ class date(PropertyType):
             context = "today"
         return f"🗓️{value} <em>({context})</em>"
 
-    def input_html(self, creature_id):
+    def input_html(self, creature_id, extra_data):
         return """<input type="date" name="value"></input>"""
+
 
 class boolean(PropertyType):
     def display_html(self, value):
@@ -113,5 +115,26 @@ class boolean(PropertyType):
         else:
             return """<span style="color: red">✘</span>"""
 
-    def input_html(self, creature_id):
+    def input_html(self, creature_id, extra_data):
         return """<input type="checkbox" name="value"></input>"""
+
+
+class enum(PropertyType):
+    def display_html(self, value):
+        return f"""<span style="color: #be5128;">{value}</span>"""
+
+    def input_html(self, creature_id, extra_data):
+        return "\n".join(
+            f"""
+            <input type="radio" id="choice-{n}" name="value" value="{choice}"><label for="choice-{n}">{choice}</label></input>
+            """ for n, choice in enumerate(extra_data.split(","))
+        )
+
+    def next_step(self, args):
+        return """
+            <input name="choices" placeholder="choices, comma-separated"></input>
+            <button type="submit">»</button>
+        """
+
+    def encode_extra_data(self, form):
+        return form["choices"]

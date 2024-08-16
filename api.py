@@ -122,10 +122,10 @@ async def new_fact_form(request, creature_id: int):
 
 @app.get("/facts/new/<creature_id>/property")
 async def new_fact_form_property_input(request, creature_id: int):
-    label, type = ctrl.get_property(int(D(request.args)["property"]))
+    label, type, extra_data = ctrl.get_property(int(D(request.args)["property"]))
     return html(
         f"""
-        {TYPES[type].input_html(creature_id)}
+        {TYPES[type].input_html(creature_id, extra_data=extra_data)}
         <button type="submit">»</button>
         """
     )
@@ -135,7 +135,7 @@ async def new_fact_form_property_input(request, creature_id: int):
 async def new_fact(request, creature_id: int):
     form = D(request.form)
     property_id = int(form["property"])
-    label, type = ctrl.get_property(property_id)
+    label, type, _ = ctrl.get_property(property_id)
     value = form.get("value")
     ctrl.add_fact(creature_id, property_id, value)
     # FIXME: replace value with value from DB
@@ -188,6 +188,7 @@ async def new_property_form_steps(request):
 @app.post("/properties/new")
 async def new_property(request):
     form = D(request.form)
+    type = TYPES[form["type"]]
     ctrl.add_property(
         form["label"],
         form["type"],
@@ -198,6 +199,7 @@ async def new_property(request):
             if form["reflectivity"] == "self"
             else form["inversion"]
         ),
+        extra_data=type.encode_extra_data(form),
     )
     return html(f"""
         {form['label']} <em>({form['type']})</em>

@@ -10,6 +10,7 @@ ENCODERS = {
     "color": str,
     "date": str,
     "boolean": lambda v: v or "off",
+    "enum": str,
 }
 
 DECODERS = {
@@ -19,6 +20,7 @@ DECODERS = {
     "color": str,
     "date": str,
     "boolean": "on".__eq__,
+    "enum": str,
 }
 SELF = object()
 
@@ -33,6 +35,7 @@ def setup_tables():
             label VARCHAR(32) UNIQUE,
             type VARCHAR(32),
             reflected_property_id INTEGER,
+            extra_data TEXT,
             FOREIGN KEY(reflected_property_id) REFERENCES properties(id)
         )
         """
@@ -131,11 +134,15 @@ def get_creature_name(creature_id):
 
 
 
-def add_property(label, type, *, reflected_property_name=None):
+def add_property(label, type, *, reflected_property_name=None, extra_data=None):
     if reflected_property_name and type != "creature":
         raise ValueError("Reflexivity only makes sense with creatures.")
     cur = conn.cursor()
-    cur.execute("INSERT INTO properties (label, type) VALUES (?, ?)", (label, type))
+    print(repr(label), repr(type), repr(extra_data))
+    cur.execute(
+        "INSERT INTO properties (label, type, extra_data) VALUES (?, ?, ?)",
+        (label, type, extra_data),
+    )
     first_property_id = cur.lastrowid
     if reflected_property_name:
         if reflected_property_name is SELF:
@@ -183,7 +190,7 @@ def get_property(property_id):
     return cur.execute(
         """
             SELECT
-                label, type
+                label, type, extra_data
             FROM properties
             WHERE id = ?
         """,
