@@ -37,12 +37,38 @@ async def list_creatures(request):
         "<br>".join(
             f'<a hx-get="/creatures/{id}" hx-target="#container">{name}</a>'
             for id, name in ctrl.list_creatures(page=page)
-        )
+        ) + """
+        <br>
+        <button hx-get="/creatures/new" hx-swap="outerHTML">New creature</button>
+        """
     )
 
 
+@app.get("/creatures/new")
+async def new_creature_form(request):
+    return html("""
+        <form hx-post="/creatures/new" hx-swap="outerHTML">
+            <input name="name" placeholder="name"></input>
+            <button type="submit">»</button>
+        </form>
+    """)
+
+
+@app.post("/creatures/new")
+async def new_creature(request):
+    name = request.form["name"][0]
+    creature = ctrl.add_creature()
+    prop = next(id for id, label, type in ctrl.list_properties() if label == "name")
+    creature_id = ctrl.add_fact(creature, prop, name)
+    return html(f"""
+        <a hx-get="/creatures/{creature_id}" hx-target="#container">{name}</a>
+        <br>
+        <button hx-get="/creatures/new" hx-swap="outerHTML">New creature</button>
+    """)
+
+
 @app.get("/creatures/<creature_id>")
-async def view_creature(request, creature_id):
+async def view_creature(request, creature_id: int):
     facts = ctrl.get_creature(creature_id)
     if "name" in facts and facts["name"]:
         name = facts["name"][0]["value"]
@@ -63,11 +89,11 @@ async def view_creature(request, creature_id):
 
 
 @app.get("/facts/new/<creature_id>")
-async def new_fact_form(request, creature_id):
+async def new_fact_form(request, creature_id: int):
     props = ctrl.list_properties()
     return html(
         f"""
-        <form hx-post="/facts/new/{creature_id}">
+        <form hx-post="/facts/new/{creature_id}" hx-swap="outerHTML">
             <select name="property" hx-get="/facts/new/{creature_id}/property" hx-target="#valueinput">
                 <option value="">--Property--</option>
                 {"".join(f'''<option value="{id}">{label} <em>({type})</em></option>''' for id, label, type in props)}
@@ -79,18 +105,18 @@ async def new_fact_form(request, creature_id):
 
 
 @app.get("/facts/new/<creature_id>/property")
-async def new_fact_form_property_input(request, creature_id):
+async def new_fact_form_property_input(request, creature_id: int):
     label, type = ctrl.get_property(int(request.args["property"][0]))
     return html(
         f"""
-        {TYPES[type].input_html()}
+        {TYPES[type].input_html(creature_id)}
         <button type="submit">»</button>
         """
     )
 
 
 @app.post("/facts/new/<creature_id>")
-async def new_fact(request, creature_id):
+async def new_fact(request, creature_id: int):
     property_id = int(request.form["property"][0])
     label, type = ctrl.get_property(property_id)
     value = request.form["value"][0]
@@ -109,7 +135,7 @@ async def list_properties(request):
     return html(
         "<br>".join(
             f"{label} <em>({type})</em>"
-            for label, type in ctrl.list_properties()
+            for id, label, type in ctrl.list_properties()
         )
     )
 
