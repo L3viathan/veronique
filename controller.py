@@ -99,13 +99,28 @@ def get_creature(creature_id):
         facts.setdefault(label, []).append(
             {
                 "fact_id": fact_id,
-                "value": DECODERS[type](value),
-                "other_creature_id": other_creature_id,
+                "value": other_creature_id or DECODERS[type](value),
                 "label": label,
                 "type": type,
             }
         )
     return facts
+
+
+def get_creature_name(creature_id):
+    cur = conn.cursor()
+    rows = cur.execute(
+        """
+            SELECT f.value
+            FROM facts f
+            LEFT JOIN properties p ON f.property_id = p.id
+            WHERE f.creature_id = ? AND p.label = 'name'
+        """,
+        (creature_id,),
+    ).fetchall()
+    if rows:
+        return rows[0][0]
+    return "(no name)"
 
 
 
@@ -143,6 +158,30 @@ def delete_property(property_id):
     for id_to_delete in {property_id, reflected_property_id} - {None}:
         cur.execute("DELETE FROM properties WHERE id = ?", (id_to_delete,))
     conn.commit()
+
+
+def list_properties():
+    cur = conn.cursor()
+    return cur.execute(
+        """
+            SELECT
+                id, label, type
+            FROM properties
+        """,
+    ).fetchall()
+
+
+def get_property(property_id):
+    cur = conn.cursor()
+    return cur.execute(
+        """
+            SELECT
+                label, type
+            FROM properties
+            WHERE id = ?
+        """,
+        (property_id,),
+    ).fetchone()
 
 
 def add_fact(creature_id, property_id, value):
