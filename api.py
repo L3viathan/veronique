@@ -105,11 +105,11 @@ async def new_fact_form(request, creature_id: int):
     return html(
         f"""
         <form hx-post="/facts/new/{creature_id}" hx-swap="outerHTML">
-            <select name="property" hx-get="/facts/new/{creature_id}/property" hx-target="#valueinput">
+            <select name="property" hx-get="/facts/new/{creature_id}/property" hx-target="#valueinput" hx-swap="innerHTML">
                 <option selected disabled>--Property--</option>
                 {"".join(f'''<option value="{id}">{label} <em>({type})</em></option>''' for id, label, type in props)}
             </select>
-            <div id="valueinput"></div>
+            <span id="valueinput"></span>
         </form>
         """
     )
@@ -161,11 +161,11 @@ async def new_property_form(request):
         f"""
         <form hx-post="/properties/new" hx-swap="outerHTML">
             <input name="label" placeholder="label"></input>
-            <select name="type" hx-get="/properties/new/step2" hx-target="#step2">
+            <select name="type" hx-get="/properties/new/step2" hx-target="#step2" hx-swap="innerHTML">
             <option selected disabled>--Type--</option>
             {"".join(f'''<option value="{type}">{type}</option>''' for type in TYPES)}
             </select>
-            <div id="step2"></div>
+            <span id="step2"></span>
         </form>
     """
     )
@@ -178,13 +178,13 @@ async def new_property_form_step2(request):
         return html('<button type="submit">»</button>')
     return html(
         """
-        <select name="reflectivity" hx-get="/properties/new/step3" hx-target="#step3">
+        <select name="reflectivity" hx-get="/properties/new/step3" hx-target="#step3" hx-swap="innerHTML">
             <option selected disabled>--Reflectivity--</option>
             <option value="none">unidirectional</option>
             <option value="self">self-reflected</option>
             <option value="other">reflected</option>
         </select>
-        <div id="step3"></div>
+        <span id="step3"></span>
     """
     )
 
