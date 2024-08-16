@@ -2,12 +2,15 @@ import sqlite3
 
 conn = sqlite3.connect("veronique.db")
 
+PAGE_SIZE = 20
+
 ENCODERS = {
     "string": str,
 }
 
 DECODERS = {
     "string": str,
+    "creature": lambda _: None
 }
 SELF = object()
 
@@ -57,6 +60,53 @@ def delete_creature(creature_id):
     cur = conn.cursor()
     cur.execute("DELETE FROM creatures WHERE id = ?", (creature_id,))
     conn.commit()
+
+
+def list_creatures(page=1):
+    offset = (page - 1) * PAGE_SIZE
+    cur = conn.cursor()
+    return cur.execute(
+        """
+            SELECT
+                c.id, f.value
+            FROM creatures c
+            LEFT JOIN facts f ON f.creature_id = c.id
+            LEFT JOIN properties p ON f.property_id = p.id
+            WHERE p.label = 'name'
+            LIMIT 20 OFFSET ?
+        """,
+        (offset,),
+    ).fetchall()
+
+
+def get_creature(creature_id):
+    cur = conn.cursor()
+    facts = {}
+    for fact_id, value, other_creature_id, label, type in cur.execute(
+        """
+            SELECT
+                f.id,
+                f.value,
+                f.other_creature_id,
+                p.label,
+                p.type
+            FROM facts f
+            LEFT JOIN properties p ON f.property_id = p.id
+            WHERE f.creature_id = ?
+        """,
+        (creature_id,),
+    ).fetchall():
+        facts.setdefault(label, []).append(
+            {
+                "fact_id": fact_id,
+                "value": DECODERS[type](value),
+                "other_creature_id": other_creature_id,
+                "label": label,
+                "type": type,
+            }
+        )
+    return facts
+
 
 
 def add_property(label, type, *, reflected_property_name=None):
@@ -162,21 +212,21 @@ def delete_fact(fact_id):
     conn.commit()
 
 
-setup_tables()
-lover = add_property("lover", "creature", reflected_property_name=SELF)
-parent = add_property("parent", "creature", reflected_property_name="child")
-name = add_property("name", "string")
-# delete_property(1)
-# delete_property(3)
+# setup_tables()
+# lover = add_property("lover", "creature", reflected_property_name=SELF)
+# parent = add_property("parent", "creature", reflected_property_name="child")
+# name = add_property("name", "string")
+# # delete_property(1)
+# # delete_property(3)
 
-jonathan = add_creature()
-add_fact(jonathan, name, "Jonathan")
-laura = add_creature()
-add_fact(laura, name, "Laura")
-we_be_lovers = add_fact(laura, lover, jonathan)
+# jonathan = add_creature()
+# add_fact(jonathan, name, "Jonathan")
+# laura = add_creature()
+# add_fact(laura, name, "Laura")
+# we_be_lovers = add_fact(laura, lover, jonathan)
 
-# delete_fact(we_be_lovers)
+# # delete_fact(we_be_lovers)
 
-# example properties
-# cur.lastrowid
-# add_creature()
+# # example properties
+# # cur.lastrowid
+# # add_creature()
