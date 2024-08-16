@@ -20,7 +20,7 @@ SELF = object()
 
 def setup_tables():
     cur = conn.cursor()
-    cur.execute("CREATE TABLE creatures (id INTEGER PRIMARY KEY)")
+    cur.execute("CREATE TABLE creatures (id INTEGER PRIMARY KEY, name TEXT)")
     cur.execute(
         """
         CREATE TABLE properties
@@ -53,9 +53,9 @@ def setup_tables():
     )
 
 
-def add_creature():
+def add_creature(name):
     cur = conn.cursor()
-    cur.execute("INSERT INTO creatures DEFAULT VALUES")
+    cur.execute("INSERT INTO creatures (name) VALUES (?)", (name,))
     conn.commit()
     return cur.lastrowid
 
@@ -72,19 +72,15 @@ def list_creatures(page=1):
     return cur.execute(
         """
             SELECT
-                c.id, f.value
+                c.id, c.name
             FROM creatures c
-            LEFT JOIN facts f ON f.creature_id = c.id
-            LEFT JOIN properties p ON f.property_id = p.id
-            WHERE p.label = 'name'
-            GROUP BY c.id
             LIMIT 20 OFFSET ?
         """,
         (offset,),
     ).fetchall()
 
 
-def get_creature(creature_id):
+def get_creature_facts(creature_id):
     cur = conn.cursor()
     facts = {}
     for fact_id, value, other_creature_id, label, type in cur.execute(
@@ -116,16 +112,15 @@ def get_creature_name(creature_id):
     cur = conn.cursor()
     rows = cur.execute(
         """
-            SELECT f.value
-            FROM facts f
-            LEFT JOIN properties p ON f.property_id = p.id
-            WHERE f.creature_id = ? AND p.label = 'name'
+            SELECT name
+            FROM creatures
+            WHERE id = ?
         """,
         (creature_id,),
     ).fetchall()
     if rows:
         return rows[0][0]
-    return "(no name)"
+    return None
 
 
 
@@ -258,20 +253,9 @@ def delete_fact(fact_id):
 
 if __name__ == "__main__":
     setup_tables()
-    lover = add_property("lover", "creature", reflected_property_name=SELF)
-    parent = add_property("parent", "creature", reflected_property_name="child")
-    name = add_property("name", "string")
-    # delete_property(1)
-    # delete_property(3)
+    lover = add_property("in a relationship with", "creature", reflected_property_name=SELF)
+    parent = add_property("parent of", "creature", reflected_property_name="child of")
 
-    jonathan = add_creature()
-    add_fact(jonathan, name, "Jonathan")
-    laura = add_creature()
-    add_fact(laura, name, "Laura")
+    jonathan = add_creature("Jonathan")
+    laura = add_creature("Laura")
     we_be_lovers = add_fact(laura, lover, jonathan)
-
-    # delete_fact(we_be_lovers)
-
-    # example properties
-    # cur.lastrowid
-    # add_creature()

@@ -69,9 +69,7 @@ async def new_creature_form(request):
 @app.post("/creatures/new")
 async def new_creature(request):
     name = D(request.form)["name"]
-    creature = ctrl.add_creature()
-    prop = next(id for id, label, type in ctrl.list_properties() if label == "name")
-    creature_id = ctrl.add_fact(creature, prop, name)
+    creature_id = ctrl.add_creature(name)
     return html(
         f"""
         <a hx-get="/creatures/{creature_id}" hx-target="#container">{name}</a>
@@ -83,11 +81,8 @@ async def new_creature(request):
 
 @app.get("/creatures/<creature_id>")
 async def view_creature(request, creature_id: int):
-    facts = ctrl.get_creature(creature_id)
-    if "name" in facts and facts["name"]:
-        name = facts["name"][0]["value"]
-    else:
-        name = "(no name)"
+    facts = ctrl.get_creature_facts(creature_id)
+    name = ctrl.get_creature_name(creature_id)
     display_facts = []
     for row in chain.from_iterable(facts.values()):
         display_facts.append(
