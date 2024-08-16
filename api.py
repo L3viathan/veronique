@@ -9,6 +9,11 @@ app = Sanic("Veronique")
 def D(multival_dict):
     return {key: val[0] for key, val in multival_dict.items()}
 
+def _display_created(timestamp=None):
+    if timestamp:
+        return f'<span style="font-size: xx-small;">created {timestamp}</span>'
+    return '<span style="font-size: xx-small;">created just now</span>'
+
 
 @app.get("/")
 async def index(request):
@@ -86,7 +91,7 @@ async def view_creature(request, creature_id: int):
     display_facts = []
     for row in chain.from_iterable(facts.values()):
         display_facts.append(
-            f"<li>{row['label']}: {TYPES[row['type']].display_html(row['value'])}</li>"
+            f"<li>{row['label']}: {TYPES[row['type']].display_html(row['value'])}{_display_created(row['created_at'])}</li>"
         )
     return html(
         f"""
@@ -136,7 +141,7 @@ async def new_fact(request, creature_id: int):
     # FIXME: replace value with value from DB
     return html(
         f"""
-        <li>{label}: {TYPES[type].display_html(value)}</li>
+        <li>{label}: {TYPES[type].display_html(value)}{_display_created()}</li>
         <button hx-get="/facts/new/{creature_id}" hx-swap="outerHTML">New fact</button>
         """
     )

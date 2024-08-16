@@ -45,6 +45,7 @@ def setup_tables():
             value TEXT, -- for anything other than relations
             other_creature_id INTEGER,  -- for relations
             reflected_fact_id INTEGER,
+            created_at TIMESTAMP DEFAULT (datetime('now')),  -- always UTC
             -- valid_from, valid_until
             FOREIGN KEY(creature_id) REFERENCES creatures(id),
             FOREIGN KEY(property_id) REFERENCES property(id)
@@ -85,12 +86,13 @@ def list_creatures(page=1):
 def get_creature_facts(creature_id):
     cur = conn.cursor()
     facts = {}
-    for fact_id, value, other_creature_id, label, type in cur.execute(
+    for fact_id, value, other_creature_id, created_at, label, type in cur.execute(
         """
             SELECT
                 f.id,
                 f.value,
                 f.other_creature_id,
+                f.created_at,
                 p.label,
                 p.type
             FROM facts f
@@ -105,6 +107,7 @@ def get_creature_facts(creature_id):
                 "value": other_creature_id or DECODERS[type](value),
                 "label": label,
                 "type": type,
+                "created_at": created_at,
             }
         )
     return facts
