@@ -8,6 +8,7 @@ ENCODERS = {
     "string": str,
     "number": str,
     "color": str,
+    "date": str,
 }
 
 DECODERS = {
@@ -15,6 +16,7 @@ DECODERS = {
     "creature": lambda _: None,
     "number": float,
     "color": str,
+    "date": str,
 }
 SELF = object()
 

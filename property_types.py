@@ -1,3 +1,4 @@
+from datetime import date as datetime_date
 import controller as ctrl
 
 TYPES = {}
@@ -49,9 +50,36 @@ class number(PropertyType):
     def input_html(self, creature_id):
         return """<input type="number" step="any" name="value"></input>"""
 
+
 class color(PropertyType):
     def display_html(self, value):
-        return f'<span style="color: {value}; text-shadow: 0 0 3px black;">&#9632;</span> {value}'
+        return f"""
+            <span style="color: {value}; text-shadow: 0 0 3px black;">&#9632;</span>
+            {value}
+        """
 
     def input_html(self, creature_id):
         return """<input type="color" name="value"></input>"""
+
+
+class date(PropertyType):
+    def display_html(self, value):
+        d = datetime_date.fromisoformat(value)
+        today = datetime_date.today()
+        td = today - d
+        postposition = "ago" if abs(td) == td else "from now"
+        years = td.days // 365
+        today_that_year = today.replace(year=d.year)
+        days = -(today_that_year - d).days
+        if years and days:
+            context = f"{abs(years)} years {postposition} {days:+} days"
+        elif years:
+            context = f"{abs(years)} years {postposition} today"
+        elif days:
+            context = f"{days} days {postposition}"
+        else:
+            context = "today"
+        return f"🗓️{value} <em>({context})</em>"
+
+    def input_html(self, creature_id):
+        return """<input type="date" name="value"></input>"""
