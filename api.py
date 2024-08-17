@@ -9,6 +9,35 @@ app = Sanic("Veronique")
 def D(multival_dict):
     return {key: val[0] for key, val in multival_dict.items()}
 
+
+TEMPLATE = """
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <script src="htmx.js"></script>
+            <title>Veronique</title>
+            <style>
+                .hovercreated {{
+                    font-size: 50%;
+                    display: none;
+                }}
+                li:hover .hovercreated {{
+                    display: inline;
+                }}
+            </style>
+        </head>
+        <body>
+            <nav>
+                <a hx-get="/creatures" hx-select="#container" hx-push-url="/creatures" hx-target="#container">Creatures</a>
+                <a hx-get="/properties" hx-select="#container" hx-push-url="/properties" hx-target="#container">Properties</a>
+                <a hx-get="/types" hx-select="#container" hx-push-url="/types" hx-target="#container">Types</a>
+            </nav>
+            <hr>
+            <div id="container">{}</div>
+        </body>
+    </html>
+""".format
+
 def _display_created(timestamp=None):
     if timestamp:
         return f' <span class="hovercreated" style="font-size: xx-small;">created {timestamp}</span>'
@@ -17,46 +46,18 @@ def _display_created(timestamp=None):
 
 @app.get("/")
 async def index(request):
-    return html(
-        """
-        <!DOCTYPE html>
-        <html>
-            <head>
-                <script src="htmx.js"></script>
-                <title>Veronique</title>
-                <style>
-                    .hovercreated {
-                        font-size: 50%;
-                        display: none;
-                    }
-                    li:hover .hovercreated {
-                        display: inline;
-                    }
-                </style>
-            </head>
-            <body>
-                <nav>
-                    <a hx-get="/creatures" hx-target="#container">Creatures</a>
-                    <a hx-get="/properties" hx-target="#container">Properties</a>
-                    <a hx-get="/types" hx-target="#container">Types</a>
-                </nav>
-                <hr>
-                <div id="container"></div>
-            </body>
-        </html>
-        """
-    )
+    return html(TEMPLATE(""))
 
 
 @app.get("/types")
 async def list_types(request):
-    return html("<br>".join(TYPES))
+    return html(TEMPLATE("<br>".join(TYPES)))
 
 
 @app.get("/creatures")
 async def list_creatures(request):
     page = request.args.get("page", 1)
-    return html(
+    return html(TEMPLATE(
         "<br>".join(
             f'<a hx-get="/creatures/{id}" hx-target="#container">{name}</a>'
             for id, name in ctrl.list_creatures(page=page)
@@ -65,7 +66,7 @@ async def list_creatures(request):
         <br>
         <button hx-get="/creatures/new" hx-swap="outerHTML">New creature</button>
         """
-    )
+    ))
 
 
 @app.get("/creatures/new")
@@ -158,7 +159,7 @@ async def new_fact(request, creature_id: int):
 
 @app.get("/properties")
 async def list_properties(request):
-    return html(
+    return html(TEMPLATE(
         "<br>".join(
             f"{label} <em>({type})</em>" for id, label, type in ctrl.list_properties()
         )
@@ -166,7 +167,7 @@ async def list_properties(request):
         <br>
         <button hx-get="/properties/new" hx-swap="outerHTML">New property</button>
         """
-    )
+    ))
 
 
 @app.get("/properties/new")
