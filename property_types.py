@@ -32,7 +32,7 @@ class string(PropertyType):
 class creature(PropertyType):
     def display_html(self, value, created_at=None):
         name = ctrl.get_creature_name(value)
-        return f'<a hx-target="#container" hx-get="/creatures/{value}">🔗 {name}</a>'
+        return f'<a hx-push-url="true" hx-select="#container" hx-target="#container" hx-get="/creatures/{value}">🔗 {name}</a>'
 
     def input_html(self, creature_id, extra_data):
         # this won't scale, but good enough for now
