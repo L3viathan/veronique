@@ -10,33 +10,9 @@ def D(multival_dict):
     return {key: val[0] for key, val in multival_dict.items()}
 
 
-TEMPLATE = """
-    <!DOCTYPE html>
-    <html>
-        <head>
-            <script src="htmx.js"></script>
-            <title>Veronique</title>
-            <style>
-                .hovercreated {{
-                    font-size: 50%;
-                    display: none;
-                }}
-                li:hover .hovercreated {{
-                    display: inline;
-                }}
-            </style>
-        </head>
-        <body>
-            <nav>
-                <a hx-get="/creatures" hx-select="#container" hx-push-url="/creatures" hx-target="#container">Creatures</a>
-                <a hx-get="/properties" hx-select="#container" hx-push-url="/properties" hx-target="#container">Properties</a>
-                <a hx-get="/types" hx-select="#container" hx-push-url="/types" hx-target="#container">Types</a>
-            </nav>
-            <hr>
-            <div id="container">{}</div>
-        </body>
-    </html>
-""".format
+with open("template.html") as f:
+    TEMPLATE = f.read().format
+
 
 def _display_created(timestamp=None):
     if timestamp:
