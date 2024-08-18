@@ -48,11 +48,39 @@ async def index(request):
     return ""
 
 
-@app.get("/types")
+@app.get("/entity-types")
 @page
 async def list_types(request):
     types = ctrl.list_entity_types()
-    return "<br>".join(name for _, name in types)
+    return "<br>".join(name for _, name in types) + """
+    <br>
+    <button hx-get="/entity-types/new" hx-swap="outerHTML">New entity type</button>
+    """
+
+
+@app.get("/entity-types/new")
+@fragment
+async def new_entity_type_form(request):
+    types = ctrl.list_entity_types()
+    return f"""
+        <form hx-post="/entity-types/new" hx-swap="outerHTML">
+            <input name="name" placeholder="name"></input>
+            <button type="submit">»</button>
+        </form>
+    """
+
+
+@app.post("/entity-types/new")
+@fragment
+async def new_entity_type(request):
+    form = D(request.form)
+    name = form["name"]
+    entity_id = ctrl.add_entity_type(name)
+    return f"""
+        {name}
+        <br>
+        <button hx-get="/entity-types/new" hx-swap="outerHTML">New entity type</button>
+    """
 
 
 @app.get("/entities")
@@ -177,6 +205,7 @@ async def new_property_form(request):
     return f"""
         <form hx-post="/properties/new" hx-swap="outerHTML">
             <select name="subject_type">
+                <option selected disabled>--Subject--</option>
                 {"".join(type_options)}
             </select>
             <input name="label" placeholder="label"></input>
@@ -193,6 +222,7 @@ async def new_property_form(request):
 @fragment
 async def new_property_form_steps(request):
     args = D(request.args)
+    print(args)
     type = TYPES[args["data_type"]]
     if response := type.next_step(args):
         return response

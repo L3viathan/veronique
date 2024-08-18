@@ -38,7 +38,6 @@ class entity(PropertyType):
         # this won't scale, but good enough for now
         parts = []
         for other_entity_id, name in ctrl.list_entities(entity_type_id=prop["object_type_id"]):
-            print("Found entity", name)
             if other_entity_id == entity_id:
                 continue
             parts.append(
@@ -53,7 +52,7 @@ class entity(PropertyType):
 
     def next_step(self, args):
         type_options = []
-        for type_id, name in ctrl.list_types():
+        for type_id, name in ctrl.list_entity_types():
             type_options.append(f'<option value="{type_id}">{name}</option>')
         if "reflectivity" in args:
             if args["reflectivity"] in ("none", "self"):
@@ -62,11 +61,12 @@ class entity(PropertyType):
                 <input name="inversion"></input>
                 <button type="submit">»</button>
             """
-        return """
+        return f"""
             <select name="object_type">
+                <option selected disabled>--Object--</option>
                 {"".join(type_options)}
             </select>
-            <select name="reflectivity" hx-get="/properties/new/steps" hx-target="#step2" hx-swap="innerHTML" hx-include="[name='type']">
+            <select name="reflectivity" hx-get="/properties/new/steps" hx-target="#step2" hx-swap="innerHTML" hx-include="[name='data_type']">
                 <option selected disabled>--Reflectivity--</option>
                 <option value="none">unidirectional</option>
                 <option value="self">self-reflected</option>
