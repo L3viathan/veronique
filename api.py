@@ -1,5 +1,5 @@
 import functools
-from itertools import chain
+from itertools import chain, groupby
 from types import CoroutineType
 from sanic import Sanic, html, file
 import controller as ctrl
@@ -87,13 +87,25 @@ async def new_entity_type(request):
 @page
 async def list_entities(request):
     page = request.args.get("page", 1)
-    return "<br>".join(
-            f'<a hx-push-url="true" hx-get="/entities/{id}" hx-select="#container" hx-target="#container">{name}</a>'
-            for id, name in ctrl.list_entities(page=page)
-        ) + """
-    <br>
-    <button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>
-    """
+    entity_types = {
+        row["id"]: row["name"]
+        for row in ctrl.list_entity_types()
+    }
+    parts = []
+    for entity_type_id, group in groupby(ctrl.list_entities(page=page), lambda x: x["entity_type_id"]):
+        parts.append(f"<h2>{entity_types[entity_type_id]}</h2>")
+        for row in group:
+            parts.append(
+                f"""
+                <a
+                    hx-push-url="true"
+                    hx-get="/entities/{row["id"]}"
+                    hx-select="#container"
+                    hx-target="#container">{row["name"]}</a>
+                """,
+            )
+    parts.append("""<button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>""")
+    return "<br>".join(parts)
 
 
 @app.get("/entities/new")
@@ -222,7 +234,6 @@ async def new_property_form(request):
 @fragment
 async def new_property_form_steps(request):
     args = D(request.args)
-    print(args)
     type = TYPES[args["data_type"]]
     if response := type.next_step(args):
         return response

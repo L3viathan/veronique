@@ -37,11 +37,11 @@ class entity(PropertyType):
     def input_html(self, entity_id, prop):
         # this won't scale, but good enough for now
         parts = []
-        for other_entity_id, name in ctrl.list_entities(entity_type_id=prop["object_type_id"]):
-            if other_entity_id == entity_id:
+        for row in ctrl.list_entities(entity_type_id=prop["object_type_id"]):
+            if row["id"] == entity_id:
                 continue
             parts.append(
-                f'<option value="{other_entity_id}">{name}</option>',
+                f'<option value="{row["id"]}">{row["name"]}</option>',
             )
         return f"""
             <select name="value">

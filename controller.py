@@ -132,7 +132,7 @@ def list_entities(page=1, entity_type_id=None):
     values.append(offset)
     query = f"""
         SELECT
-            c.id, c.name
+            c.id, c.name, c.entity_type_id
         FROM entities c
         {condition}
         LIMIT 20 OFFSET ?
