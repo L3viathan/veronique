@@ -51,71 +51,79 @@ async def index(request):
 @app.get("/types")
 @page
 async def list_types(request):
-    return "<br>".join(TYPES)
+    types = ctrl.list_entity_types()
+    return "<br>".join(name for _, name in types)
 
 
-@app.get("/creatures")
+@app.get("/entities")
 @page
-async def list_creatures(request):
+async def list_entities(request):
     page = request.args.get("page", 1)
     return "<br>".join(
-            f'<a hx-push-url="true" hx-get="/creatures/{id}" hx-select="#container" hx-target="#container">{name}</a>'
-            for id, name in ctrl.list_creatures(page=page)
+            f'<a hx-push-url="true" hx-get="/entities/{id}" hx-select="#container" hx-target="#container">{name}</a>'
+            for id, name in ctrl.list_entities(page=page)
         ) + """
     <br>
-    <button hx-get="/creatures/new" hx-swap="outerHTML">New creature</button>
+    <button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>
     """
 
 
-@app.get("/creatures/new")
+@app.get("/entities/new")
 @fragment
-async def new_creature_form(request):
-    return """
-        <form hx-post="/creatures/new" hx-swap="outerHTML">
+async def new_entity_form(request):
+    types = ctrl.list_entity_types()
+    return f"""
+        <form hx-post="/entities/new" hx-swap="outerHTML">
             <input name="name" placeholder="name"></input>
+            <select name="entity_type">
+                <option selected disabled>--Entity Type--</option>
+                {"".join(f'''<option value="{choice_id}">{choice}</option>''' for choice_id, choice in types)}
+            </select>
             <button type="submit">»</button>
         </form>
     """
 
 
-@app.post("/creatures/new")
+@app.post("/entities/new")
 @fragment
-async def new_creature(request):
-    name = D(request.form)["name"]
-    creature_id = ctrl.add_creature(name)
+async def new_entity(request):
+    form = D(request.form)
+    name = form["name"]
+    entity_id = ctrl.add_entity(name, form["entity_type"])
     return f"""
-        <a hx-push-url="true" hx-get="/creatures/{creature_id}" hx-select="#container" hx-target="#container">{name}</a>
+        <a hx-push-url="true" hx-get="/entities/{entity_id}" hx-select="#container" hx-target="#container">{name}</a>
         <br>
-        <button hx-get="/creatures/new" hx-swap="outerHTML">New creature</button>
+        <button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>
     """
 
 
-@app.get("/creatures/<creature_id>")
+@app.get("/entities/<entity_id>")
 @page
-async def view_creature(request, creature_id: int):
-    facts = ctrl.get_creature_facts(creature_id)
-    name = ctrl.get_creature_name(creature_id)
+async def view_entity(request, entity_id: int):
+    facts = ctrl.get_entity_facts(entity_id)
+    name, _entity_type = ctrl.get_entity(entity_id)
     display_facts = []
     for row in chain.from_iterable(facts.values()):
         display_facts.append(
-            f"<li>{row['label']}: {TYPES[row['type']].display_html(row['value'], created_at=row['created_at'])}{_display_created(row['created_at'])}</li>"
+            f"<li>{row['label']}: {TYPES[row['data_type']].display_html(row['value'], created_at=row['created_at'])}{_display_created(row['created_at'])}</li>"
         )
     return f"""
         <h2>{name}</h2>
         <ul>
             {"".join(display_facts)}
-            <button hx-get="/facts/new/{creature_id}" hx-swap="outerHTML">New fact</button>
+            <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
         </ul>
     """
 
 
-@app.get("/facts/new/<creature_id>")
+@app.get("/facts/new/<entity_id>")
 @fragment
-async def new_fact_form(request, creature_id: int):
-    props = ctrl.list_properties()
+async def new_fact_form(request, entity_id: int):
+    name, entity_type = ctrl.get_entity(entity_id)
+    props = ctrl.list_properties(subject_type_id=entity_type)
     return f"""
-        <form hx-post="/facts/new/{creature_id}" hx-swap="outerHTML">
-            <select name="property" hx-get="/facts/new/{creature_id}/property" hx-target="#valueinput" hx-swap="innerHTML">
+        <form hx-post="/facts/new/{entity_id}" hx-swap="outerHTML">
+            <select name="property" hx-get="/facts/new/{entity_id}/property" hx-target="#valueinput" hx-swap="innerHTML">
                 <option selected disabled>--Property--</option>
                 {"".join(f'''<option value="{id}">{label} <em>({type})</em></option>''' for id, label, type in props)}
             </select>
@@ -124,28 +132,28 @@ async def new_fact_form(request, creature_id: int):
     """
 
 
-@app.get("/facts/new/<creature_id>/property")
+@app.get("/facts/new/<entity_id>/property")
 @fragment
-async def new_fact_form_property_input(request, creature_id: int):
-    label, type, extra_data = ctrl.get_property(int(D(request.args)["property"]))
+async def new_fact_form_property_input(request, entity_id: int):
+    prop = ctrl.get_property(int(D(request.args)["property"]))
     return f"""
-        {TYPES[type].input_html(creature_id, extra_data=extra_data)}
+        {TYPES[prop["data_type"]].input_html(entity_id, prop)}
         <button type="submit">»</button>
         """
 
 
-@app.post("/facts/new/<creature_id>")
+@app.post("/facts/new/<entity_id>")
 @fragment
-async def new_fact(request, creature_id: int):
+async def new_fact(request, entity_id: int):
     form = D(request.form)
     property_id = int(form["property"])
-    label, type, _ = ctrl.get_property(property_id)
+    prop = ctrl.get_property(property_id)
     value = form.get("value")
-    ctrl.add_fact(creature_id, property_id, value)
+    ctrl.add_fact(entity_id, property_id, value)
     # FIXME: replace value with value from DB
     return f"""
-        <li>{label}: {TYPES[type].display_html(value, created_at=None)}{_display_created()}</li>
-        <button hx-get="/facts/new/{creature_id}" hx-swap="outerHTML">New fact</button>
+        <li>{prop["label"]}: {TYPES[prop["data_type"]].display_html(value, created_at=None)}{_display_created()}</li>
+        <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
         """
 
 
@@ -163,12 +171,18 @@ async def list_properties(request):
 @app.get("/properties/new")
 @fragment
 async def new_property_form(request):
+    type_options = []
+    for type_id, name in ctrl.list_entity_types():
+        type_options.append(f'<option value="{type_id}">{name}</option>')
     return f"""
         <form hx-post="/properties/new" hx-swap="outerHTML">
+            <select name="subject_type">
+                {"".join(type_options)}
+            </select>
             <input name="label" placeholder="label"></input>
-            <select name="type" hx-get="/properties/new/steps" hx-target="#steps" hx-swap="innerHTML">
-            <option selected disabled>--Type--</option>
-            {"".join(f'''<option value="{type}">{type}</option>''' for type in TYPES)}
+            <select name="data_type" hx-get="/properties/new/steps" hx-target="#steps" hx-swap="innerHTML">
+                <option selected disabled>--Type--</option>
+                {"".join(f'''<option value="{data_type}">{data_type}</option>''' for data_type in TYPES)}
             </select>
             <span id="steps"></span>
         </form>
@@ -179,7 +193,7 @@ async def new_property_form(request):
 @fragment
 async def new_property_form_steps(request):
     args = D(request.args)
-    type = TYPES[args["type"]]
+    type = TYPES[args["data_type"]]
     if response := type.next_step(args):
         return response
     return '<button type="submit">»</button>'
@@ -189,10 +203,10 @@ async def new_property_form_steps(request):
 @fragment
 async def new_property(request):
     form = D(request.form)
-    type = TYPES[form["type"]]
+    type = TYPES[form["data_type"]]
     ctrl.add_property(
         form["label"],
-        form["type"],
+        form["data_type"],
         reflected_property_name=(
             None
             if form.get("reflectivity", "none") == "none"
@@ -200,10 +214,12 @@ async def new_property(request):
             if form["reflectivity"] == "self"
             else form["inversion"]
         ),
+        subject_type_id=form["subject_type"],
+        object_type_id=form.get("object_type"),
         extra_data=type.encode_extra_data(form),
     )
     return f"""
-        {form['label']} <em>({form['type']})</em>
+        {form['label']} <em>({form['data_type']})</em>
         <br>
         <button hx-get="/properties/new" hx-swap="outerHTML">New property</button>
     """
