@@ -249,7 +249,7 @@ def list_properties(subject_type_id=None, object_type_id=None):
     return cur.execute(
         f"""
             SELECT
-                id, label, data_type
+                id, label, data_type, subject_type_id, object_type_id
             FROM properties
             WHERE {" AND ".join(conditions)}
         """,
@@ -324,6 +324,24 @@ def add_fact(entity_id, property_id, value):
         first_fact_id = cur.lastrowid
     conn.commit()
     return first_fact_id
+
+
+def get_fact(fact_id):
+    cur = conn.cursor()
+    row = cur.execute(
+        """
+        SELECT
+            f.value AS value,
+            f.entity_id AS entity_id,
+            p.label AS label,
+            p.data_type AS data_type
+        FROM facts f
+        LEFT JOIN properties p ON f.property_id = p.id
+        WHERE f.id = ?
+        """,
+        (fact_id,)
+    ).fetchone()
+    return row
 
 
 def delete_fact(fact_id):

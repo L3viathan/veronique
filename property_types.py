@@ -21,18 +21,10 @@ class PropertyType:
         return None
 
 
-class string(PropertyType):
-    def display_html(self, value, created_at=None):
-        return f'<span style="color: #57e389;">"{value}"</span>'
-
-    def input_html(self, entity_id, prop):
-        return """<input type="text" name="value"></input>"""
-
-
 class entity(PropertyType):
     def display_html(self, value, created_at=None):
         name = ctrl.get_entity(value)[0]  # name
-        return f'<a hx-push-url="true" hx-select="#container" hx-target="#container" hx-get="/entities/{value}">🔗 {name}</a>'
+        return f'<a class="clickable entity-link" hx-push-url="true" hx-select="#container" hx-target="#container" hx-get="/entities/{value}">{name}</a>'
 
     def input_html(self, entity_id, prop):
         # this won't scale, but good enough for now
@@ -74,6 +66,14 @@ class entity(PropertyType):
             </select>
             <span id="step2"></span>
         """
+
+
+class string(PropertyType):
+    def display_html(self, value, created_at=None):
+        return f'<span style="color: #57e389;">"{value}"</span>'
+
+    def input_html(self, entity_id, prop):
+        return """<input type="text" name="value"></input>"""
 
 
 class number(PropertyType):

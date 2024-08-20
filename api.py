@@ -3,6 +3,7 @@ from itertools import chain, groupby
 from types import CoroutineType
 from sanic import Sanic, html, file
 import controller as ctrl
+import fragments as F
 from property_types import TYPES
 
 app = Sanic("Veronique")
@@ -36,12 +37,6 @@ def page(fn):
     return wrapper
 
 
-def _display_created(timestamp=None):
-    if timestamp:
-        return f' <span class="hovercreated" style="font-size: xx-small;">created {timestamp}</span>'
-    return ' <span class="hovercreated" style="font-size: xx-small;">created just now</span>'
-
-
 @app.get("/")
 @page
 async def index(request):
@@ -52,7 +47,7 @@ async def index(request):
 @page
 async def list_types(request):
     types = ctrl.list_entity_types()
-    return "<br>".join(name for _, name in types) + """
+    return "<br>".join(f"<strong>{name}</strong>" for _, name in types) + """
     <br>
     <button hx-get="/entity-types/new" hx-swap="outerHTML">New entity type</button>
     """
@@ -145,7 +140,7 @@ async def view_entity(request, entity_id: int):
     display_facts = []
     for row in chain.from_iterable(facts.values()):
         display_facts.append(
-            f"<li>{row['label']}: {TYPES[row['data_type']].display_html(row['value'], created_at=row['created_at'])}{_display_created(row['created_at'])}</li>"
+            f"<li>{F.fact(row)}</li>",
         )
     return f"""
         <h2>{name}</h2>
@@ -165,7 +160,7 @@ async def new_fact_form(request, entity_id: int):
         <form hx-post="/facts/new/{entity_id}" hx-swap="outerHTML">
             <select name="property" hx-get="/facts/new/{entity_id}/property" hx-target="#valueinput" hx-swap="innerHTML">
                 <option selected disabled>--Property--</option>
-                {"".join(f'''<option value="{id}">{label} <em>({type})</em></option>''' for id, label, type in props)}
+                {"".join(f'''<option value="{row["id"]}">{row["label"]} <em>({row["data_type"]})</em></option>''' for row in props)}
             </select>
             <span id="valueinput"></span>
         </form>
@@ -189,23 +184,33 @@ async def new_fact(request, entity_id: int):
     property_id = int(form["property"])
     prop = ctrl.get_property(property_id)
     value = form.get("value")
-    ctrl.add_fact(entity_id, property_id, value)
+    fact_id = ctrl.add_fact(entity_id, property_id, value)
+    fact = ctrl.get_fact(fact_id)
     # FIXME: replace value with value from DB
     return f"""
-        <li>{prop["label"]}: {TYPES[prop["data_type"]].display_html(value, created_at=None)}{_display_created()}</li>
+        <li>{F.fact(fact)}</li>
         <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
-        """
+    """
 
 
 @app.get("/properties")
 @page
 async def list_properties(request):
-    return "<br>".join(
-            f"{label} <em>({type})</em>" for id, label, type in ctrl.list_properties()
-        ) + """
-        <br>
-        <button hx-get="/properties/new" hx-swap="outerHTML">New property</button>
-        """
+    entity_types = {
+        row["id"]: row["name"]
+        for row in ctrl.list_entity_types()
+    }
+    parts = []
+    for row in ctrl.list_properties():
+        subject_type = entity_types[row["subject_type_id"]]
+        if row["data_type"] == "entity":
+            object_type = entity_types[row["object_type_id"]]
+            parts.append(f"<strong>{subject_type}</strong> {row['label']} <strong>{object_type}</strong>")
+        else:
+            parts.append(f"<strong>{subject_type}</strong> {row['label']} <em>{row['data_type']}</em>")
+
+    parts.append("""<button hx-get="/properties/new" hx-swap="outerHTML">New property</button>""")
+    return "<br>".join(parts)
 
 
 @app.get("/properties/new")
@@ -269,3 +274,8 @@ async def new_property(request):
 @app.get("/htmx.js")
 async def htmx_js(request):
     return await file("htmx.js", mime_type="text/javascript")
+
+
+@app.get("/style.css")
+async def style_css(request):
+    return await file("style.css", mime_type="text/css")
