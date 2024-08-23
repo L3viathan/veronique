@@ -70,7 +70,7 @@ class entity(PropertyType):
 
 class string(PropertyType):
     def display_html(self, value, created_at=None):
-        return f'<span style="color: #57e389;">"{value}"</span>'
+        return f'<span class="type-string">"{value}"</span>'
 
     def input_html(self, entity_id, prop):
         return """<input type="text" name="value"></input>"""
@@ -78,7 +78,7 @@ class string(PropertyType):
 
 class number(PropertyType):
     def display_html(self, value, created_at=None):
-        return f'<span style="color: orange">{value}</span>'
+        return f'<span class="type-number">{value}</span>'
 
     def input_html(self, entity_id, prop):
         return """<input type="number" step="any" name="value"></input>"""

@@ -143,33 +143,38 @@ def list_entities(page=1, entity_type_id=None):
     ).fetchall()
 
 
-def get_entity_facts(entity_id):
+def list_facts(*, property_id=None, entity_id=None):
+    # TODO: pagination
+    facts = []
     cur = conn.cursor()
-    facts = {}
-    for fact_id, value, other_entity_id, created_at, label, data_type in cur.execute(
-        """
-            SELECT
-                f.id,
-                f.value,
-                f.other_entity_id,
-                f.created_at,
-                p.label,
-                p.data_type
-            FROM facts f
-            LEFT JOIN properties p ON f.property_id = p.id
-            WHERE f.entity_id = ?
+    if property_id:
+        condition = "WHERE p.id = ?"
+        values = (property_id,)
+    else:
+        condition = "WHERE f.entity_id = ?"
+        values = (entity_id,)
+    for row in cur.execute(
+        f"""
+        SELECT
+            p.id AS property_id,
+            f.id AS fact_id,
+            f.value AS value,
+            f.other_entity_id AS object_id,
+            f.entity_id AS subject_id,
+            f.created_at AS created_at,
+            p.label AS label,
+            p.data_type AS data_type,
+            e.name AS subject_name
+        FROM facts f
+        LEFT JOIN properties p ON f.property_id = p.id
+        LEFT JOIN entities e ON f.entity_id = e.id
+        {condition}
         """,
-        (entity_id,),
+        values,
     ).fetchall():
-        facts.setdefault(label, []).append(
-            {
-                "fact_id": fact_id,
-                "value": other_entity_id or DECODERS[data_type](value),
-                "label": label,
-                "data_type": data_type,
-                "created_at": datetime.fromisoformat(created_at),
-            }
-        )
+        row = dict(row)
+        row["value"] = row["value"] or row["object_id"]
+        facts.append(row)
     return facts
 
 

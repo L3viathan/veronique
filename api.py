@@ -89,18 +89,21 @@ async def list_entities(request):
     parts = []
     for entity_type_id, group in groupby(ctrl.list_entities(page=page), lambda x: x["entity_type_id"]):
         parts.append(f"<h2>{entity_types[entity_type_id]}</h2>")
-        for row in group:
+        for i, row in enumerate(group):
+            if i:
+                parts.append("<br>")
             parts.append(
                 f"""
                 <a
+                    class="clickable entity-link"
                     hx-push-url="true"
                     hx-get="/entities/{row["id"]}"
                     hx-select="#container"
                     hx-target="#container">{row["name"]}</a>
                 """,
             )
-    parts.append("""<button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>""")
-    return "<br>".join(parts)
+    parts.append("""<br><button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>""")
+    return "".join(parts)
 
 
 @app.get("/entities/new")
@@ -135,12 +138,12 @@ async def new_entity(request):
 @app.get("/entities/<entity_id>")
 @page
 async def view_entity(request, entity_id: int):
-    facts = ctrl.get_entity_facts(entity_id)
+    facts = ctrl.list_facts(entity_id=entity_id)
     name, _entity_type = ctrl.get_entity(entity_id)
     display_facts = []
-    for row in chain.from_iterable(facts.values()):
+    for row in facts:
         display_facts.append(
-            f"<li>{F.fact(row)}</li>",
+            f"<li>{F.vp(row)}</li>",
         )
     return f"""
         <h2>{name}</h2>
@@ -149,6 +152,15 @@ async def view_entity(request, entity_id: int):
             <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
         </ul>
     """
+
+@app.get("/properties/<property_id>")
+@page
+async def view_property(request, property_id: int):
+    prop = ctrl.get_property(property_id)
+    parts = [f"""<h2>{prop["label"]}</h2>"""]
+    for row in ctrl.list_facts(property_id=property_id):
+        parts.append(F.fact(row))
+    return "".join(parts)
 
 
 @app.get("/facts/new/<entity_id>")
@@ -188,7 +200,7 @@ async def new_fact(request, entity_id: int):
     fact = ctrl.get_fact(fact_id)
     # FIXME: replace value with value from DB
     return f"""
-        <li>{F.fact(fact)}</li>
+        <li>{F.vp(fact)}</li>
         <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
     """
 
@@ -202,12 +214,7 @@ async def list_properties(request):
     }
     parts = []
     for row in ctrl.list_properties():
-        subject_type = entity_types[row["subject_type_id"]]
-        if row["data_type"] == "entity":
-            object_type = entity_types[row["object_type_id"]]
-            parts.append(f"<strong>{subject_type}</strong> {row['label']} <strong>{object_type}</strong>")
-        else:
-            parts.append(f"<strong>{subject_type}</strong> {row['label']} <em>{row['data_type']}</em>")
+        parts.append(F.property(row, entity_types))
 
     parts.append("""<button hx-get="/properties/new" hx-swap="outerHTML">New property</button>""")
     return "<br>".join(parts)
@@ -250,7 +257,7 @@ async def new_property_form_steps(request):
 async def new_property(request):
     form = D(request.form)
     type = TYPES[form["data_type"]]
-    ctrl.add_property(
+    property_id = ctrl.add_property(
         form["label"],
         form["data_type"],
         reflected_property_name=(
@@ -264,8 +271,13 @@ async def new_property(request):
         object_type_id=form.get("object_type"),
         extra_data=type.encode_extra_data(form),
     )
+    entity_types = {
+        row["id"]: row["name"]
+        for row in ctrl.list_entity_types()
+    }
+    row = ctrl.get_property(property_id)
     return f"""
-        {form['label']} <em>({form['data_type']})</em>
+        {F.property(row, entity_types)}
         <br>
         <button hx-get="/properties/new" hx-swap="outerHTML">New property</button>
     """
