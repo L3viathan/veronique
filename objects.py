@@ -37,7 +37,6 @@ class Model:
 
     def __pos__(self):
         if not self._populated:
-            print(f"Populating {self!r}")
             self._populated = True
             self.populate()
         return self
@@ -364,7 +363,7 @@ class Fact(Model):
                     (cur.lastrowid, first_fact_id),
                 )
         else:
-            value = Plain(value, data_type)
+            value = Plain(value, prop.data_type)
             cur.execute("""
                 INSERT INTO facts
                     (entity_id, property_id, value)
