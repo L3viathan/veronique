@@ -208,7 +208,7 @@ class Property(Model):
             self.reflected_property = None
 
     @classmethod
-    def new(cls, label, *, data_type, reflected_property_name, subject_type, object_type, extra_data):
+    def new(cls, label, *, data_type, subject_type, reflected_property_name=None, object_type=None, extra_data=None):
         if reflected_property_name and data_type.name != "entity":
             raise ValueError(f"Reflexivity only makes sense with entities, not with {data_type}.")
         cur = conn.cursor()
@@ -375,7 +375,7 @@ class Fact(Model):
                             (?, ?, ?, ?)
                     """,
                     (
-                        value, prop.reflected_property.id, entity.id, first_fact_id
+                        value.id, prop.reflected_property.id, entity.id, first_fact_id
                     ),
                 )
                 cur.execute(

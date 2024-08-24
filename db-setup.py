@@ -81,9 +81,9 @@ if __name__ == "__main__":
             object_type=human,
             reflected_property_name="child of",
         )
-        haircolor = O.Property.new("haircolor", TYPES["color"], subject_type=human)
-        birthday = O.Property.new("birthday", TYPES["date"], subject_type=human)
-        nickname = O.Property.new("nickname", TYPES["string"], subject_type=human)
+        haircolor = O.Property.new("haircolor", data_type=TYPES["color"], subject_type=human)
+        birthday = O.Property.new("birthday", data_type=TYPES["date"], subject_type=human)
+        nickname = O.Property.new("nickname", data_type=TYPES["string"], subject_type=human)
 
         jonathan = O.Entity.new("Jonathan", human)
         laura = O.Entity.new("Laura", human)
@@ -92,6 +92,6 @@ if __name__ == "__main__":
         O.Fact.new(laura, parent, david)
         O.Fact.new(jonathan, parent, david)
         O.Fact.new(laura, married, jonathan)
-        O.Fact.new(laura, haircolor, Plain("#2889be", TYPES["color"]))
-        O.Fact.new(laura, birthday, Plain("1991-03-29", TYPES["date"]))
-        O.Fact.new(laura, nickname, Plain("sarnthil", TYPES["string"]))
+        O.Fact.new(laura, haircolor, O.Plain("#2889be", TYPES["color"]))
+        O.Fact.new(laura, birthday, O.Plain("1991-03-29", TYPES["date"]))
+        O.Fact.new(laura, nickname, O.Plain("sarnthil", TYPES["string"]))
