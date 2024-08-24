@@ -122,14 +122,15 @@ async def new_entity(request):
 @page
 async def view_entity(request, entity_id: int):
     entity = O.Entity(entity_id)
-    display_facts = []
-    for fact in entity.facts:
-        display_facts.append(f"<li>{fact:short}</li>")
     return f"""
         <h2>{entity.name}</h2>
         <ul>
-            {"".join(display_facts)}
+            {"".join(f"<li>{fact:short}</li>" for fact in entity.facts)}
             <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
+        </ul>
+        <h3>References</h3>
+        <ul>
+            {"".join(f"<li>{fact}</li>" for fact in entity.incoming_facts)}
         </ul>
     """
 

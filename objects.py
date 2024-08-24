@@ -155,6 +155,22 @@ class Entity(Model):
         ).fetchall():
             yield Fact(row["id"])
 
+    @property
+    def incoming_facts(self):
+        cur = conn.cursor()
+        for row in cur.execute(
+            f"""
+            SELECT
+                f.id
+            FROM facts f
+            LEFT JOIN properties p
+            ON f.property_id = p.id
+            WHERE f.other_entity_id = ? AND p.reflected_property_id <> p.id
+            """,
+            (self.id,),
+        ).fetchall():
+            yield Fact(row["id"])
+
 
 class Property(Model):
     fields = ("label", "data_type", "extra_data", "subject_type", "object_type", "reflected_property")
