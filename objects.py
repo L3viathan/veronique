@@ -165,7 +165,7 @@ class Entity(Model):
             FROM facts f
             LEFT JOIN properties p
             ON f.property_id = p.id
-            WHERE f.other_entity_id = ? AND p.reflected_property_id <> p.id
+            WHERE f.other_entity_id = ? AND (p.reflected_property_id IS NULL OR p.reflected_property_id <> p.id)
             """,
             (self.id,),
         ).fetchall():
