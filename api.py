@@ -84,7 +84,7 @@ async def list_entities(request):
     for i, entity in enumerate(O.Entity.all()):
         if i:
             parts.append("<br>")
-        parts.append(str(entity))
+        parts.append(f"{entity:full}")
     parts.append("""<br><button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>""")
     return "".join(parts)
 
@@ -133,6 +133,36 @@ async def view_entity(request, entity_id: int):
             {"".join(f"<li>{fact}</li>" for fact in entity.incoming_facts)}
         </ul>
     """
+
+@app.get("/entity-types/<entity_type_id>")
+@page
+async def view_entity_type(request, entity_type_id: int):
+    entity_type = O.EntityType(entity_type_id)
+    entities = O.Entity.all(entity_type=entity_type)
+    return f"""
+        {entity_type:heading}
+        <ul>
+            {"".join(f"<li>{entity}</li>" for entity in entities)}
+        </ul>
+    """
+
+
+@app.get("/entity-types/<entity_type_id>/rename")
+@fragment
+async def rename_entity_type_form(request, entity_type_id: int):
+    entity_type = O.EntityType(entity_type_id)
+    return f"{entity_type:rename-form}"
+
+
+@app.post("/entity-types/<entity_type_id>/rename")
+@fragment
+async def rename_entity_type(request, entity_type_id: int):
+    entity_type = O.EntityType(entity_type_id)
+    name = D(request.form)["name"]
+    if name:
+        entity_type.rename(name)
+    return f"{entity_type:heading}"
+
 
 @app.get("/entities/<entity_id>/rename")
 @fragment

@@ -88,8 +88,35 @@ class EntityType(Model):
         conn.commit()
         return cls(cur.lastrowid)
 
+    def rename(self, name):
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            UPDATE entity_types
+            SET name=?
+            WHERE id = ?
+            """,
+            (name, self.id),
+        )
+        conn.commit()
+        self.name = name
+
+    def __format__(self, fmt):
+        if fmt == "rename-form":
+            return f'<input name="name" value="{self.name}" hx-post="/entity-types/{self.id}/rename" hx-swap="outerHTML">'
+        elif fmt == "heading":
+            return f'<h2 hx-get="/entity-types/{self.id}/rename" hx-swap="outerHTML">{self.name}</h2>'
+        else:
+            return f"""<a
+                class="clickable entity-type"
+                hx-push-url="true"
+                hx-get="/entity-types/{self.id}"
+                hx-select="#container"
+                hx-target="#container"
+            >{self.name}</a>"""
+
     def __str__(self):
-        return f"<strong>{self.name}</strong>"
+        return f"{self}"
 
 
 class Entity(Model):
@@ -143,6 +170,8 @@ class Entity(Model):
             return f'<input name="name" value="{self.name}" hx-post="/entities/{self.id}/rename" hx-swap="outerHTML">'
         elif fmt == "heading":
             return f'<h2 hx-get="/entities/{self.id}/rename" hx-swap="outerHTML">{self.name}</h2>'
+        elif fmt == "full":
+            return f'<a class="clickable entity-link" hx-push-url="true" hx-select="#container" hx-target="#container" hx-get="/entities/{self.id}">{self.name}</a> ({self.entity_type})'
         else:
             return f'<a class="clickable entity-link" hx-push-url="true" hx-select="#container" hx-target="#container" hx-get="/entities/{self.id}">{self.name}</a>'
 
