@@ -291,19 +291,27 @@ class Property(Model):
 
     def __format__(self, fmt):
         if fmt == "full":
+            arrow = (
+                "" if self.object_type is None  # not a entity-entity link
+                else "⭢" if self.reflected_property is None
+                else "⮂" if self.reflected_property.id != self.id
+                else "⭤"
+            )
             return f"""<a
+                class="clickable property"
                 hx-push-url="true"
                 hx-get="/properties/{self.id}"
                 hx-select="#container"
                 hx-target="#container"
-            >{self.subject_type} {self.label} {self.object_type or self.data_type}</a>"""
+            >{self.subject_type} {self.label} {self.object_type or self.data_type}{arrow}</a>"""
         else:
             return f"""<a
+                class="clickable property"
                 hx-get="/properties/{self.id}"
                 hx-push-url="true"
                 hx-select="#container"
                 hx-target="#container"
-            class="clickable property">{self.label}</a>"""
+            >{self.label}</a>"""
 
     def __str__(self):
         return f"{self}"
@@ -358,7 +366,7 @@ class Fact(Model):
                 ),
             )
             first_fact_id = cur.lastrowid
-            if prop.reflected_property.id:
+            if prop.reflected_property:
                 cur.execute(
                     """
                         INSERT INTO facts

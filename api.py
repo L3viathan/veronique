@@ -190,7 +190,7 @@ async def new_fact(request, entity_id: int):
 @app.get("/properties")
 @page
 async def list_properties(request):
-    parts = [str(prop) for prop in O.Property.all()]
+    parts = [f"{prop:full}" for prop in O.Property.all()]
     parts.append("""<button hx-get="/properties/new" hx-swap="outerHTML">New property</button>""")
     return "<br>".join(parts)
 
