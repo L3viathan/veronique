@@ -138,8 +138,29 @@ class Entity(Model):
         ).fetchall():
             yield cls(row["id"])
 
+    def __format__(self, fmt):
+        if fmt == "rename-form":
+            return f'<input name="name" value="{self.name}" hx-post="/entities/{self.id}/rename" hx-swap="outerHTML">'
+        elif fmt == "heading":
+            return f'<h2 hx-get="/entities/{self.id}/rename" hx-swap="outerHTML">{self.name}</h2>'
+        else:
+            return f'<a class="clickable entity-link" hx-push-url="true" hx-select="#container" hx-target="#container" hx-get="/entities/{self.id}">{self.name}</a>'
+
     def __str__(self):
-        return f'<a class="clickable entity-link" hx-push-url="true" hx-select="#container" hx-target="#container" hx-get="/entities/{self.id}">{self.name}</a>'
+        return f"{self}"
+
+    def rename(self, name):
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            UPDATE entities
+            SET name=?
+            WHERE id = ?
+            """,
+            (name, self.id),
+        )
+        conn.commit()
+        self.name = name
 
     @property
     def facts(self):

@@ -123,7 +123,7 @@ async def new_entity(request):
 async def view_entity(request, entity_id: int):
     entity = O.Entity(entity_id)
     return f"""
-        <h2>{entity.name}</h2>
+        {entity:heading}
         <ul>
             {"".join(f"<li>{fact:short}</li>" for fact in entity.facts)}
             <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
@@ -133,6 +133,23 @@ async def view_entity(request, entity_id: int):
             {"".join(f"<li>{fact}</li>" for fact in entity.incoming_facts)}
         </ul>
     """
+
+@app.get("/entities/<entity_id>/rename")
+@fragment
+async def rename_entity_form(request, entity_id: int):
+    entity = O.Entity(entity_id)
+    return f"{entity:rename-form}"
+
+
+@app.post("/entities/<entity_id>/rename")
+@fragment
+async def rename_entity(request, entity_id: int):
+    entity = O.Entity(entity_id)
+    name = D(request.form)["name"]
+    if name:
+        entity.rename(name)
+    return f"{entity:heading}"
+
 
 @app.get("/properties/<property_id>")
 @page
