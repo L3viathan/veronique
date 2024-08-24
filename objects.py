@@ -111,9 +111,9 @@ class Entity(Model):
         self.entity_type = EntityType(row["entity_type_id"])
 
     @classmethod
-    def new(cls, name, entity_type_id):
+    def new(cls, name, entity_type):
         cur = conn.cursor()
-        cur.execute("INSERT INTO entities (name, entity_type_id) VALUES (?, ?)", (name, entity_type_id))
+        cur.execute("INSERT INTO entities (name, entity_type_id) VALUES (?, ?)", (name, entity_type.id))
         conn.commit()
         return Entity(cur.lastrowid)
 
@@ -193,7 +193,7 @@ class Property(Model):
 
     @classmethod
     def new(cls, label, *, data_type, reflected_property_name, subject_type, object_type, extra_data):
-        if reflected_property_name and data_type is not TYPES["entity"]:
+        if reflected_property_name and data_type.name != "entity":
             raise ValueError(f"Reflexivity only makes sense with entities, not with {data_type}.")
         cur = conn.cursor()
         cur.execute(
@@ -329,7 +329,7 @@ class Fact(Model):
     @classmethod
     def new(cls, entity, prop, value):
         cur = conn.cursor()
-        if prop.data_type is TYPES["entity"]:
+        if prop.data_type.name == "entity":
             cur.execute(
                 """
                     INSERT INTO facts
@@ -338,7 +338,7 @@ class Fact(Model):
                         (?, ?, ?)
                 """,
                 (
-                    entity.id, prop.id, value
+                    entity.id, prop.id, value.id
                 ),
             )
             first_fact_id = cur.lastrowid
@@ -363,7 +363,6 @@ class Fact(Model):
                     (cur.lastrowid, first_fact_id),
                 )
         else:
-            value = Plain(value, prop.data_type)
             cur.execute("""
                 INSERT INTO facts
                     (entity_id, property_id, value)

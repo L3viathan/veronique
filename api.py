@@ -110,7 +110,7 @@ async def new_entity_form(request):
 async def new_entity(request):
     form = D(request.form)
     name = form["name"]
-    entity = O.Entity.new(name, form["entity_type"])
+    entity = O.Entity.new(name, O.Entity(int(form["entity_type"])))
     return f"""
         {entity}
         <br>
@@ -175,8 +175,11 @@ async def new_fact(request, entity_id: int):
     form = D(request.form)
     prop = O.Property(int(form["property"]))
     value = form.get("value")
+    if prop.data_type.name == "entity":
+        value = O.Entity(int(value))
+    else:
+        value = O.Plain(value, prop.data_type)
     fact = O.Fact.new(O.Entity(entity_id), prop, value)
-    # FIXME: replace value with value from DB
     return f"""
         <li>{fact:short}</li>
         <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
