@@ -2,8 +2,7 @@ import functools
 from itertools import chain, groupby
 from types import CoroutineType
 from sanic import Sanic, html, file
-import controller as ctrl
-import fragments as F
+import objects as O
 from property_types import TYPES
 
 app = Sanic("Veronique")
@@ -46,8 +45,8 @@ async def index(request):
 @app.get("/entity-types")
 @page
 async def list_types(request):
-    types = ctrl.list_entity_types()
-    return "<br>".join(f"<strong>{name}</strong>" for _, name in types) + """
+    types = O.EntityType.all()
+    return "<br>".join(str(type_) for type_ in types) + """
     <br>
     <button hx-get="/entity-types/new" hx-swap="outerHTML">New entity type</button>
     """
@@ -56,7 +55,6 @@ async def list_types(request):
 @app.get("/entity-types/new")
 @fragment
 async def new_entity_type_form(request):
-    types = ctrl.list_entity_types()
     return f"""
         <form hx-post="/entity-types/new" hx-swap="outerHTML">
             <input name="name" placeholder="name"></input>
@@ -70,9 +68,9 @@ async def new_entity_type_form(request):
 async def new_entity_type(request):
     form = D(request.form)
     name = form["name"]
-    entity_id = ctrl.add_entity_type(name)
+    entity_type = O.EntityType.new(name)
     return f"""
-        {name}
+        {entity_type}
         <br>
         <button hx-get="/entity-types/new" hx-swap="outerHTML">New entity type</button>
     """
@@ -81,27 +79,12 @@ async def new_entity_type(request):
 @app.get("/entities")
 @page
 async def list_entities(request):
-    page = request.args.get("page", 1)
-    entity_types = {
-        row["id"]: row["name"]
-        for row in ctrl.list_entity_types()
-    }
+    page = request.args.get("page", 1)  # TODO
     parts = []
-    for entity_type_id, group in groupby(ctrl.list_entities(page=page), lambda x: x["entity_type_id"]):
-        parts.append(f"<h2>{entity_types[entity_type_id]}</h2>")
-        for i, row in enumerate(group):
-            if i:
-                parts.append("<br>")
-            parts.append(
-                f"""
-                <a
-                    class="clickable entity-link"
-                    hx-push-url="true"
-                    hx-get="/entities/{row["id"]}"
-                    hx-select="#container"
-                    hx-target="#container">{row["name"]}</a>
-                """,
-            )
+    for i, entity in enumerate(O.Entity.all()):
+        if i:
+            parts.append("<br>")
+        parts.append(str(entity))
     parts.append("""<br><button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>""")
     return "".join(parts)
 
@@ -109,13 +92,13 @@ async def list_entities(request):
 @app.get("/entities/new")
 @fragment
 async def new_entity_form(request):
-    types = ctrl.list_entity_types()
+    types = O.EntityType.all()
     return f"""
         <form hx-post="/entities/new" hx-swap="outerHTML">
             <input name="name" placeholder="name"></input>
             <select name="entity_type">
                 <option selected disabled>--Entity Type--</option>
-                {"".join(f'''<option value="{choice_id}">{choice}</option>''' for choice_id, choice in types)}
+                {"".join(f'''<option value="{et.id}">{et.name}</option>''' for et in types)}
             </select>
             <button type="submit">»</button>
         </form>
@@ -127,9 +110,9 @@ async def new_entity_form(request):
 async def new_entity(request):
     form = D(request.form)
     name = form["name"]
-    entity_id = ctrl.add_entity(name, form["entity_type"])
+    entity = O.Entity.new(name, form["entity_type"])
     return f"""
-        <a hx-push-url="true" hx-get="/entities/{entity_id}" hx-select="#container" hx-target="#container">{name}</a>
+        {entity}
         <br>
         <button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>
     """
@@ -138,15 +121,12 @@ async def new_entity(request):
 @app.get("/entities/<entity_id>")
 @page
 async def view_entity(request, entity_id: int):
-    facts = ctrl.list_facts(entity_id=entity_id)
-    name, _entity_type = ctrl.get_entity(entity_id)
+    entity = O.Entity(entity_id)
     display_facts = []
-    for row in facts:
-        display_facts.append(
-            f"<li>{F.vp(row)}</li>",
-        )
+    for fact in entity.facts:
+        display_facts.append(f"<li>{fact:short}</li>")
     return f"""
-        <h2>{name}</h2>
+        <h2>{entity.name}</h2>
         <ul>
             {"".join(display_facts)}
             <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
@@ -156,23 +136,23 @@ async def view_entity(request, entity_id: int):
 @app.get("/properties/<property_id>")
 @page
 async def view_property(request, property_id: int):
-    prop = ctrl.get_property(property_id)
-    parts = [f"""<h2>{prop["label"]}</h2>"""]
-    for row in ctrl.list_facts(property_id=property_id):
-        parts.append(F.fact(row))
+    prop = O.Property(property_id)
+    parts = [f"""<h2>{prop.label}</h2>"""]
+    for fact in prop.facts:
+        parts.append(str(fact))
     return "".join(parts)
 
 
 @app.get("/facts/new/<entity_id>")
 @fragment
 async def new_fact_form(request, entity_id: int):
-    name, entity_type = ctrl.get_entity(entity_id)
-    props = ctrl.list_properties(subject_type_id=entity_type)
+    entity = O.Entity(entity_id)
+    props = O.Property.all(subject_type=entity.entity_type)
     return f"""
         <form hx-post="/facts/new/{entity_id}" hx-swap="outerHTML">
             <select name="property" hx-get="/facts/new/{entity_id}/property" hx-target="#valueinput" hx-swap="innerHTML">
                 <option selected disabled>--Property--</option>
-                {"".join(f'''<option value="{row["id"]}">{row["label"]} <em>({row["data_type"]})</em></option>''' for row in props)}
+                {"".join(f'''<option value="{prop.id}">{prop.label} ({prop.data_type})</option>''' for prop in props)}
             </select>
             <span id="valueinput"></span>
         </form>
@@ -182,9 +162,9 @@ async def new_fact_form(request, entity_id: int):
 @app.get("/facts/new/<entity_id>/property")
 @fragment
 async def new_fact_form_property_input(request, entity_id: int):
-    prop = ctrl.get_property(int(D(request.args)["property"]))
+    prop = O.Property(int(D(request.args)["property"]))
     return f"""
-        {TYPES[prop["data_type"]].input_html(entity_id, prop)}
+        {prop.data_type.input_html(entity_id, prop)}
         <button type="submit">»</button>
         """
 
@@ -193,14 +173,12 @@ async def new_fact_form_property_input(request, entity_id: int):
 @fragment
 async def new_fact(request, entity_id: int):
     form = D(request.form)
-    property_id = int(form["property"])
-    prop = ctrl.get_property(property_id)
+    prop = O.Property(int(form["property"]))
     value = form.get("value")
-    fact_id = ctrl.add_fact(entity_id, property_id, value)
-    fact = ctrl.get_fact(fact_id)
+    fact = O.Fact.new(O.Entity(entity_id), prop, value)
     # FIXME: replace value with value from DB
     return f"""
-        <li>{F.vp(fact)}</li>
+        <li>{fact:short}</li>
         <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
     """
 
@@ -208,14 +186,7 @@ async def new_fact(request, entity_id: int):
 @app.get("/properties")
 @page
 async def list_properties(request):
-    entity_types = {
-        row["id"]: row["name"]
-        for row in ctrl.list_entity_types()
-    }
-    parts = []
-    for row in ctrl.list_properties():
-        parts.append(F.property(row, entity_types))
-
+    parts = [str(prop) for prop in O.Property.all()]
     parts.append("""<button hx-get="/properties/new" hx-swap="outerHTML">New property</button>""")
     return "<br>".join(parts)
 
@@ -224,8 +195,8 @@ async def list_properties(request):
 @fragment
 async def new_property_form(request):
     type_options = []
-    for type_id, name in ctrl.list_entity_types():
-        type_options.append(f'<option value="{type_id}">{name}</option>')
+    for entity_type in O.EntityType.all():
+        type_options.append(f'<option value="{entity_type.id}">{entity_type}</option>')
     return f"""
         <form hx-post="/properties/new" hx-swap="outerHTML">
             <select name="subject_type">
@@ -256,28 +227,23 @@ async def new_property_form_steps(request):
 @fragment
 async def new_property(request):
     form = D(request.form)
-    type = TYPES[form["data_type"]]
-    property_id = ctrl.add_property(
+    data_type = TYPES[form["data_type"]]
+    prop = O.Property.new(
         form["label"],
-        form["data_type"],
+        data_type=data_type,
         reflected_property_name=(
             None
             if form.get("reflectivity", "none") == "none"
-            else ctrl.SELF
+            else O.SELF
             if form["reflectivity"] == "self"
             else form["inversion"]
         ),
-        subject_type_id=form["subject_type"],
-        object_type_id=form.get("object_type"),
-        extra_data=type.encode_extra_data(form),
+        subject_type=O.EntityType(int(form["subject_type"])),
+        object_type=O.EntityType(int(form["object_type"])) if "object_type" in form else None,
+        extra_data=data_type.encode_extra_data(form),
     )
-    entity_types = {
-        row["id"]: row["name"]
-        for row in ctrl.list_entity_types()
-    }
-    row = ctrl.get_property(property_id)
     return f"""
-        {F.property(row, entity_types)}
+        {prop}
         <br>
         <button hx-get="/properties/new" hx-swap="outerHTML">New property</button>
     """

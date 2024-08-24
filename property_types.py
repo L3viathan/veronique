@@ -1,9 +1,16 @@
 import datetime
-import controller as ctrl
+import objects as O
 
 TYPES = {}
 
+def float_int(val):
+    val = float(val)
+    if val.is_integer():
+        val = int(val)
+    return val
 
+
+# these are the data_types
 class PropertyType:
     def __init_subclass__(cls):
         TYPES[cls.__name__] = cls()
@@ -20,20 +27,33 @@ class PropertyType:
     def encode_extra_data(self, form):
         return None
 
+    def encode(self, value):
+        return str(value)
+
+    def decode(self, encoded):
+        return str(encoded)
+
+    def __str__(self):
+        return f"<em>{self.name}</em>"
+
+    @property
+    def name(self):
+        return type(self).__name__
+
 
 class entity(PropertyType):
     def display_html(self, value, created_at=None):
-        name = ctrl.get_entity(value)[0]  # name
-        return f'<a class="clickable entity-link" hx-push-url="true" hx-select="#container" hx-target="#container" hx-get="/entities/{value}">{name}</a>'
+        raise RuntimeError("How did we end up here? Entities are displayed differently")
 
     def input_html(self, entity_id, prop):
         # this won't scale, but good enough for now
+        # FIXME: why do we get the entity_id here, not the entity?
         parts = []
-        for row in ctrl.list_entities(entity_type_id=prop["object_type_id"]):
-            if row["id"] == entity_id:
+        for entity in O.Entity.all(entity_type=prop.object_type):
+            if entity.id == entity_id:
                 continue
             parts.append(
-                f'<option value="{row["id"]}">{row["name"]}</option>',
+                f'<option value="{entity.id}">{entity.name}</option>',
             )
         return f"""
             <select name="value">
@@ -44,8 +64,8 @@ class entity(PropertyType):
 
     def next_step(self, args):
         type_options = []
-        for type_id, name in ctrl.list_entity_types():
-            type_options.append(f'<option value="{type_id}">{name}</option>')
+        for entity_type in O.EntityType.all():
+            type_options.append(f'<option value="{entity_type.id}">{entity_type}</option>')
         if "reflectivity" in args:
             if args["reflectivity"] in ("none", "self"):
                 return None
@@ -82,6 +102,9 @@ class number(PropertyType):
 
     def input_html(self, entity_id, prop):
         return """<input type="number" step="any" name="value"></input>"""
+
+    def decode(self, encoded):
+        return float_int(encoded)
 
 
 class color(PropertyType):
@@ -128,6 +151,12 @@ class boolean(PropertyType):
     def input_html(self, entity_id, prop):
         return """<input type="checkbox" name="value"></input>"""
 
+    def encode(self, value):
+        return value or "off"
+
+    def decode(self, value):
+        return value == "on"
+
 
 class enum(PropertyType):
     def display_html(self, value, created_at=None):
@@ -165,3 +194,6 @@ class age(PropertyType):
         return """
             <input type="number" min=0 name="value"></input>
         """
+
+    def decode(self, encoded):
+        return float_int(encoded)
