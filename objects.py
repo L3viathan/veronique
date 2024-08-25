@@ -181,7 +181,7 @@ class Entity(Model):
     def rename(self, name):
         cur = conn.cursor()
         cur.execute(
-            f"""
+            """
             UPDATE entities
             SET name=?
             WHERE id = ?
@@ -195,7 +195,7 @@ class Entity(Model):
     def facts(self):
         cur = conn.cursor()
         for row in cur.execute(
-            f"""
+            """
             SELECT
                 id
             FROM facts
@@ -209,7 +209,7 @@ class Entity(Model):
     def incoming_facts(self):
         cur = conn.cursor()
         for row in cur.execute(
-            f"""
+            """
             SELECT
                 f.id
             FROM facts f
@@ -305,7 +305,7 @@ class Property(Model):
     def facts(self):
         cur = conn.cursor()
         for row in cur.execute(
-            f"""
+            """
             SELECT
                 id
             FROM facts

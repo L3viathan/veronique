@@ -1,11 +1,28 @@
+import os
 import functools
+import base64
 from itertools import chain, groupby
 from types import CoroutineType
-from sanic import Sanic, html, file
+from sanic import Sanic, HTTPResponse, html, file
 import objects as O
 from property_types import TYPES
 
 app = Sanic("Veronique")
+
+@app.on_request
+async def auth(request):
+    try:
+        correct_auth = os.environ["VERONIQUE_CREDS"]
+        auth = request.headers["Authorization"]
+        _, _, encoded = auth.partition(" ")
+        if base64.b64decode(encoded).decode() != correct_auth:
+            raise ValueError
+    except (KeyError, AssertionError, ValueError):
+        return HTTPResponse(
+            body="401 Unauthorized",
+            status=401,
+            headers={"WWW-Authenticate": 'Basic realm="Veronique access"'},
+        )
 
 
 def D(multival_dict):
