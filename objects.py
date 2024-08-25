@@ -113,7 +113,7 @@ class EntityType(Model):
                 hx-get="/entity-types/{self.id}"
                 hx-select="#container"
                 hx-target="#container"
-            >{self.name}</a>"""
+            ><strong>{self.name}</strong></a>"""
 
     def __str__(self):
         return f"{self}"
@@ -199,7 +199,7 @@ class Entity(Model):
             SELECT
                 id
             FROM facts
-            WHERE entity_id = ?
+            WHERE subject_id = ?
             """,
             (self.id,),
         ).fetchall():
@@ -215,7 +215,7 @@ class Entity(Model):
             FROM facts f
             LEFT JOIN properties p
             ON f.property_id = p.id
-            WHERE f.other_entity_id = ? AND (p.reflected_property_id IS NULL OR p.reflected_property_id <> p.id)
+            WHERE f.object_id = ? AND (p.reflected_property_id IS NULL OR p.reflected_property_id <> p.id)
             """,
             (self.id,),
         ).fetchall():
@@ -347,13 +347,15 @@ class Property(Model):
                 else "⮂" if self.reflected_property.id != self.id
                 else "⭤"
             )
-            return f"""<a
-                class="clickable property"
-                hx-push-url="true"
-                hx-get="/properties/{self.id}"
-                hx-select="#container"
-                hx-target="#container"
-            >{self.subject_type} {self.label} {self.object_type or self.data_type}{arrow}</a>"""
+            return f"""<span class="property">
+                    {self.subject_type}
+                <a
+                    class="clickable"
+                    hx-push-url="true"
+                    hx-get="/properties/{self.id}"
+                    hx-select="#container"
+                    hx-target="#container"
+                >{self.label}</a> {self.object_type or self.data_type}{arrow}</span>"""
         else:
             return f"""<a
                 class="clickable property"
@@ -374,10 +376,10 @@ class Fact(Model):
         row = cur.execute(
             """
             SELECT
-                entity_id,
+                subject_id,
                 property_id,
                 value,
-                other_entity_id,
+                object_id,
                 reflected_fact_id,
                 created_at
             FROM
@@ -388,10 +390,10 @@ class Fact(Model):
         ).fetchone()
         if not row:
             raise ValueError("No Fact with this ID found")
-        self.subj = Entity(row["entity_id"])
+        self.subj = Entity(row["subject_id"])
         self.prop = Property(row["property_id"])
-        if row["other_entity_id"]:
-            self.obj = Entity(row["other_entity_id"])
+        if row["object_id"]:
+            self.obj = Entity(row["object_id"])
         else:
             self.obj = Plain.decode(self.prop.data_type, row["value"])
         if row["reflected_fact_id"]:
@@ -407,7 +409,7 @@ class Fact(Model):
             cur.execute(
                 """
                     INSERT INTO facts
-                        (entity_id, property_id, other_entity_id)
+                        (subject_id, property_id, object_id)
                     VALUES
                         (?, ?, ?)
                 """,
@@ -420,7 +422,7 @@ class Fact(Model):
                 cur.execute(
                     """
                         INSERT INTO facts
-                            (entity_id, property_id, other_entity_id, reflected_fact_id)
+                            (subject_id, property_id, object_id, reflected_fact_id)
                         VALUES
                             (?, ?, ?, ?)
                     """,
@@ -439,7 +441,7 @@ class Fact(Model):
         else:
             cur.execute("""
                 INSERT INTO facts
-                    (entity_id, property_id, value)
+                    (subject_id, property_id, value)
                 VALUES
                     (?, ?, ?)
                 """,

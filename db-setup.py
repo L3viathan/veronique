@@ -42,16 +42,16 @@ def setup_tables():
         CREATE TABLE facts
         (
             id INTEGER PRIMARY KEY,
-            entity_id INTEGER NOT NULL, -- rename to subject_id
+            subject_id INTEGER NOT NULL,
             property_id INTEGER NOT NULL,
             value TEXT, -- for anything other than relations
-            other_entity_id INTEGER,  -- for relations
+            object_id INTEGER,  -- for relations
             reflected_fact_id INTEGER,
             created_at TIMESTAMP DEFAULT (datetime('now')),  -- always UTC
             -- valid_from, valid_until
-            FOREIGN KEY(entity_id) REFERENCES entities(id),
+            FOREIGN KEY(subject_id) REFERENCES entities(id),
             FOREIGN KEY(property_id) REFERENCES property(id)
-            FOREIGN KEY(other_entity_id) REFERENCES entities(id)
+            FOREIGN KEY(object_id) REFERENCES entities(id)
             FOREIGN KEY(reflected_fact_id) REFERENCES facts(id)
         )
         """
