@@ -1,8 +1,5 @@
-import sqlite3
 from property_types import TYPES, entity
-
-conn = sqlite3.connect("veronique.db")
-conn.row_factory = sqlite3.Row
+from db import conn
 
 SELF = object()
 class lazy:

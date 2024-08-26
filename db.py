@@ -1,9 +1,42 @@
-import sys
-import objects as O
+import sqlite3
+
+conn = sqlite3.connect("veronique.db")
+conn.row_factory = sqlite3.Row
 
 
-def setup_tables():
-    cur = O.conn.cursor()
+try:
+    cur = conn.cursor()
+    row = cur.execute("SELECT version FROM state").fetchone()
+    version = row["version"]
+except sqlite3.OperationalError:
+    version = 0
+cur.close()
+
+
+def migration(number):
+    def deco(fn):
+        if number == version:
+            try:
+                cur = conn.cursor()
+                fn(cur)
+                cur.execute("UPDATE state SET version = ?", (version + 1,))
+                conn.commit()
+            except sqlite3.OperationalError:
+                conn.rollback()
+                sys.exit(1)
+            cur.close()
+    return deco
+
+@migration(0)
+def initial(cur):
+    cur.execute("""
+        CREATE TABLE state (version INTEGER)
+        """
+    )
+    cur.execute("""
+        INSERT INTO state (version) VALUES (0)
+        """
+    )
     cur.execute("""
         CREATE TABLE entity_types
         (
@@ -56,42 +89,3 @@ def setup_tables():
         )
         """
     )
-
-
-if __name__ == "__main__":
-    if any(p in sys.argv for p in ("-h", "-?", "--help")):
-        print("Creates the necessary tables in veronique.db\nUsage: db-setup.py [--add-example-data]")
-        sys.exit(0)
-    setup_tables()
-    if "--add-example-data" in sys.argv:
-        from property_types import TYPES
-
-        human = O.EntityType.new("human")
-        married = O.Property.new(
-            "married to",
-            data_type=TYPES["entity"],
-            subject_type=human,
-            object_type=human,
-            reflected_property_name=O.SELF,
-        )
-        parent = O.Property.new(
-            "parent of",
-            data_type=TYPES["entity"],
-            subject_type=human,
-            object_type=human,
-            reflected_property_name="child of",
-        )
-        haircolor = O.Property.new("haircolor", data_type=TYPES["color"], subject_type=human)
-        birthday = O.Property.new("birthday", data_type=TYPES["date"], subject_type=human)
-        nickname = O.Property.new("nickname", data_type=TYPES["string"], subject_type=human)
-
-        jonathan = O.Entity.new("Jonathan", human)
-        laura = O.Entity.new("Laura", human)
-        david = O.Entity.new("David", human)
-
-        O.Fact.new(laura, parent, david)
-        O.Fact.new(jonathan, parent, david)
-        O.Fact.new(laura, married, jonathan)
-        O.Fact.new(laura, haircolor, O.Plain("#2889be", TYPES["color"]))
-        O.Fact.new(laura, birthday, O.Plain("1991-03-29", TYPES["date"]))
-        O.Fact.new(laura, nickname, O.Plain("sarnthil", TYPES["string"]))
