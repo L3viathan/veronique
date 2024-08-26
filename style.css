@@ -1,0 +1,62 @@
+.hovercreated {
+    font-size: 50%;
+    display: none;
+}
+li:hover .hovercreated {
+    display: inline;
+}
+a, .clickable {
+  cursor: pointer;
+}
+
+.entity-link {
+  display: inline-block;
+  background-color: #ddeeff;
+  margin: 3px;
+  border: 1px solid #adf;
+  border-radius: 2px;
+}
+
+.vp {
+  display: inline-block;
+  background-color: #ffeedd;
+  margin: 3px;
+  border: 1px solid #fda;
+  border-radius: 2px;
+}
+
+.property {
+  display: inline-block;
+  background-color: #eeffdd;
+  margin: 3px;
+  border: 1px solid #dfa;
+  border-radius: 2px;
+}
+
+ul {
+  padding: 0;
+}
+
+li {
+  list-style: none;
+}
+
+.type-string {
+  color: #09953b;
+}
+
+.type-number {
+  color: #da6300;
+}
+
+h2 {
+  margin: 10px 0px 10px 0px;
+}
+
+.fact {
+  display: inline-block;
+  background-color: #ffc8dd;
+  margin: 1px;
+  border: 1px solid #faa;
+  border-radius: 2px;
+}
