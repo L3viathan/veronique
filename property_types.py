@@ -1,4 +1,5 @@
 import datetime
+from urllib.parse import quote_plus
 import objects as O
 
 TYPES = {}
@@ -197,3 +198,14 @@ class age(PropertyType):
 
     def decode(self, encoded):
         return float_int(encoded)
+
+
+class location(PropertyType):
+    def display_html(self, value, created_at=None):
+        newline = "\n"
+        return f"""<a href="https://www.openstreetmap.org/search?query={quote_plus(value.replace(newline, ", "))}" class="type-location">{value.replace(newline, "<br>")}</a>"""
+
+    def input_html(self, entity_id, prop):
+        return """
+            <textarea name="value"></textarea>
+        """

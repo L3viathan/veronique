@@ -60,3 +60,11 @@ h2 {
   border: 1px solid #faa;
   border-radius: 2px;
 }
+
+a.type-location {
+  display: inline-block;
+  background-color: #f8f8f8;
+  text-decoration: none;
+  color: inherit;
+  vertical-align: top;
+}
