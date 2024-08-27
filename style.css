@@ -1,8 +1,8 @@
-.hovercreated {
+.hovershow {
     font-size: 50%;
     display: none;
 }
-li:hover .hovercreated {
+li:hover .hovershow {
     display: inline;
 }
 a, .clickable {

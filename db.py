@@ -1,3 +1,4 @@
+import sys
 import sqlite3
 
 conn = sqlite3.connect("veronique.db")
@@ -15,13 +16,16 @@ cur.close()
 
 def migration(number):
     def deco(fn):
-        if number == version:
+        if number >= version:
+            print("Running migration", fn.__name__)
             try:
                 cur = conn.cursor()
                 fn(cur)
                 cur.execute("UPDATE state SET version = ?", (version + 1,))
                 conn.commit()
-            except sqlite3.OperationalError:
+                print("Migration successful")
+            except sqlite3.OperationalError as e:
+                print("Rolling back migration:", e)
                 conn.rollback()
                 sys.exit(1)
             cur.close()
@@ -87,5 +91,15 @@ def initial(cur):
             FOREIGN KEY(object_id) REFERENCES entities(id)
             FOREIGN KEY(reflected_fact_id) REFERENCES facts(id)
         )
+        """
+    )
+
+
+@migration(1)
+def add_updated_at(cur):
+    cur.execute(
+        """
+        ALTER TABLE facts
+        ADD updated_at TIMESTAMP
         """
     )

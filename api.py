@@ -251,6 +251,32 @@ async def new_fact_form_property_input(request, entity_id: int):
         """
 
 
+@app.get("/facts/<fact_id>/edit")
+@fragment
+async def edit_fact_form(request, fact_id: int):
+    fact = O.Fact(fact_id)
+    return f"""
+        <form hx-post="/facts/{fact_id}/edit" hx-swap="outerHTML">
+            {fact.prop.data_type.input_html(fact.subj.id, fact.prop, value=fact.obj)}
+            <button type="submit">»</button>
+        </form>
+        """
+
+
+@app.post("/facts/<fact_id>/edit")
+@fragment
+async def edit_fact(request, fact_id: int):
+    form = D(request.form)
+    fact = O.Fact(fact_id)
+    value = form.get("value")
+    if fact.prop.data_type.name == "entity":
+        value = O.Entity(int(value))
+    else:
+        value = O.Plain(value, fact.prop.data_type)
+    fact.set_value(value)
+    return f"{fact.obj}"
+
+
 @app.post("/facts/new/<entity_id>")
 @fragment
 async def new_fact(request, entity_id: int):

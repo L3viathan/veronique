@@ -384,7 +384,7 @@ class Property(Model):
 
 
 class Fact(Model):
-    fields = ("subj", "prop", "obj", "reflected_fact", "created_at")
+    fields = ("subj", "prop", "obj", "reflected_fact", "created_at", "updated_at")
     def populate(self):
         cur = conn.cursor()
         row = cur.execute(
@@ -395,7 +395,8 @@ class Fact(Model):
                 value,
                 object_id,
                 reflected_fact_id,
-                created_at
+                created_at,
+                updated_at
             FROM
                 facts
             WHERE id = ?
@@ -415,6 +416,44 @@ class Fact(Model):
         else:
             self.reflected_fact = None
         self.created_at = row["created_at"]
+        self.updated_at = row["updated_at"]
+
+    def set_value(self, value):
+        cur = conn.cursor()
+        if self.prop.data_type.name == "entity":
+            cur.execute(
+                """
+                    UPDATE facts
+                    SET object_id = ?, updated_at = datetime('now')
+                    WHERE id = ?
+                """,
+                (
+                    value.id, self.id
+                ),
+            )
+            if self.reflected_fact:
+                cur.execute("DELETE FROM facts WHERE id = ?", (self.reflected_fact.id,))
+                # evict deleted fact from cache:
+                self._cache.pop(self.reflected_fact.id)
+            self._create_reflected_fact(
+                cur,
+                fact_id=self.id,
+                subj=self.subj,
+                obj=value,
+                prop=self.prop,
+            )
+        else:
+            cur.execute("""
+                UPDATE facts
+                SET value = ?, updated_at = datetime('now')
+                WHERE id = ?
+                """,
+                (
+                    value.encode(), self.id,
+                ),
+            )
+        conn.commit()
+        self.populate()
 
     @classmethod
     def new(cls, entity, prop, value):
@@ -432,26 +471,13 @@ class Fact(Model):
                 ),
             )
             first_fact_id = cur.lastrowid
-            if prop.reflected_property:
-                cur.execute(
-                    """
-                        INSERT INTO facts
-                            (subject_id, property_id, object_id, reflected_fact_id)
-                        VALUES
-                            (?, ?, ?, ?)
-                    """,
-                    (
-                        value.id, prop.reflected_property.id, entity.id, first_fact_id
-                    ),
-                )
-                cur.execute(
-                    """
-                        UPDATE facts
-                        SET reflected_fact_id = ?
-                        WHERE id = ?
-                    """,
-                    (cur.lastrowid, first_fact_id),
-                )
+            cls._create_reflected_fact(
+                cur,
+                fact_id=first_fact_id,
+                subj=entity,
+                obj=value,
+                prop=prop,
+            )
         else:
             cur.execute("""
                 INSERT INTO facts
@@ -467,13 +493,37 @@ class Fact(Model):
         conn.commit()
         return Fact(first_fact_id)
 
+    @staticmethod
+    def _create_reflected_fact(cur, *, fact_id, subj, obj, prop):
+        if prop.reflected_property:
+            cur.execute(
+                """
+                    INSERT INTO facts
+                        (subject_id, property_id, object_id, reflected_fact_id)
+                    VALUES
+                        (?, ?, ?, ?)
+                """,
+                (
+                    obj.id, prop.reflected_property.id, subj.id, fact_id
+                ),
+            )
+            cur.execute(
+                """
+                    UPDATE facts
+                    SET reflected_fact_id = ?
+                    WHERE id = ?
+                """,
+                (cur.lastrowid, fact_id),
+            )
+
     def __format__(self, fmt):
+        edit_button = f'<a hx-target="closest .obj" class="hovershow" hx-get="/facts/{self.id}/edit">✎</a>'
         if fmt == "short":
             return f"""<span class="vp">
                 {self.prop}
-                {self.obj}
+                <span class="obj">{self.obj}{edit_button}</span>
             </span>
-            <span class="hovercreated" style="font-size: xx-small;">created {self.created_at}</span>
+            <span class="hovershow" style="font-size: xx-small;">created {self.created_at} {f", updated {self.updated_at}" if self.updated_at else ""}</span>
             """
         else:
             return f"""<span class="fact">
@@ -483,7 +533,7 @@ class Fact(Model):
                     {self.obj}
                 </span>
             </span>
-            <span class="hovercreated" style="font-size: xx-small;">created {self.created_at}</span>
+            <span class="hovershow" style="font-size: xx-small;">created {self.created_at} {f", updated {self.updated_at}" if self.updated_at else ""}</span>
             """
 
     def __str__(self):
