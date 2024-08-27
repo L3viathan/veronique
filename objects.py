@@ -100,7 +100,7 @@ class EntityType(Model):
 
     def __format__(self, fmt):
         if fmt == "rename-form":
-            return f'<input name="name" value="{self.name}" hx-post="/entity-types/{self.id}/rename" hx-swap="outerHTML">'
+            return f'<input class="rename-input" name="name" value="{self.name}" hx-post="/entity-types/{self.id}/rename" hx-swap="outerHTML">'
         elif fmt == "heading":
             return f'<h2 hx-get="/entity-types/{self.id}/rename" hx-swap="outerHTML">{self.name}</h2>'
         else:
@@ -164,7 +164,7 @@ class Entity(Model):
 
     def __format__(self, fmt):
         if fmt == "rename-form":
-            return f'<input name="name" value="{self.name}" hx-post="/entities/{self.id}/rename" hx-swap="outerHTML">'
+            return f'<input class="rename-input" name="name" value="{self.name}" hx-post="/entities/{self.id}/rename" hx-swap="outerHTML">'
         elif fmt == "heading":
             return f'<h2 hx-get="/entities/{self.id}/rename" hx-swap="outerHTML">{self.name}</h2>'
         elif fmt == "full":
@@ -353,6 +353,10 @@ class Property(Model):
                     hx-select="#container"
                     hx-target="#container"
                 >{self.label}</a> {self.object_type or self.data_type}{arrow}</span>"""
+        elif fmt == "rename-form":
+            return f'<input class="rename-input" name="name" value="{self.label}" hx-post="/properties/{self.id}/rename" hx-swap="outerHTML">'
+        elif fmt == "heading":
+            return f'<h2 hx-get="/properties/{self.id}/rename" hx-swap="outerHTML">{self.label}</h2>'
         else:
             return f"""<a
                 class="clickable property"
@@ -361,6 +365,19 @@ class Property(Model):
                 hx-select="#container"
                 hx-target="#container"
             >{self.label}</a>"""
+
+    def rename(self, name):
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            UPDATE properties
+            SET label=?
+            WHERE id = ?
+            """,
+            (name, self.id),
+        )
+        conn.commit()
+        self.label = name
 
     def __str__(self):
         return f"{self}"

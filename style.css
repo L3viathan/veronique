@@ -68,3 +68,7 @@ a.type-location {
   color: inherit;
   vertical-align: top;
 }
+
+.rename-input {
+  display: block;
+}

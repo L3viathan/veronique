@@ -202,10 +202,27 @@ async def rename_entity(request, entity_id: int):
 @page
 async def view_property(request, property_id: int):
     prop = O.Property(property_id)
-    parts = [f"""<h2>{prop.label}</h2>"""]
+    parts = [f"{prop:heading}"]
     for fact in prop.facts:
         parts.append(str(fact))
     return "".join(parts)
+
+
+@app.get("/properties/<property_id>/rename")
+@fragment
+async def rename_property_form(request, property_id: int):
+    prop = O.Property(property_id)
+    return f"{prop:rename-form}"
+
+
+@app.post("/properties/<property_id>/rename")
+@fragment
+async def rename_property(request, property_id: int):
+    prop = O.Property(property_id)
+    name = D(request.form)["name"]
+    if name:
+        prop.rename(name)
+    return f"{prop:heading}"
 
 
 @app.get("/facts/new/<entity_id>")
