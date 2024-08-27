@@ -234,8 +234,25 @@ class location(PropertyType):
         return f"""<a href="https://www.openstreetmap.org/search?query={quote_plus(value.replace(newline, ", "))}" class="type-location">{value.replace(newline, "<br>")}</a>"""
 
     def input_html(self, entity_id, prop, value=None):
-        if not value:
+        if value:
+            value = value.value
+        else:
             value = ""
         return f"""
-            <textarea name="value">{value.value}</textarea>
+            <textarea name="value">{value}</textarea>
+        """
+
+
+class text(PropertyType):
+    def display_html(self, value):
+        newline = "\n"
+        return f"""<span class="type-text">{value.replace(newline, "<br>")}</span>"""
+
+    def input_html(self, entity_id, prop, value=None):
+        if value:
+            value = value.value
+        else:
+            value = ""
+        return f"""
+            <textarea name="value">{value}</textarea>
         """

@@ -61,14 +61,16 @@ h2 {
   border-radius: 2px;
 }
 
-a.type-location {
+.type-text, a.type-location {
   display: inline-block;
   background-color: #f8f8f8;
   text-decoration: none;
   color: inherit;
   vertical-align: top;
+  max-width: 300px;
 }
 
 .rename-input {
   display: block;
 }
+
