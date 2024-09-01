@@ -263,6 +263,14 @@ async def edit_fact_form(request, fact_id: int):
         """
 
 
+@app.delete("/facts/<fact_id>")
+@fragment
+async def delete_fact(request, fact_id: int):
+    fact = O.Fact(fact_id)
+    fact.delete()
+    return ""
+
+
 @app.post("/facts/<fact_id>/edit")
 @fragment
 async def edit_fact(request, fact_id: int):

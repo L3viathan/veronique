@@ -418,6 +418,16 @@ class Fact(Model):
         self.created_at = row["created_at"]
         self.updated_at = row["updated_at"]
 
+    def delete(self):
+        cur = conn.cursor()
+        if self.reflected_fact:
+            cur.execute("DELETE FROM facts WHERE id = ?", (self.reflected_fact.id,))
+            # evict deleted fact from cache:
+            self._cache.pop(self.reflected_fact.id)
+        cur.execute("DELETE FROM facts WHERE id = ?", (self.id,))
+        # evict deleted fact from cache:
+        self._cache.pop(self.id)
+
     def set_value(self, value):
         cur = conn.cursor()
         if self.prop.data_type.name == "entity":
@@ -518,10 +528,11 @@ class Fact(Model):
 
     def __format__(self, fmt):
         edit_button = f'<a hx-target="closest .obj" class="hovershow" hx-get="/facts/{self.id}/edit">✎</a>'
+        delete_button = f'<a hx-target="closest .vp" class="hovershow" hx-confirm="Are you sure you want to delete this fact?" hx-delete="/facts/{self.id}">⌫</a>'
         if fmt == "short":
             return f"""<span class="vp">
                 {self.prop}
-                <span class="obj">{self.obj}{edit_button}</span>
+                <span class="obj">{self.obj}{edit_button}{delete_button}</span>
             </span>
             <span class="hovershow" style="font-size: xx-small;">created {self.created_at} {f", updated {self.updated_at}" if self.updated_at else ""}</span>
             """
