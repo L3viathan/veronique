@@ -507,6 +507,22 @@ class Fact(Model):
             self.valid_from = datetime.strptime(valid_from, "%Y-%m-%d")
         if valid_until is not UNSET:
             self.valid_until = datetime.strptime(valid_until, "%Y-%m-%d")
+        if self.reflected_fact:
+            if valid_from is not UNSET:
+                self.reflected_fact.valid_from = datetime.strptime(valid_from, "%Y-%m-%d")
+            if valid_until is not UNSET:
+                self.reflected_fact.valid_until = datetime.strptime(valid_until, "%Y-%m-%d")
+            cur.execute("""
+                UPDATE facts
+                SET valid_from = ?, valid_until = ?, updated_at = datetime('now')
+                WHERE id = ?
+                """,
+                (
+                    f"{self.reflected_fact.valid_from:%Y-%m-%d}" if self.reflected_fact.valid_from else None,
+                    f"{self.reflected_fact.valid_until:%Y-%m-%d}" if self.reflected_fact.valid_until else None,
+                    self.reflected_fact.id,
+                ),
+            )
         cur.execute("""
             UPDATE facts
             SET valid_from = ?, valid_until = ?, updated_at = datetime('now')
