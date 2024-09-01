@@ -216,9 +216,11 @@ class Entity(Model):
             FROM facts f
             LEFT JOIN properties p
             ON f.property_id = p.id
-            WHERE f.object_id = ? AND (p.reflected_property_id IS NULL OR p.reflected_property_id <> p.id)
+            WHERE (
+                f.object_id = ? AND (p.reflected_property_id IS NULL OR p.reflected_property_id <> p.id)
+            ) OR f.value LIKE '%<@' || ? || '>%'
             """,
-            (self.id,),
+            (self.id, self.id),
         ).fetchall():
             yield Fact(row["id"])
 
