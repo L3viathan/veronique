@@ -1,4 +1,5 @@
 import re
+from datetime import date
 
 from property_types import TYPES, entity
 from db import conn
@@ -420,6 +421,22 @@ class Fact(Model):
             self.reflected_fact = None
         self.created_at = row["created_at"]
         self.updated_at = row["updated_at"]
+
+    @classmethod
+    def all_of_same_date(cls):
+        cur = conn.cursor()
+        return [
+            cls(row[0])
+            for row in cur.execute(
+                """
+                SELECT f.id
+                FROM facts f
+                LEFT JOIN properties p ON f.property_id = p.id
+                WHERE p.data_type = 'date' AND f.value LIKE '%-' || ?
+                """,
+                (date.today().strftime("%m-%d"),),
+            )
+        ]
 
     def delete(self):
         cur = conn.cursor()

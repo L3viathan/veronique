@@ -56,7 +56,12 @@ def page(fn):
 @app.get("/")
 @page
 async def index(request):
-    return ""
+    return f"""
+        <h2>On this date</h2>
+        <ul>
+            {"".join(f"<li>{fact}</li>" for fact in O.Fact.all_of_same_date())}
+        </ul>
+    """
 
 
 @app.get("/entity-types")
@@ -376,3 +381,8 @@ async def htmx_js(request):
 @app.get("/style.css")
 async def style_css(request):
     return await file("style.css", mime_type="text/css")
+
+
+@app.get("/logo.svg")
+async def logo_svg(request):
+    return await file("logo.svg", mime_type="image/svg+xml")
