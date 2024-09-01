@@ -1,21 +1,21 @@
 import re
-from datetime import date
+from datetime import date, datetime
 
 from property_types import TYPES, entity
 from db import conn
 
 TEXT_REF = re.compile("<@(\d+)>")
 SELF = object()
+UNSET = object()
 class lazy:
-    unset = object()
     def __init__(self, name):
-        self.value = lazy.unset
+        self.value = UNSET
         self.name = name
 
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        if getattr(instance, f"_{self.name}", lazy.unset) is lazy.unset:
+        if getattr(instance, f"_{self.name}", UNSET) is UNSET:
             +instance
         return getattr(instance, f"_{self.name}")
 
@@ -388,7 +388,7 @@ class Property(Model):
 
 
 class Fact(Model):
-    fields = ("subj", "prop", "obj", "reflected_fact", "created_at", "updated_at")
+    fields = ("subj", "prop", "obj", "reflected_fact", "created_at", "updated_at", "valid_from", "valid_until")
     def populate(self):
         cur = conn.cursor()
         row = cur.execute(
@@ -400,7 +400,9 @@ class Fact(Model):
                 object_id,
                 reflected_fact_id,
                 created_at,
-                updated_at
+                updated_at,
+                valid_from,
+                valid_until
             FROM
                 facts
             WHERE id = ?
@@ -421,6 +423,18 @@ class Fact(Model):
             self.reflected_fact = None
         self.created_at = row["created_at"]
         self.updated_at = row["updated_at"]
+        self.valid_from = datetime.strptime(row["valid_from"], "%Y-%m-%d") if row["valid_from"] else None
+        self.valid_until = datetime.strptime(row["valid_until"], "%Y-%m-%d") if row["valid_until"] else None
+
+    @property
+    def is_valid(self):
+        now = datetime.utcnow()
+        return (
+            (not self.valid_from or now >= self.valid_from)
+            and
+            (not self.valid_until or now <= self.valid_until)
+        )
+
 
     @classmethod
     def all_of_same_date(cls):
@@ -485,6 +499,25 @@ class Fact(Model):
         conn.commit()
         self.populate()
 
+    def set_validity(self, valid_from=UNSET, valid_until=UNSET):
+        cur = conn.cursor()
+        if valid_from is not UNSET:
+            self.valid_from = datetime.strptime(valid_from, "%Y-%m-%d")
+        if valid_until is not UNSET:
+            self.valid_until = datetime.strptime(valid_until, "%Y-%m-%d")
+        cur.execute("""
+            UPDATE facts
+            SET valid_from = ?, valid_until = ?, updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            (
+                f"{self.valid_from:%Y-%m-%d}" if self.valid_from else None,
+                f"{self.valid_until:%Y-%m-%d}" if self.valid_until else None,
+                self.id,
+            ),
+        )
+        conn.commit()
+
     @classmethod
     def new(cls, entity, prop, value):
         cur = conn.cursor()
@@ -547,22 +580,49 @@ class Fact(Model):
             )
 
     def __format__(self, fmt):
-        edit_button = f'<a hx-target="closest .obj" class="hovershow" hx-get="/facts/{self.id}/edit">✎</a>'
-        delete_button = f'<a hx-target="closest .vp" class="hovershow" hx-confirm="Are you sure you want to delete this fact?" hx-delete="/facts/{self.id}">⌫</a>'
-        if fmt == "short":
-            return f"""<span class="vp">
+        if self.is_valid:
+            maybe_invalid = ""
+            validity_msg = ""
+        else:
+            maybe_invalid = " invalid" if not self.is_valid else ""
+
+            validity_msg = f"""<span class="validity">valid
+                {f"from {self.valid_from:%Y-%m-%d}" if self.valid_from else ""}
+                {f"until {self.valid_until:%Y-%m-%d}" if self.valid_until else ""}
+                </span>
+            """
+        if fmt == "heading":
+            edit_button = f'<a hx-target="closest h2" hx-get="/facts/{self.id}/edit">✎</a>'
+            delete_button = f'<a hx-confirm="Are you sure you want to delete this fact?" hx-delete="/facts/{self.id}">⌫</a>'
+            return f"<h2>{self} {edit_button}{delete_button}</h2>"
+        elif fmt == "short":
+            info_button = f"""<a
+                class="hovershow clickable"
+                hx-get="/facts/{self.id}"
+                hx-push-url="true"
+                hx-select="#container"
+                hx-target="#container"
+            >ⓘ</a>"""
+            edit_button = f'<a hx-target="closest .obj" class="hovershow" hx-get="/facts/{self.id}/edit">✎</a>'
+            delete_button = f'<a hx-target="closest .vp" class="hovershow" hx-confirm="Are you sure you want to delete this fact?" hx-delete="/facts/{self.id}">⌫</a>'
+            return f"""<span class="vp{maybe_invalid}">
                 {self.prop}
-                <span class="obj">{self.obj}{edit_button}{delete_button}</span>
+                <span class="obj">{self.obj}{validity_msg}{info_button}{edit_button}{delete_button}</span>
             </span>
             <span class="hovershow" style="font-size: xx-small;">created {self.created_at} {f", updated {self.updated_at}" if self.updated_at else ""}</span>
             """
+        elif fmt == "valid_from":
+            return f'<span class="clickable validity-editable" hx-get="/facts/{self.id}/change-valid-from" hx-swap="outerHTML">{self.valid_from or "(null)"}</span>'
+        elif fmt == "valid_until":
+            return f'<span class="clickable validity-editable" hx-get="/facts/{self.id}/change-valid-until" hx-swap="outerHTML">{self.valid_until or "(null)"}</span>'
         else:
-            return f"""<span class="fact">
+            return f"""<span class="fact{maybe_invalid}">
                 {self.subj}
                 <span class="vp">
                     {self.prop}
                     {self.obj}
                 </span>
+                {validity_msg}
             </span>
             <span class="hovershow" style="font-size: xx-small;">created {self.created_at} {f", updated {self.updated_at}" if self.updated_at else ""}</span>
             """

@@ -268,6 +268,50 @@ async def edit_fact_form(request, fact_id: int):
         """
 
 
+@app.get("/facts/<fact_id>/change-valid-from")
+@fragment
+async def change_valid_from_form(request, fact_id: int):
+    fact = O.Fact(fact_id)
+    value = f' value="{fact.valid_from:%Y-%m-%d}"' if fact.valid_from else ""
+    return f"""
+        <form hx-post="/facts/{fact_id}/change-valid-from" hx-swap="outerHTML">
+            <input name="date" type="date"{value}></input>
+            <button type="submit">»</button>
+        </form>
+    """
+
+
+@app.post("/facts/<fact_id>/change-valid-from")
+@fragment
+async def change_valid_from(request, fact_id: int):
+    fact = O.Fact(fact_id)
+    form = D(request.form)
+    fact.set_validity(valid_from=form["date"])
+    return f"{fact:valid_from}"
+
+
+@app.get("/facts/<fact_id>/change-valid-until")
+@fragment
+async def change_valid_until_form(request, fact_id: int):
+    fact = O.Fact(fact_id)
+    value = f' value="{fact.valid_until:%Y-%m-%d}"' if fact.valid_until else ""
+    return f"""
+        <form hx-post="/facts/{fact_id}/change-valid-until" hx-swap="outerHTML">
+            <input name="date" type="date"{value}></input>
+            <button type="submit">»</button>
+        </form>
+    """
+
+
+@app.post("/facts/<fact_id>/change-valid-until")
+@fragment
+async def change_valid_until(request, fact_id: int):
+    fact = O.Fact(fact_id)
+    form = D(request.form)
+    fact.set_validity(valid_until=form["date"])
+    return f"{fact:valid_until}"
+
+
 @app.delete("/facts/<fact_id>")
 @fragment
 async def delete_fact(request, fact_id: int):
@@ -370,6 +414,19 @@ async def new_property(request):
         {prop}
         <br>
         <button hx-get="/properties/new" hx-swap="outerHTML">New property</button>
+    """
+
+
+@app.get("/facts/<fact_id>")
+@page
+async def view_fact(request, fact_id: int):
+    fact = O.Fact(fact_id)
+    return f"""
+        {fact:heading}
+        created: {fact.created_at}<br>
+        updated: {fact.updated_at or "(null)"}<br>
+        valid_from: {fact:valid_from}<br>
+        valid_until: {fact:valid_until}<br>
     """
 
 

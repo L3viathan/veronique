@@ -16,6 +16,7 @@ cur.close()
 
 def migration(number):
     def deco(fn):
+        global version
         if number >= version:
             print("Running migration", fn.__name__)
             try:
@@ -24,12 +25,14 @@ def migration(number):
                 cur.execute("UPDATE state SET version = ?", (version + 1,))
                 conn.commit()
                 print("Migration successful")
+                version += 1
             except sqlite3.OperationalError as e:
                 print("Rolling back migration:", e)
                 conn.rollback()
                 sys.exit(1)
             cur.close()
     return deco
+
 
 @migration(0)
 def initial(cur):
@@ -85,7 +88,6 @@ def initial(cur):
             object_id INTEGER,  -- for relations
             reflected_fact_id INTEGER,
             created_at TIMESTAMP DEFAULT (datetime('now')),  -- always UTC
-            -- valid_from, valid_until
             FOREIGN KEY(subject_id) REFERENCES entities(id),
             FOREIGN KEY(property_id) REFERENCES property(id)
             FOREIGN KEY(object_id) REFERENCES entities(id)
@@ -101,5 +103,21 @@ def add_updated_at(cur):
         """
         ALTER TABLE facts
         ADD updated_at TIMESTAMP
+        """
+    )
+
+
+@migration(2)
+def add_validity(cur):
+    cur.execute(
+        """
+        ALTER TABLE facts
+        ADD valid_from VARCHAR(10)
+        """
+    )
+    cur.execute(
+        """
+        ALTER TABLE facts
+        ADD valid_until VARCHAR(10)
         """
     )

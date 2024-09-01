@@ -79,3 +79,22 @@ nav img, nav a {
   vertical-align: bottom;
   display: inline-block;
 }
+
+.invalid {
+  opacity: 0.5;
+}
+
+.validity {
+  background: red;
+  padding: 5px;
+  margin-right: 5px;
+  margin-left: 5px;
+  border-radius: 2px;
+  color: white;
+}
+
+.validity-editable {
+  border: 1px solid gray;
+  padding: 1px;
+  border-radius: 2px;
+}
