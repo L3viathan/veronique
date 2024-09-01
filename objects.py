@@ -1,6 +1,9 @@
+import re
+
 from property_types import TYPES, entity
 from db import conn
 
+TEXT_REF = re.compile("<@(\d+)>")
 SELF = object()
 class lazy:
     unset = object()
@@ -564,4 +567,9 @@ class Plain:
         return self.data_type.encode(self.value)
 
     def __str__(self):
-        return self.data_type.display_html(self.value)
+        text = self.data_type.display_html(self.value)
+        for ref_id, entity in {
+            ref_id: Entity(ref_id) for ref_id in set(map(int, TEXT_REF.findall(text)))
+        }.items():
+            text = text.replace(f"<@{ref_id}>", str(entity))
+        return text
