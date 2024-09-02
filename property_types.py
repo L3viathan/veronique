@@ -256,3 +256,42 @@ class text(PropertyType):
         return f"""
             <textarea name="value">{value}</textarea>
         """
+
+
+class email(PropertyType):
+    def display_html(self, value):
+        return f'<span class="type-email">{value}</span>'
+
+    def input_html(self, entity_id, prop, value=None):
+        if value:
+            quot = '"'
+            value = f' value="{value.value.replace(quot, "&quot;")}"'
+        else:
+            value = ""
+        return f"""<input type="email" name="value"{value}></input>"""
+
+
+class website(PropertyType):
+    def display_html(self, value):
+        return f'<span class="type-website"><a href="{value}">{value}</a></span>'
+
+    def input_html(self, entity_id, prop, value=None):
+        if value:
+            quot = '"'
+            value = f' value="{value.value.replace(quot, "&quot;")}"'
+        else:
+            value = ""
+        return f"""<input type="text" name="value"{value}></input>"""
+
+
+class phonenumber(PropertyType):
+    def display_html(self, value):
+        return f'<span class="type-phonenumber"><a href="tel:{value}">{value}</a></span>'
+
+    def input_html(self, entity_id, prop, value=None):
+        if value:
+            quot = '"'
+            value = f' value="{value.value.replace(quot, "&quot;")}"'
+        else:
+            value = ""
+        return f"""<input type="tel" name="value"{value}></input>"""
