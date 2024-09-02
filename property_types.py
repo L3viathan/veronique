@@ -295,3 +295,11 @@ class phonenumber(PropertyType):
         else:
             value = ""
         return f"""<input type="tel" name="value"{value}></input>"""
+
+
+class picture(PropertyType):
+    def display_html(self, value):
+        return f'<img class="type-picture" src="{value}">'
+
+    def input_html(self, entity_id, prop, value=None):
+        return f"""<input name="value" type="file"></input>"""

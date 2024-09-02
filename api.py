@@ -78,7 +78,7 @@ async def list_types(request):
 @fragment
 async def new_entity_type_form(request):
     return f"""
-        <form hx-post="/entity-types/new" hx-swap="outerHTML">
+        <form hx-post="/entity-types/new" hx-swap="outerHTML" hx-encoding="multipart/form-data">
             <input name="name" placeholder="name"></input>
             <button type="submit">»</button>
         </form>
@@ -116,7 +116,7 @@ async def list_entities(request):
 async def new_entity_form(request):
     types = O.EntityType.all()
     return f"""
-        <form hx-post="/entities/new" hx-swap="outerHTML">
+        <form hx-post="/entities/new" hx-swap="outerHTML" hx-encoding="multipart/form-data">
             <input name="name" placeholder="name"></input>
             <select name="entity_type">
                 <option selected disabled>--Entity Type--</option>
@@ -236,7 +236,7 @@ async def new_fact_form(request, entity_id: int):
     entity = O.Entity(entity_id)
     props = O.Property.all(subject_type=entity.entity_type)
     return f"""
-        <form hx-post="/facts/new/{entity_id}" hx-swap="outerHTML">
+        <form hx-post="/facts/new/{entity_id}" hx-swap="outerHTML" hx-encoding="multipart/form-data">
             <select name="property" hx-get="/facts/new/{entity_id}/property" hx-target="#valueinput" hx-swap="innerHTML">
                 <option selected disabled>--Property--</option>
                 {"".join(f'''<option value="{prop.id}">{prop.label} ({prop.data_type})</option>''' for prop in props)}
@@ -261,7 +261,7 @@ async def new_fact_form_property_input(request, entity_id: int):
 async def edit_fact_form(request, fact_id: int):
     fact = O.Fact(fact_id)
     return f"""
-        <form hx-post="/facts/{fact_id}/edit" hx-swap="outerHTML">
+        <form hx-post="/facts/{fact_id}/edit" hx-swap="outerHTML" hx-encoding="multipart/form-data">
             {fact.prop.data_type.input_html(fact.subj.id, fact.prop, value=fact.obj)}
             <button type="submit">»</button>
         </form>
@@ -274,7 +274,7 @@ async def change_valid_from_form(request, fact_id: int):
     fact = O.Fact(fact_id)
     value = f' value="{fact.valid_from:%Y-%m-%d}"' if fact.valid_from else ""
     return f"""
-        <form hx-post="/facts/{fact_id}/change-valid-from" hx-swap="outerHTML">
+        <form hx-post="/facts/{fact_id}/change-valid-from" hx-swap="outerHTML" hx-encoding="multipart/form-data">
             <input name="date" type="date"{value}></input>
             <button type="submit">»</button>
         </form>
@@ -296,7 +296,7 @@ async def change_valid_until_form(request, fact_id: int):
     fact = O.Fact(fact_id)
     value = f' value="{fact.valid_until:%Y-%m-%d}"' if fact.valid_until else ""
     return f"""
-        <form hx-post="/facts/{fact_id}/change-valid-until" hx-swap="outerHTML">
+        <form hx-post="/facts/{fact_id}/change-valid-until" hx-swap="outerHTML" hx-encoding="multipart/form-data">
             <input name="date" type="date"{value}></input>
             <button type="submit">»</button>
         </form>
@@ -324,6 +324,9 @@ async def delete_fact(request, fact_id: int):
 @fragment
 async def edit_fact(request, fact_id: int):
     form = D(request.form)
+    if "value" in request.files:
+        f = request.files["value"][0]
+        form["value"] = f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
     fact = O.Fact(fact_id)
     value = form.get("value")
     if fact.prop.data_type.name == "entity":
@@ -338,6 +341,9 @@ async def edit_fact(request, fact_id: int):
 @fragment
 async def new_fact(request, entity_id: int):
     form = D(request.form)
+    if "value" in request.files:
+        f = request.files["value"][0]
+        form["value"] = f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
     prop = O.Property(int(form["property"]))
     value = form.get("value")
     if prop.data_type.name == "entity":
@@ -366,7 +372,7 @@ async def new_property_form(request):
     for entity_type in O.EntityType.all():
         type_options.append(f'<option value="{entity_type.id}">{entity_type}</option>')
     return f"""
-        <form hx-post="/properties/new" hx-swap="outerHTML">
+        <form hx-post="/properties/new" hx-swap="outerHTML" hx-encoding="multipart/form-data">
             <select name="subject_type">
                 <option selected disabled>--Subject--</option>
                 {"".join(type_options)}
