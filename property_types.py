@@ -281,7 +281,7 @@ class website(PropertyType):
             value = f' value="{value.value.replace(quot, "&quot;")}"'
         else:
             value = ""
-        return f"""<input type="text" name="value"{value}></input>"""
+        return f"""<input type="url" name="value"{value}></input>"""
 
 
 class phonenumber(PropertyType):
