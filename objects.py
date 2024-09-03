@@ -625,9 +625,8 @@ class Fact(Model):
             delete_button = f'<a hx-target="closest .vp" class="hovershow" hx-confirm="Are you sure you want to delete this fact?" hx-delete="/facts/{self.id}">⌫</a>'
             return f"""<span class="vp{maybe_invalid}">
                 {self.prop}
-                <span class="obj">{self.obj}{validity_msg}{info_button}{edit_button}{delete_button}</span>
+                <span class="obj">{self.obj}{validity_msg} {info_button} {edit_button} {delete_button}</span>
             </span>
-            <span class="hovershow" style="font-size: xx-small;">created {self.created_at} {f", updated {self.updated_at}" if self.updated_at else ""}</span>
             """
         elif fmt == "valid_from":
             return f'<span class="clickable validity-editable" hx-get="/facts/{self.id}/change-valid-from" hx-swap="outerHTML">{self.valid_from or "(null)"}</span>'
@@ -642,7 +641,6 @@ class Fact(Model):
                 </span>
                 {validity_msg}
             </span>
-            <span class="hovershow" style="font-size: xx-small;">created {self.created_at} {f", updated {self.updated_at}" if self.updated_at else ""}</span>
             """
 
     def __str__(self):
