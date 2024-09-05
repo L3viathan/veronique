@@ -114,6 +114,7 @@ class EntityType(Model):
                 hx-get="/entity-types/{self.id}"
                 hx-select="#container"
                 hx-target="#container"
+                hx-swap="outerHTML"
             ><strong>{self.name}</strong></a>"""
 
     def __str__(self):
@@ -172,9 +173,21 @@ class Entity(Model):
         elif fmt == "heading":
             return f'<h2 hx-get="/entities/{self.id}/rename" hx-swap="outerHTML">{self.name}</h2>'
         elif fmt == "full":
-            return f'<a class="clickable entity-link" hx-push-url="true" hx-select="#container" hx-target="#container" hx-get="/entities/{self.id}">{self.name}</a> ({self.entity_type})'
+            return f"""<a
+                class="clickable entity-link"
+                hx-push-url="true"
+                hx-select="#container"
+                hx-target="#container"
+                hx-swap="outerHTML"
+                hx-get="/entities/{self.id}">{self.name}</a> ({self.entity_type})"""
         else:
-            return f'<a class="clickable entity-link" hx-push-url="true" hx-select="#container" hx-target="#container" hx-get="/entities/{self.id}">{self.name}</a>'
+            return f"""<a
+                class="clickable entity-link"
+                hx-push-url="true"
+                hx-select="#container"
+                hx-target="#container"
+                hx-swap="outerHTML"
+                hx-get="/entities/{self.id}">{self.name}</a>"""
 
     def __str__(self):
         return f"{self}"
@@ -358,6 +371,7 @@ class Property(Model):
                     hx-get="/properties/{self.id}"
                     hx-select="#container"
                     hx-target="#container"
+                    hx-swap="outerHTML"
                 >{self.label}</a> {self.object_type or self.data_type}{arrow}</span>"""
         elif fmt == "rename-form":
             return f'<input class="rename-input" name="name" value="{self.label}" hx-post="/properties/{self.id}/rename" hx-swap="outerHTML">'
@@ -370,6 +384,7 @@ class Property(Model):
                 hx-push-url="true"
                 hx-select="#container"
                 hx-target="#container"
+                hx-swap="outerHTML"
             >{self.label}</a>"""
 
     def rename(self, name):
@@ -620,6 +635,7 @@ class Fact(Model):
                 hx-push-url="true"
                 hx-select="#container"
                 hx-target="#container"
+                hx-swap="outerHTML"
             >ⓘ</a>"""
             edit_button = f'<a hx-target="closest .obj" class="hovershow" hx-get="/facts/{self.id}/edit">✎</a>'
             delete_button = f'<a hx-target="closest .vp" class="hovershow" hx-confirm="Are you sure you want to delete this fact?" hx-delete="/facts/{self.id}">⌫</a>'
