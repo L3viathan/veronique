@@ -171,7 +171,7 @@ class Entity(Model):
         if fmt == "rename-form":
             return f'<input class="rename-input" name="name" value="{self.name}" hx-post="/entities/{self.id}/rename" hx-swap="outerHTML">'
         elif fmt == "heading":
-            return f'<h2 hx-get="/entities/{self.id}/rename" hx-swap="outerHTML">{self.name}</h2>'
+            return f'<h2 hx-get="/entities/{self.id}/rename" hx-swap="outerHTML">{self.name} <small>{self.entity_type}</small></h2>'
         elif fmt == "full":
             return f"""<a
                 class="clickable entity-link"
@@ -179,7 +179,7 @@ class Entity(Model):
                 hx-select="#container"
                 hx-target="#container"
                 hx-swap="outerHTML"
-                hx-get="/entities/{self.id}">{self.name}</a> ({self.entity_type})"""
+                hx-get="/entities/{self.id}">{self.name}</a> <small>{self.entity_type}</small>"""
         else:
             return f"""<a
                 class="clickable entity-link"

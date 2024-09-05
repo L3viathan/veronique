@@ -52,6 +52,19 @@ h2 {
   margin: 10px 0px 10px 0px;
 }
 
+small {
+  font-size: 50%;
+  color: #2889be;
+}
+
+small::before {
+  content: "(";
+}
+
+small::after {
+  content: ")";
+}
+
 .fact {
   display: inline-block;
   background-color: #ffc8dd;
