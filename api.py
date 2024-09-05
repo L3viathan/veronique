@@ -56,11 +56,15 @@ def page(fn):
 @app.get("/")
 @page
 async def index(request):
+    types = O.EntityType.all()
     return f"""
         <h2>On this date</h2>
         <ul>
             {"".join(f"<li>{fact}</li>" for fact in O.Fact.all_of_same_date())}
         </ul>
+        <button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>
+        <h2>Types</h2>
+        {f"<br>".join(str(type_) for type_ in types)}
     """
 
 
@@ -103,11 +107,11 @@ async def new_entity_type(request):
 async def list_entities(request):
     page = request.args.get("page", 1)  # TODO
     parts = []
+    parts.append("""<button hx-get="/entities/new" hx-swap="outerHTML">New entity</button><br>""")
     for i, entity in enumerate(O.Entity.all()):
         if i:
             parts.append("<br>")
         parts.append(f"{entity:full}")
-    parts.append("""<br><button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>""")
     return "".join(parts)
 
 
@@ -134,9 +138,9 @@ async def new_entity(request):
     name = form["name"]
     entity = O.Entity.new(name, O.Entity(int(form["entity_type"])))
     return f"""
-        {entity}
-        <br>
         <button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>
+        <br>
+        {entity:full}
     """
 
 
@@ -417,7 +421,7 @@ async def new_property(request):
         extra_data=data_type.encode_extra_data(form),
     )
     return f"""
-        {prop}
+        {prop:full}
         <br>
         <button hx-get="/properties/new" hx-swap="outerHTML">New property</button>
     """
