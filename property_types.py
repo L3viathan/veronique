@@ -260,7 +260,7 @@ class text(PropertyType):
 
 class email(PropertyType):
     def display_html(self, value):
-        return f'<span class="type-email">{value}</span>'
+        return f'<span class="type-email"><a href="mailto:{value}">{value}</a></span>'
 
     def input_html(self, entity_id, prop, value=None):
         if value:
