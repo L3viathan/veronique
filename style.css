@@ -1,7 +1,8 @@
 .hovershow {
     display: none;
+    text-decoration: none;
 }
-li:hover .hovershow {
+:hover>.hovershow {
     display: inline;
 }
 a, .clickable {
