@@ -1,7 +1,6 @@
 import os
 import functools
 import base64
-from itertools import chain, groupby
 from types import CoroutineType
 from sanic import Sanic, HTTPResponse, html, file
 import objects as O
@@ -62,7 +61,7 @@ async def index(request):
         {"".join(f"<p>{fact}</p>" for fact in O.Fact.all_of_same_date())}
         <button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>
         <h2>Types</h2>
-        {f"<br>".join(str(type_) for type_ in types)}
+        {"<br>".join(str(type_) for type_ in types)}
     """
 
 
@@ -79,8 +78,12 @@ async def list_types(request):
 @app.get("/entity-types/new")
 @fragment
 async def new_entity_type_form(request):
-    return f"""
-        <form hx-post="/entity-types/new" hx-swap="outerHTML" hx-encoding="multipart/form-data">
+    return """
+        <form
+            hx-post="/entity-types/new"
+            hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+        >
             <input name="name" placeholder="name"></input>
             <button type="submit">»</button>
         </form>
@@ -103,9 +106,11 @@ async def new_entity_type(request):
 @app.get("/entities")
 @page
 async def list_entities(request):
-    page = request.args.get("page", 1)  # TODO
+    # page = request.args.get("page", 1)  # TODO
     parts = []
-    parts.append("""<button hx-get="/entities/new" hx-swap="outerHTML">New entity</button><br>""")
+    parts.append(
+        """<button hx-get="/entities/new" hx-swap="outerHTML">New entity</button><br>"""
+    )
     for i, entity in enumerate(O.Entity.all()):
         if i:
             parts.append("<br>")
@@ -118,11 +123,15 @@ async def list_entities(request):
 async def new_entity_form(request):
     types = O.EntityType.all()
     return f"""
-        <form hx-post="/entities/new" hx-swap="outerHTML" hx-encoding="multipart/form-data">
+        <form
+            hx-post="/entities/new"
+            hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+        >
             <input name="name" placeholder="name"></input>
             <select name="entity_type">
                 <option selected disabled>--Entity Type--</option>
-                {"".join(f'''<option value="{et.id}">{et.name}</option>''' for et in types)}
+                {"".join(f'<option value="{et.id}">{et.name}</option>' for et in types)}
             </select>
             <button type="submit">»</button>
         </form>
@@ -149,7 +158,10 @@ async def view_entity(request, entity_id: int):
     return f"""
         <article>
             <header>{entity:heading}</header>
-            <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
+            <button
+                hx-get="/facts/new/{entity_id}"
+                hx-swap="outerHTML"
+            >New fact</button>
         {"".join(f"<p>{fact:short}</p>" for fact in entity.facts)}
         </article>
         <h3>References</h3>
@@ -163,7 +175,7 @@ async def view_entity_type(request, entity_type_id: int):
     entities = O.Entity.all(entity_type=entity_type)
     return f"""
         {entity_type:heading}
-        {"".join(f"<p>{entity}</p>" for entity in entities)}
+        {" ".join(f"{entity}" for entity in entities)}
     """
 
 
@@ -234,10 +246,24 @@ async def new_fact_form(request, entity_id: int):
     entity = O.Entity(entity_id)
     props = O.Property.all(subject_type=entity.entity_type)
     return f"""
-        <form hx-post="/facts/new/{entity_id}" hx-swap="outerHTML" hx-encoding="multipart/form-data">
-            <select name="property" hx-get="/facts/new/{entity_id}/property" hx-target="#valueinput" hx-swap="innerHTML">
+        <form
+            hx-post="/facts/new/{entity_id}"
+            hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+        >
+            <select
+                name="property"
+                hx-get="/facts/new/{entity_id}/property"
+                hx-target="#valueinput"
+                hx-swap="innerHTML"
+            >
                 <option selected disabled>--Property--</option>
-                {"".join(f'''<option value="{prop.id}">{prop.label} ({prop.data_type})</option>''' for prop in props)}
+                {"".join(
+                    f'''<option
+                            value="{prop.id}"
+                        >{prop.label} ({prop.data_type})</option>'''
+                    for prop in props
+                )}
             </select>
             <span id="valueinput"></span>
         </form>
@@ -259,7 +285,11 @@ async def new_fact_form_property_input(request, entity_id: int):
 async def edit_fact_form(request, fact_id: int):
     fact = O.Fact(fact_id)
     return f"""
-        <form hx-post="/facts/{fact_id}/edit" hx-swap="outerHTML" hx-encoding="multipart/form-data">
+        <form
+            hx-post="/facts/{fact_id}/edit"
+            hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+        >
             {fact.prop.data_type.input_html(fact.subj.id, fact.prop, value=fact.obj)}
             <button type="submit">»</button>
         </form>
@@ -272,7 +302,11 @@ async def change_valid_from_form(request, fact_id: int):
     fact = O.Fact(fact_id)
     value = f' value="{fact.valid_from:%Y-%m-%d}"' if fact.valid_from else ""
     return f"""
-        <form hx-post="/facts/{fact_id}/change-valid-from" hx-swap="outerHTML" hx-encoding="multipart/form-data">
+        <form
+            hx-post="/facts/{fact_id}/change-valid-from"
+            hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+        >
             <input name="date" type="date"{value}></input>
             <button type="submit">»</button>
         </form>
@@ -294,7 +328,11 @@ async def change_valid_until_form(request, fact_id: int):
     fact = O.Fact(fact_id)
     value = f' value="{fact.valid_until:%Y-%m-%d}"' if fact.valid_until else ""
     return f"""
-        <form hx-post="/facts/{fact_id}/change-valid-until" hx-swap="outerHTML" hx-encoding="multipart/form-data">
+        <form
+            hx-post="/facts/{fact_id}/change-valid-until"
+            hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+        >
             <input name="date" type="date"{value}></input>
             <button type="submit">»</button>
         </form>
@@ -359,7 +397,9 @@ async def new_fact(request, entity_id: int):
 @page
 async def list_properties(request):
     parts = [f"{prop:full}" for prop in O.Property.all()]
-    parts.append("""<button hx-get="/properties/new" hx-swap="outerHTML">New property</button>""")
+    parts.append(
+        """<button hx-get="/properties/new" hx-swap="outerHTML">New property</button>"""
+    )
     return "<br>".join(parts)
 
 
@@ -370,15 +410,27 @@ async def new_property_form(request):
     for entity_type in O.EntityType.all():
         type_options.append(f'<option value="{entity_type.id}">{entity_type}</option>')
     return f"""
-        <form hx-post="/properties/new" hx-swap="outerHTML" hx-encoding="multipart/form-data">
+        <form
+            hx-post="/properties/new"
+            hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+        >
             <select name="subject_type">
                 <option selected disabled>--Subject--</option>
                 {"".join(type_options)}
             </select>
             <input name="label" placeholder="label"></input>
-            <select name="data_type" hx-get="/properties/new/steps" hx-target="#steps" hx-swap="innerHTML">
+            <select
+                name="data_type"
+                hx-get="/properties/new/steps"
+                hx-target="#steps"
+                hx-swap="innerHTML"
+            >
                 <option selected disabled>--Type--</option>
-                {"".join(f'''<option value="{data_type}">{data_type}</option>''' for data_type in TYPES)}
+                {"".join(
+                    f'''<option value="{data_type}">{data_type}</option>'''
+                    for data_type in TYPES
+                )}
             </select>
             <span id="steps"></span>
         </form>
@@ -411,7 +463,11 @@ async def new_property(request):
             else form["inversion"]
         ),
         subject_type=O.EntityType(int(form["subject_type"])),
-        object_type=O.EntityType(int(form["object_type"])) if "object_type" in form else None,
+        object_type=(
+            O.EntityType(int(form["object_type"]))
+            if "object_type" in form
+            else None
+        ),
         extra_data=data_type.encode_extra_data(form),
     )
     return f"""
