@@ -72,7 +72,7 @@ small::after {
   text-decoration: none;
   color: inherit;
   vertical-align: top;
-  max-width: 300px;
+  max-width: 50em;
 }
 
 .rename-input {
