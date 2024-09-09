@@ -147,9 +147,11 @@ async def new_entity(request):
 async def view_entity(request, entity_id: int):
     entity = O.Entity(entity_id)
     return f"""
-        {entity:heading}
+        <article>
+            <header>{entity:heading}</header>
+            <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
         {"".join(f"<p>{fact:short}</p>" for fact in entity.facts)}
-        <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
+        </article>
         <h3>References</h3>
         {"".join(f"<p>{fact}</p>" for fact in entity.incoming_facts)}
     """
@@ -348,8 +350,8 @@ async def new_fact(request, entity_id: int):
         value = O.Plain(value, prop.data_type)
     fact = O.Fact.new(O.Entity(entity_id), prop, value)
     return f"""
-        <p>{fact:short}</p>
         <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
+        <p>{fact:short}</p>
     """
 
 

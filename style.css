@@ -114,3 +114,11 @@ nav img{
 #container {
   padding: 1em;
 }
+
+article {
+  overflow: hidden;
+}
+
+article button {
+  float: right;
+}
