@@ -59,9 +59,7 @@ async def index(request):
     types = O.EntityType.all()
     return f"""
         <h2>On this date</h2>
-        <ul>
-            {"".join(f"<li>{fact}</li>" for fact in O.Fact.all_of_same_date())}
-        </ul>
+        {"".join(f"<p>{fact}</p>" for fact in O.Fact.all_of_same_date())}
         <button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>
         <h2>Types</h2>
         {f"<br>".join(str(type_) for type_ in types)}
@@ -150,14 +148,10 @@ async def view_entity(request, entity_id: int):
     entity = O.Entity(entity_id)
     return f"""
         {entity:heading}
-        <ul>
-            {"".join(f"<li>{fact:short}</li>" for fact in entity.facts)}
-            <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
-        </ul>
+        {"".join(f"<p>{fact:short}</p>" for fact in entity.facts)}
+        <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
         <h3>References</h3>
-        <ul>
-            {"".join(f"<li>{fact}</li>" for fact in entity.incoming_facts)}
-        </ul>
+        {"".join(f"<p>{fact}</p>" for fact in entity.incoming_facts)}
     """
 
 @app.get("/entity-types/<entity_type_id>")
@@ -167,9 +161,7 @@ async def view_entity_type(request, entity_type_id: int):
     entities = O.Entity.all(entity_type=entity_type)
     return f"""
         {entity_type:heading}
-        <ul>
-            {"".join(f"<li>{entity}</li>" for entity in entities)}
-        </ul>
+        {"".join(f"<p>{entity}</p>" for entity in entities)}
     """
 
 
@@ -356,7 +348,7 @@ async def new_fact(request, entity_id: int):
         value = O.Plain(value, prop.data_type)
     fact = O.Fact.new(O.Entity(entity_id), prop, value)
     return f"""
-        <li>{fact:short}</li>
+        <p>{fact:short}</p>
         <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
     """
 
@@ -448,6 +440,11 @@ async def htmx_js(request):
 @app.get("/style.css")
 async def style_css(request):
     return await file("style.css", mime_type="text/css")
+
+
+@app.get("/pico.min.css")
+async def pico_css(request):
+    return await file("pico.min.css", mime_type="text/css")
 
 
 @app.get("/logo.svg")

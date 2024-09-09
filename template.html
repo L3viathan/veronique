@@ -1,18 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="light">
 <head>
     <script src="/htmx.js"></script>
     <title>Véronique</title>
     <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/pico.min.css">
 </head>
 <body>
-    <nav>
+    <header>
+    <nav class="container">
         <a href="/"><img src="/logo.svg" alt="Véronique"></a>
-        <a hx-get="/entities" hx-select="#container" hx-push-url="true" hx-target="#container">Entities</a>
-        <a hx-get="/properties" hx-select="#container" hx-push-url="true" hx-target="#container">Properties</a>
-        <a hx-get="/entity-types" hx-select="#container" hx-push-url="true" hx-target="#container">Entity Types</a>
+        <a role="button" class="contrast" hx-get="/entities" hx-select="#container" hx-push-url="true" hx-target="#container">Entities</a>
+        <a role="button" class="contrast" hx-get="/properties" hx-select="#container" hx-push-url="true" hx-target="#container">Properties</a>
+        <a role="button" class="contrast" hx-get="/entity-types" hx-select="#container" hx-push-url="true" hx-target="#container">Entity Types</a>
     </nav>
-    <hr>
-    <div id="container">{}</div>
+    </header>
+    <main id="container" class="container">{}</main>
 </body>
 </html>
