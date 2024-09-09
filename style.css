@@ -1,9 +1,12 @@
+html {
+  font-size: 200%;
+}
 .hovershow {
-    display: none;
-    text-decoration: none;
+  display: none;
+  text-decoration: none;
 }
 :hover>.hovershow {
-    display: inline;
+  display: inline;
 }
 a, .clickable {
   cursor: pointer;
