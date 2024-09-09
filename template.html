@@ -9,10 +9,12 @@
 <body>
     <header>
     <nav class="container">
-        <a href="/"><img src="/logo.svg" alt="Véronique"></a>
-        <a role="button" class="contrast" hx-get="/entities" hx-select="#container" hx-push-url="true" hx-target="#container">Entities</a>
-        <a role="button" class="contrast" hx-get="/properties" hx-select="#container" hx-push-url="true" hx-target="#container">Properties</a>
-        <a role="button" class="contrast" hx-get="/entity-types" hx-select="#container" hx-push-url="true" hx-target="#container">Entity Types</a>
+        <ul><li><a href="/"><img src="/logo.svg" alt="Véronique"></a></li></ul>
+        <ul>
+            <li><a hx-get="/entities" hx-select="#container" hx-push-url="true" hx-target="#container">Entities</a></li>
+            <li><a hx-get="/properties" hx-select="#container" hx-push-url="true" hx-target="#container">Properties</a></li>
+            <li><a hx-get="/entity-types" hx-select="#container" hx-push-url="true" hx-target="#container">Entity Types</a></li>
+        </ul>
     </nav>
     </header>
     <main id="container" class="container">{}</main>

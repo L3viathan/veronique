@@ -85,6 +85,7 @@ nav {
 
 nav img{
   width: 3em;
+  transform: scale(2);
 }
 
 .invalid {
