@@ -179,13 +179,6 @@ async def view_entity_type(request, entity_type_id: int):
     """
 
 
-@app.get("/entity-types/<entity_type_id>/rename")
-@fragment
-async def rename_entity_type_form(request, entity_type_id: int):
-    entity_type = O.EntityType(entity_type_id)
-    return f"{entity_type:rename-form}"
-
-
 @app.post("/entity-types/<entity_type_id>/rename")
 @fragment
 async def rename_entity_type(request, entity_type_id: int):
@@ -194,13 +187,6 @@ async def rename_entity_type(request, entity_type_id: int):
     if name:
         entity_type.rename(name)
     return f"{entity_type:heading}"
-
-
-@app.get("/entities/<entity_id>/rename")
-@fragment
-async def rename_entity_form(request, entity_id: int):
-    entity = O.Entity(entity_id)
-    return f"{entity:rename-form}"
 
 
 @app.post("/entities/<entity_id>/rename")
@@ -221,13 +207,6 @@ async def view_property(request, property_id: int):
     for fact in prop.facts:
         parts.append(str(fact))
     return "".join(parts)
-
-
-@app.get("/properties/<property_id>/rename")
-@fragment
-async def rename_property_form(request, property_id: int):
-    prop = O.Property(property_id)
-    return f"{prop:rename-form}"
 
 
 @app.post("/properties/<property_id>/rename")

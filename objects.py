@@ -103,10 +103,15 @@ class EntityType(Model):
         self.name = name
 
     def __format__(self, fmt):
-        if fmt == "rename-form":
-            return f'<input class="rename-input" name="name" value="{self.name}" hx-post="/entity-types/{self.id}/rename" hx-swap="outerHTML">'
-        elif fmt == "heading":
-            return f'<h2 hx-get="/entity-types/{self.id}/rename" hx-swap="outerHTML">{self.name}</h2>'
+        if fmt == "heading":
+            return f"""<h2
+                hx-post="/entity-types/{self.id}/rename"
+                hx-swap="outerHTML"
+                hx-trigger="blur delay:500ms"
+                hx-target="closest h2"
+                hx-vals="javascript: name:htmx.find('h2').innerHTML"
+                contenteditable
+            >{self.name}</h2>"""
         else:
             return f"""<a
                 class="clickable entity-type"
@@ -168,10 +173,16 @@ class Entity(Model):
             yield cls(row["id"])
 
     def __format__(self, fmt):
-        if fmt == "rename-form":
-            return f'<input class="rename-input" name="name" value="{self.name}" hx-post="/entities/{self.id}/rename" hx-swap="outerHTML">'
-        elif fmt == "heading":
-            return f'<h2 hx-get="/entities/{self.id}/rename" hx-swap="outerHTML">{self.name} <small>{self.entity_type}</small></h2>'
+        if fmt == "heading":
+            return f"""<h2>
+            <span
+                hx-post="/entities/{self.id}/rename"
+                hx-swap="outerHTML"
+                hx-trigger="blur delay:500ms"
+                hx-target="closest h2"
+                hx-vals="javascript: name:htmx.find('span').innerHTML"
+                contenteditable
+            >{self.name}</span> <small>{self.entity_type}</small></h2>"""
         elif fmt == "full":
             return f"""<a
                 class="clickable entity-link"
@@ -373,10 +384,15 @@ class Property(Model):
                     hx-target="#container"
                     hx-swap="outerHTML"
                 >{self.label}</a> {self.object_type or self.data_type}{arrow}</span>"""
-        elif fmt == "rename-form":
-            return f'<input class="rename-input" name="name" value="{self.label}" hx-post="/properties/{self.id}/rename" hx-swap="outerHTML">'
         elif fmt == "heading":
-            return f'<h2 hx-get="/properties/{self.id}/rename" hx-swap="outerHTML">{self.label}</h2>'
+            return f"""<h2
+                hx-post="/properties/{self.id}/rename"
+                hx-swap="outerHTML"
+                hx-trigger="blur delay:500ms"
+                hx-target="closest h2"
+                hx-vals="javascript: name:htmx.find('h2').innerHTML"
+                contenteditable
+            >{self.label}</h2>"""
         else:
             return f"""<a
                 class="clickable property"
