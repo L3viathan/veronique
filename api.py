@@ -151,6 +151,19 @@ async def new_entity(request):
     """
 
 
+@app.post("/entities/search")
+@page
+async def search_entities(request):
+    query = D(request.form)["search"]
+    entities = O.Entity.search(q=query)
+    parts = []
+    for i, entity in enumerate(entities):
+        if i:
+            parts.append("<br>")
+        parts.append(f"{entity:full}")
+    return "".join(parts)
+
+
 @app.get("/entities/<entity_id>")
 @page
 async def view_entity(request, entity_id: int):

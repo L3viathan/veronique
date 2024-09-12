@@ -152,6 +152,20 @@ class Entity(Model):
         return Entity(cur.lastrowid)
 
     @classmethod
+    def search(cls, q):
+        cur = conn.cursor()
+        for row in cur.execute(
+            """
+            SELECT
+                id
+            FROM entities
+            WHERE UPPER(name) LIKE '%' || ? || '%'
+            """,
+            (q.upper(),),
+        ).fetchall():
+            yield cls(row["id"])
+
+    @classmethod
     def all(cls, entity_type=None):
         # FIXME: do this smarter, plus pagination
         conditions = ["1=1"]

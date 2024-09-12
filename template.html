@@ -14,6 +14,16 @@
             <li><a hx-get="/entities" hx-select="#container" hx-push-url="true" hx-target="#container">Entities</a></li>
             <li><a hx-get="/properties" hx-select="#container" hx-push-url="true" hx-target="#container">Properties</a></li>
             <li><a hx-get="/entity-types" hx-select="#container" hx-push-url="true" hx-target="#container">Entity Types</a></li>
+            <li><input
+                id="search"
+                name="search"
+                type="search"
+                hx-post="/entities/search"
+                hx-trigger="input changed delay:200ms, search"
+                hx-select="#container"
+                hx-target="#container"
+                hx-push-url="true"
+            ></li>
         </ul>
     </nav>
     </header>
