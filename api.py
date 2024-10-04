@@ -2,7 +2,7 @@ import os
 import functools
 import base64
 from types import CoroutineType
-from sanic import Sanic, HTTPResponse, html, file
+from sanic import Sanic, HTTPResponse, html, file, redirect
 import objects as O
 from property_types import TYPES
 
@@ -10,11 +10,25 @@ app = Sanic("Veronique")
 
 @app.on_request
 async def auth(request):
+    correct_auth = os.environ["VERONIQUE_CREDS"]
+    cookie = request.cookies.get("auth")
+    if cookie == correct_auth:
+        return
     try:
-        correct_auth = os.environ["VERONIQUE_CREDS"]
         auth = request.headers["Authorization"]
         _, _, encoded = auth.partition(" ")
-        if base64.b64decode(encoded).decode() != correct_auth:
+        if base64.b64decode(encoded).decode() == correct_auth:
+            response = redirect("/")
+            response.add_cookie(
+                "auth",
+                correct_auth,
+                secure=True,
+                httponly=True,
+                samesite="Strict",
+                max_age=60*60*24*365,  # roughly one year
+            )
+            return response
+        else:
             raise ValueError
     except (KeyError, AssertionError, ValueError):
         return HTTPResponse(
