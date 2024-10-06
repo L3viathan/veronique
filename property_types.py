@@ -1,6 +1,7 @@
 import datetime
 from urllib.parse import quote_plus
 import objects as O
+from nomnidate import NonOmniscientDate
 
 TYPES = {}
 
@@ -140,29 +141,17 @@ class color(PropertyType):
 
 class date(PropertyType):
     def display_html(self, value):
-        d = datetime.date.fromisoformat(value)
+        d = NonOmniscientDate(value)
         today = datetime.date.today()
         td = today - d
-        postposition = "ago" if abs(td) == td else "from now"
-        years = td.days // 365
-        today_that_year = today.replace(year=d.year)
-        days = -(today_that_year - d).days
-        if years and days:
-            context = f"{abs(years)} years {postposition} {days:+} days"
-        elif years:
-            context = f"{abs(years)} years {postposition} today"
-        elif days:
-            context = f"{days} days {postposition}"
-        else:
-            context = "today"
-        return f"🗓️{value} <em>({context})</em>"
+        return f"🗓️{value} <em>({td})</em>"
 
     def input_html(self, entity_id, prop, value=None):
         if value:
             value = f' value="{value.value}"'
         else:
             value = ""
-        return f"""<input type="date" name="value"{value}></input>"""
+        return f"""<input type="text" size=10 pattern="([0-9?]{4}-[0-9?]{2}-[0-9?]{2}" name="value"{value}></input>"""
 
 
 class boolean(PropertyType):
