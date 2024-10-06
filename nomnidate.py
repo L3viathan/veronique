@@ -4,8 +4,8 @@ import datetime
 
 @dataclass
 class NonOmniscientDatedelta:
-    years: int | None = None
-    days: int | None = None
+    years: int = None
+    days: int = None
 
     def __str__(self):
         # this assumes this is in reference to "today" (whatever that is)
