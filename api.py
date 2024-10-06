@@ -71,11 +71,9 @@ def page(fn):
 async def index(request):
     types = O.EntityType.all()
     return f"""
-        <h2>On this date</h2>
-        {"".join(f"<p>{fact}</p>" for fact in O.Fact.all_of_same_date())}
+        <h2>This month</h2>
+        {"".join(f"<p>{fact}</p>" for fact in O.Fact.all_of_same_month())}
         <button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>
-        <h2>Types</h2>
-        {"<br>".join(str(type_) for type_ in types)}
     """
 
 

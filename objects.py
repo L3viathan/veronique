@@ -482,7 +482,6 @@ class Fact(Model):
             (not self.valid_until or now <= self.valid_until)
         )
 
-
     @classmethod
     def all_of_same_date(cls):
         cur = conn.cursor()
@@ -496,6 +495,22 @@ class Fact(Model):
                 WHERE p.data_type = 'date' AND f.value LIKE '%-' || ?
                 """,
                 (date.today().strftime("%m-%d"),),
+            )
+        ]
+
+    @classmethod
+    def all_of_same_month(cls):
+        cur = conn.cursor()
+        return [
+            cls(row[0])
+            for row in cur.execute(
+                """
+                SELECT f.id
+                FROM facts f
+                LEFT JOIN properties p ON f.property_id = p.id
+                WHERE p.data_type = 'date' AND f.value LIKE '%-' || ? || '-%'
+                """,
+                (date.today().strftime("%m"),),
             )
         ]
 
