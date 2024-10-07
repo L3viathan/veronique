@@ -278,8 +278,9 @@ async def new_fact_form(request, entity_id: int):
 @fragment
 async def new_fact_form_property_input(request, entity_id: int):
     prop = O.Property(int(D(request.args)["property"]))
+    entity = O.Entity(entity_id)
     return f"""
-        {prop.data_type.input_html(entity_id, prop)}
+        {prop.data_type.input_html(entity, prop)}
         <button type="submit">»</button>
         """
 
@@ -294,7 +295,7 @@ async def edit_fact_form(request, fact_id: int):
             hx-swap="outerHTML"
             hx-encoding="multipart/form-data"
         >
-            {fact.prop.data_type.input_html(fact.subj.id, fact.prop, value=fact.obj)}
+            {fact.prop.data_type.input_html(fact.subj, fact.prop, value=fact.obj)}
             <button type="submit">»</button>
         </form>
         """

@@ -20,7 +20,7 @@ class PropertyType:
     def display_html(self, value, **_):
         return f"placeholder, not implemented for property type {type(self).__name__}."
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         return f"placeholder, not implemented for property type {type(self).__name__}."
 
     def next_step(self, args):
@@ -47,21 +47,20 @@ class entity(PropertyType):
     def display_html(self, value, **_):
         raise RuntimeError("How did we end up here? Entities are displayed differently")
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         # this won't scale, but good enough for now
-        # FIXME: why do we get the entity_id here, not the entity?
         parts = []
-        for entity in O.Entity.all(entity_type=prop.object_type):
-            if entity.id == entity_id:
+        for other_entity in O.Entity.all(entity_type=prop.object_type):
+            if other_entity == entity:
                 continue
-            if value and entity.id == value.id:
+            if value and other_entity.id == value.id:
                 selected = " selected"
                 default_selected = ""
             else:
                 selected = ""
                 default_selected = " selected"
             parts.append(
-                f'<option{selected} value="{entity.id}">{entity.name}</option>',
+                f'<option{selected} value="{other_entity.id}">{other_entity.name}</option>',
             )
         return f"""
             <select name="value">
@@ -100,7 +99,7 @@ class string(PropertyType):
     def display_html(self, value, **_):
         return f'<span class="type-string">"{value}"</span>'
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -113,7 +112,7 @@ class number(PropertyType):
     def display_html(self, value, **_):
         return f'<span class="type-number">{value}</span>'
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         if value:
             value = f' value="{value.value}"'
         else:
@@ -131,7 +130,7 @@ class color(PropertyType):
             {value}
         """
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         if value:
             value = f' value="{value.value}"'
         else:
@@ -146,7 +145,7 @@ class date(PropertyType):
         td = today - d
         return f"🗓️{value} <em>({td})</em>"
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         if value:
             value = f' value="{value.value}"'
         else:
@@ -161,7 +160,7 @@ class boolean(PropertyType):
         else:
             return """<span style="color: red">✘</span>"""
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         checked = " checked" if value and value.value else ""
         return f"""<input type="checkbox" name="value"{checked}></input>"""
 
@@ -176,7 +175,7 @@ class enum(PropertyType):
     def display_html(self, value, **_):
         return f"""<span style="color: #be5128;">{value}</span>"""
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         return "\n".join(
             f"""
             <input type="radio" id="choice-{n}" name="value" value="{choice}" {"checked" if value and choice == value.value else ""}><label for="choice-{n}">{choice}</label></input>
@@ -204,7 +203,7 @@ class age(PropertyType):
         #     return f"""<span style="color: #2889be;">{value}</span>"""
         return f"""<span style="color: #2889be;">{value}?</span>"""
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         if value:
             value = f' value="{value.value}"'
         else:
@@ -227,7 +226,7 @@ class location(PropertyType):
             class="type-location"
         >{value.replace(newline, "<br>")}</a>"""
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         if value:
             value = value.value
         else:
@@ -242,7 +241,7 @@ class text(PropertyType):
         newline = "\n"
         return f"""<span class="type-text">{value.replace(newline, "<br>")}</span>"""
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         if value:
             value = value.value
         else:
@@ -256,7 +255,7 @@ class email(PropertyType):
     def display_html(self, value, **_):
         return f'<span class="type-email"><a href="mailto:{value}">{value}</a></span>'
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -269,7 +268,7 @@ class website(PropertyType):
     def display_html(self, value, **_):
         return f'<span class="type-website"><a href="{value}">{value}</a></span>'
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -286,7 +285,7 @@ class phonenumber(PropertyType):
             <a href="tel:{value}">{value}</a>
         </span>"""
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -299,7 +298,7 @@ class picture(PropertyType):
     def display_html(self, value, **_):
         return f'<img class="type-picture" src="{value}">'
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         return """<input name="value" type="file"></input>"""
 
 
@@ -308,7 +307,7 @@ class social(PropertyType):
         link = prop.extra_data.format(value)
         return f'<span class="type-social"><a href="{link}">{value}</a></span>'
 
-    def input_html(self, entity_id, prop, value=None):
+    def input_html(self, entity, prop, value=None):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
