@@ -372,7 +372,7 @@ async def edit_fact(request, fact_id: int):
     if fact.prop.data_type.name == "entity":
         value = O.Entity(int(value))
     else:
-        value = O.Plain(value, fact.prop.data_type)
+        value = O.Plain(value, fact.prop)
     fact.set_value(value)
     return f"{fact.obj}"
 
@@ -389,7 +389,7 @@ async def new_fact(request, entity_id: int):
     if prop.data_type.name == "entity":
         value = O.Entity(int(value))
     else:
-        value = O.Plain(value, prop.data_type)
+        value = O.Plain(value, prop)
     fact = O.Fact.new(O.Entity(entity_id), prop, value)
     return f"""
         <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>

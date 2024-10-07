@@ -17,7 +17,7 @@ class PropertyType:
     def __init_subclass__(cls):
         TYPES[cls.__name__] = cls()
 
-    def display_html(self, value):
+    def display_html(self, value, **_):
         return f"placeholder, not implemented for property type {type(self).__name__}."
 
     def input_html(self, entity_id, prop, value=None):
@@ -44,7 +44,7 @@ class PropertyType:
 
 
 class entity(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, **_):
         raise RuntimeError("How did we end up here? Entities are displayed differently")
 
     def input_html(self, entity_id, prop, value=None):
@@ -97,7 +97,7 @@ class entity(PropertyType):
 
 
 class string(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, **_):
         return f'<span class="type-string">"{value}"</span>'
 
     def input_html(self, entity_id, prop, value=None):
@@ -110,7 +110,7 @@ class string(PropertyType):
 
 
 class number(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, **_):
         return f'<span class="type-number">{value}</span>'
 
     def input_html(self, entity_id, prop, value=None):
@@ -125,7 +125,7 @@ class number(PropertyType):
 
 
 class color(PropertyType):
-    def display_html(self, value, created_at=None):
+    def display_html(self, value, **_):
         return f"""
             <span style="color: {value}; text-shadow: 0 0 3px black;">&#9632;</span>
             {value}
@@ -140,7 +140,7 @@ class color(PropertyType):
 
 
 class date(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, **_):
         d = NonOmniscientDate(value)
         today = datetime.date.today()
         td = today - d
@@ -155,7 +155,7 @@ class date(PropertyType):
 
 
 class boolean(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, **_):
         if value:
             return """<span style="color: green">✔</span>"""
         else:
@@ -173,7 +173,7 @@ class boolean(PropertyType):
 
 
 class enum(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, **_):
         return f"""<span style="color: #be5128;">{value}</span>"""
 
     def input_html(self, entity_id, prop, value=None):
@@ -194,7 +194,7 @@ class enum(PropertyType):
 
 
 class age(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, **_):
         # TODO: fix this, it was broken for a while.
         # Perhaps a plain value knows about its fact?
         # now = datetime.datetime.now()
@@ -218,9 +218,14 @@ class age(PropertyType):
 
 
 class location(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, **_):
         newline = "\n"
-        return f"""<a href="https://www.openstreetmap.org/search?query={quote_plus(value.replace(newline, ", "))}" class="type-location">{value.replace(newline, "<br>")}</a>"""
+        return f"""<a
+            href="https://www.openstreetmap.org/search?query={quote_plus(
+                value.replace(newline, ", ")
+            )}"
+            class="type-location"
+        >{value.replace(newline, "<br>")}</a>"""
 
     def input_html(self, entity_id, prop, value=None):
         if value:
@@ -233,7 +238,7 @@ class location(PropertyType):
 
 
 class text(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, **_):
         newline = "\n"
         return f"""<span class="type-text">{value.replace(newline, "<br>")}</span>"""
 
@@ -248,7 +253,7 @@ class text(PropertyType):
 
 
 class email(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, **_):
         return f'<span class="type-email"><a href="mailto:{value}">{value}</a></span>'
 
     def input_html(self, entity_id, prop, value=None):
@@ -261,7 +266,7 @@ class email(PropertyType):
 
 
 class website(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, **_):
         return f'<span class="type-website"><a href="{value}">{value}</a></span>'
 
     def input_html(self, entity_id, prop, value=None):
@@ -274,8 +279,12 @@ class website(PropertyType):
 
 
 class phonenumber(PropertyType):
-    def display_html(self, value):
-        return f'<span class="type-phonenumber"><a href="tel:{value}">{value}</a></span>'
+    def display_html(self, value, **_):
+        return f"""<span
+            class="type-phonenumber"
+        >
+            <a href="tel:{value}">{value}</a>
+        </span>"""
 
     def input_html(self, entity_id, prop, value=None):
         if value:
@@ -287,8 +296,35 @@ class phonenumber(PropertyType):
 
 
 class picture(PropertyType):
-    def display_html(self, value):
+    def display_html(self, value, **_):
         return f'<img class="type-picture" src="{value}">'
 
     def input_html(self, entity_id, prop, value=None):
-        return f"""<input name="value" type="file"></input>"""
+        return """<input name="value" type="file"></input>"""
+
+
+class social(PropertyType):
+    def display_html(self, value, prop, **_):
+        link = prop.extra_data.format(value)
+        return f'<span class="type-social"><a href="{link}">{value}</a></span>'
+
+    def input_html(self, entity_id, prop, value=None):
+        if value:
+            quot = '"'
+            value = f' value="{value.value.replace(quot, "&quot;")}"'
+        else:
+            value = ""
+        return f"""<input name="value"{value}></input>"""
+
+    def next_step(self, args):
+        return """
+            <input
+                name="template"
+                placeholder="template, put {} in there somewhere"
+                type="url"
+            ></input>
+            <button type="submit">»</button>
+        """
+
+    def encode_extra_data(self, form):
+        return form["template"]

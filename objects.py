@@ -1,7 +1,7 @@
 import re
 from datetime import date, datetime
 
-from property_types import TYPES, entity
+from property_types import TYPES
 from db import conn
 
 TEXT_REF = re.compile("<@(\d+)>")
@@ -463,7 +463,7 @@ class Fact(Model):
         if row["object_id"]:
             self.obj = Entity(row["object_id"])
         else:
-            self.obj = Plain.decode(self.prop.data_type, row["value"])
+            self.obj = Plain.decode(self.prop, row["value"])
         if row["reflected_fact_id"]:
             self.reflected_fact = +Fact(row["reflected_fact_id"])
         else:
@@ -709,19 +709,19 @@ class Fact(Model):
 
 
 class Plain:
-    def __init__(self, value, data_type):
-        self.data_type = data_type
+    def __init__(self, value, prop):
         self.value = value
+        self.prop = prop
 
     @classmethod
-    def decode(cls, data_type, value):
-        return Plain(data_type.decode(value), data_type)
+    def decode(cls, prop, value):
+        return Plain(prop.data_type.decode(value), prop)
 
     def encode(self):
-        return self.data_type.encode(self.value)
+        return self.prop.data_type.encode(self.value)
 
     def __str__(self):
-        text = self.data_type.display_html(self.value)
+        text = self.prop.data_type.display_html(self.value, prop=self.prop)
         for ref_id, entity in {
             ref_id: Entity(ref_id) for ref_id in set(map(int, TEXT_REF.findall(text)))
         }.items():
