@@ -69,7 +69,6 @@ def page(fn):
 @app.get("/")
 @page
 async def index(request):
-    types = O.EntityType.all()
     return f"""
         <h2>This month</h2>
         {"".join(f"<p>{fact}</p>" for fact in O.Fact.all_of_same_month())}

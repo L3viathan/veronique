@@ -24,7 +24,6 @@ class lazy:
 
 
 class Model:
-    # core assumptions: everything is immutable, we can only add rows
     def __new__(cls, id):
         if id in cls._cache:
             return cls._cache[id]
@@ -67,6 +66,7 @@ class Model:
 class EntityType(Model):
     table_name = "entity_types"
     fields = ("name",)
+
     def populate(self):
         cur = conn.cursor()
         row = cur.execute(
@@ -92,7 +92,7 @@ class EntityType(Model):
     def rename(self, name):
         cur = conn.cursor()
         cur.execute(
-            f"""
+            """
             UPDATE entity_types
             SET name=?
             WHERE id = ?
@@ -129,6 +129,7 @@ class EntityType(Model):
 class Entity(Model):
     fields = ("name", "entity_type")
     table_name = "entities"
+
     def populate(self):
         cur = conn.cursor()
         row = cur.execute(
@@ -147,7 +148,10 @@ class Entity(Model):
     @classmethod
     def new(cls, name, entity_type):
         cur = conn.cursor()
-        cur.execute("INSERT INTO entities (name, entity_type_id) VALUES (?, ?)", (name, entity_type.id))
+        cur.execute(
+            "INSERT INTO entities (name, entity_type_id) VALUES (?, ?)",
+            (name, entity_type.id),
+        )
         conn.commit()
         return Entity(cur.lastrowid)
 
@@ -171,7 +175,7 @@ class Entity(Model):
         conditions = ["1=1"]
         values = []
         if entity_type is not None:
-            conditions.append(f"entity_type_id = ?")
+            conditions.append("entity_type_id = ?")
             values.append(entity_type.id)
 
         cur = conn.cursor()
@@ -204,7 +208,8 @@ class Entity(Model):
                 hx-select="#container"
                 hx-target="#container"
                 hx-swap="outerHTML"
-                href="/entities/{self.id}">{self.name}</a> <small>{self.entity_type}</small>"""
+                href="/entities/{self.id}"
+            >{self.name}</a> <small>{self.entity_type}</small>"""
         else:
             return f"""<a
                 class="clickable entity-link"
@@ -255,7 +260,8 @@ class Entity(Model):
             LEFT JOIN properties p
             ON f.property_id = p.id
             WHERE (
-                f.object_id = ? AND (p.reflected_property_id IS NULL OR p.reflected_property_id <> p.id)
+                f.object_id = ?
+                AND (p.reflected_property_id IS NULL OR p.reflected_property_id <> p.id)
             ) OR f.value LIKE '%<@' || ? || '>%'
             """,
             (self.id, self.id),
@@ -264,8 +270,16 @@ class Entity(Model):
 
 
 class Property(Model):
-    fields = ("label", "data_type", "extra_data", "subject_type", "object_type", "reflected_property")
+    fields = (
+        "label",
+        "data_type",
+        "extra_data",
+        "subject_type",
+        "object_type",
+        "reflected_property",
+    )
     table_name = "properties"
+
     def populate(self):
         cur = conn.cursor()
         row = cur.execute(
@@ -299,9 +313,20 @@ class Property(Model):
             self.reflected_property = None
 
     @classmethod
-    def new(cls, label, *, data_type, subject_type, reflected_property_name=None, object_type=None, extra_data=None):
+    def new(
+        cls,
+        label,
+        *,
+        data_type,
+        subject_type,
+        reflected_property_name=None,
+        object_type=None,
+        extra_data=None,
+    ):
         if reflected_property_name and data_type.name != "entity":
-            raise ValueError(f"Reflexivity only makes sense with entities, not with {data_type}.")
+            raise ValueError(
+                f"Reflexivity only makes sense with entities, not with {data_type}.",
+            )
         cur = conn.cursor()
         cur.execute(
             """
@@ -332,8 +357,23 @@ class Property(Model):
                 )
             else:
                 cur.execute(
-                    "INSERT INTO properties (label, data_type, reflected_property_id, subject_type_id, object_type_id) VALUES (?, ?, ?, ?, ?)",
-                    (reflected_property_name, data_type.name, first_property_id, object_type.id, subject_type.id),
+                    """
+                    INSERT INTO properties (
+                        label,
+                        data_type,
+                        reflected_property_id,
+                        subject_type_id,
+                        object_type_id
+                    )
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        reflected_property_name,
+                        data_type.name,
+                        first_property_id,
+                        object_type.id,
+                        subject_type.id,
+                    ),
                 )
                 cur.execute(
                     "UPDATE properties SET reflected_property_id = ? WHERE id = ?",
@@ -362,10 +402,10 @@ class Property(Model):
         conditions = ["1=1"]
         values = []
         if subject_type is not None:
-            conditions.append(f"subject_type_id = ?")
+            conditions.append("subject_type_id = ?")
             values.append(subject_type.id)
         if object_type is not None:
-            conditions.append(f"object_type_id = ?")
+            conditions.append("object_type_id = ?")
             values.append(object_type.id)
 
         cur = conn.cursor()
@@ -420,7 +460,7 @@ class Property(Model):
     def rename(self, name):
         cur = conn.cursor()
         cur.execute(
-            f"""
+            """
             UPDATE properties
             SET label=?
             WHERE id = ?
@@ -435,7 +475,17 @@ class Property(Model):
 
 
 class Fact(Model):
-    fields = ("subj", "prop", "obj", "reflected_fact", "created_at", "updated_at", "valid_from", "valid_until")
+    fields = (
+        "subj",
+        "prop",
+        "obj",
+        "reflected_fact",
+        "created_at",
+        "updated_at",
+        "valid_from",
+        "valid_until",
+    )
+
     def populate(self):
         cur = conn.cursor()
         row = cur.execute(
@@ -470,8 +520,16 @@ class Fact(Model):
             self.reflected_fact = None
         self.created_at = row["created_at"]
         self.updated_at = row["updated_at"]
-        self.valid_from = datetime.strptime(row["valid_from"], "%Y-%m-%d") if row["valid_from"] else None
-        self.valid_until = datetime.strptime(row["valid_until"], "%Y-%m-%d") if row["valid_until"] else None
+        self.valid_from = (
+            datetime.strptime(row["valid_from"], "%Y-%m-%d")
+            if row["valid_from"]
+            else None
+        )
+        self.valid_until = (
+            datetime.strptime(row["valid_until"], "%Y-%m-%d")
+            if row["valid_until"]
+            else None
+        )
 
     @property
     def is_valid(self):
@@ -569,17 +627,31 @@ class Fact(Model):
             self.valid_until = datetime.strptime(valid_until, "%Y-%m-%d")
         if self.reflected_fact:
             if valid_from is not UNSET:
-                self.reflected_fact.valid_from = datetime.strptime(valid_from, "%Y-%m-%d")
+                self.reflected_fact.valid_from = datetime.strptime(
+                    valid_from,
+                    "%Y-%m-%d",
+                )
             if valid_until is not UNSET:
-                self.reflected_fact.valid_until = datetime.strptime(valid_until, "%Y-%m-%d")
+                self.reflected_fact.valid_until = datetime.strptime(
+                    valid_until,
+                    "%Y-%m-%d",
+                )
             cur.execute("""
                 UPDATE facts
                 SET valid_from = ?, valid_until = ?, updated_at = datetime('now')
                 WHERE id = ?
                 """,
                 (
-                    f"{self.reflected_fact.valid_from:%Y-%m-%d}" if self.reflected_fact.valid_from else None,
-                    f"{self.reflected_fact.valid_until:%Y-%m-%d}" if self.reflected_fact.valid_until else None,
+                    (
+                        f"{self.reflected_fact.valid_from:%Y-%m-%d}"
+                        if self.reflected_fact.valid_from
+                        else None
+                    ),
+                    (
+                        f"{self.reflected_fact.valid_until:%Y-%m-%d}"
+                        if self.reflected_fact.valid_until
+                        else None
+                    ),
                     self.reflected_fact.id,
                 ),
             )
@@ -670,8 +742,14 @@ class Fact(Model):
                 </span>
             """
         if fmt == "heading":
-            edit_button = f'<a hx-target="closest h2" hx-get="/facts/{self.id}/edit">✎</a>'
-            delete_button = f'<a hx-confirm="Are you sure you want to delete this fact?" hx-delete="/facts/{self.id}">⌫</a>'
+            edit_button = f"""<a
+                hx-target="closest h2"
+                hx-get="/facts/{self.id}/edit"
+            >✎</a>"""
+            delete_button = f"""<a
+                hx-confirm="Are you sure you want to delete this fact?"
+                hx-delete="/facts/{self.id}"
+            >⌫</a>"""
             return f"<h2>{self} {edit_button}{delete_button}</h2>"
         elif fmt == "short":
             info_button = f"""<a
@@ -682,17 +760,37 @@ class Fact(Model):
                 hx-target="#container"
                 hx-swap="outerHTML"
             >ⓘ</a>"""
-            edit_button = f'<a hx-target="closest .obj" class="hovershow" hx-get="/facts/{self.id}/edit">✎</a>'
-            delete_button = f'<a hx-target="closest .vp" class="hovershow" hx-confirm="Are you sure you want to delete this fact?" hx-delete="/facts/{self.id}">⌫</a>'
+            edit_button = f"""<a
+                hx-target="closest .obj" class="hovershow"
+                hx-get="/facts/{self.id}/edit"
+            >✎</a>"""
+            delete_button = f"""<a
+                hx-target="closest .vp" class="hovershow"
+                hx-confirm="Are you sure you want to delete this fact?"
+                hx-delete="/facts/{self.id}"
+            >⌫</a>"""
             return f"""<span class="vp{maybe_invalid}">
                 {self.prop}
-                <span class="obj">{self.obj}{validity_msg} {info_button} {edit_button} {delete_button}</span>
+                <span class="obj">
+                    {self.obj}{validity_msg}
+                    {info_button}
+                    {edit_button}
+                    {delete_button}
+                </span>
             </span>
             """
         elif fmt == "valid_from":
-            return f'<span class="clickable validity-editable" hx-get="/facts/{self.id}/change-valid-from" hx-swap="outerHTML">{self.valid_from or "(null)"}</span>'
+            return f"""<span
+                class="clickable validity-editable"
+                hx-get="/facts/{self.id}/change-valid-from"
+                hx-swap="outerHTML"
+            >{self.valid_from or "(null)"}</span>"""
         elif fmt == "valid_until":
-            return f'<span class="clickable validity-editable" hx-get="/facts/{self.id}/change-valid-until" hx-swap="outerHTML">{self.valid_until or "(null)"}</span>'
+            return f"""<span
+                class="clickable validity-editable"
+                hx-get="/facts/{self.id}/change-valid-until"
+                hx-swap="outerHTML"
+            >{self.valid_until or "(null)"}</span>"""
         else:
             return f"""<span class="fact{maybe_invalid}">
                 {self.subj}

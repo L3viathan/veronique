@@ -60,7 +60,9 @@ class entity(PropertyType):
                 selected = ""
                 default_selected = " selected"
             parts.append(
-                f'<option{selected} value="{other_entity.id}">{other_entity.name}</option>',
+                f"""<option{selected}
+                    value="{other_entity.id}"
+                >{other_entity.name}</option>""",
             )
         return f"""
             <select name="value">
@@ -72,7 +74,9 @@ class entity(PropertyType):
     def next_step(self, args):
         type_options = []
         for entity_type in O.EntityType.all():
-            type_options.append(f'<option value="{entity_type.id}">{entity_type}</option>')
+            type_options.append(
+                f'<option value="{entity_type.id}">{entity_type}</option>',
+            )
         if "reflectivity" in args:
             if args["reflectivity"] in ("none", "self"):
                 return None
@@ -85,7 +89,13 @@ class entity(PropertyType):
                 <option selected disabled>--Object--</option>
                 {"".join(type_options)}
             </select>
-            <select name="reflectivity" hx-get="/properties/new/steps" hx-target="#step2" hx-swap="innerHTML" hx-include="[name='data_type']">
+            <select
+                name="reflectivity"
+                hx-get="/properties/new/steps"
+                hx-target="#step2"
+                hx-swap="innerHTML"
+                hx-include="[name='data_type']"
+            >
                 <option selected disabled>--Reflectivity--</option>
                 <option value="none">unidirectional</option>
                 <option value="self">self-reflected</option>
@@ -150,7 +160,12 @@ class date(PropertyType):
             value = f' value="{value.value}"'
         else:
             value = ""
-        return f"""<input type="text" size=10 pattern="([0-9?]{4}-[0-9?]{2}-[0-9?]{2}" name="value"{value}></input>"""
+        return f"""<input
+            type="text"
+            size=10
+            pattern="([0-9?]{4}-[0-9?]{2}-[0-9?]{2}"
+            name="value"{value}
+        ></input>"""
 
 
 class boolean(PropertyType):
@@ -178,7 +193,13 @@ class enum(PropertyType):
     def input_html(self, entity, prop, value=None):
         return "\n".join(
             f"""
-            <input type="radio" id="choice-{n}" name="value" value="{choice}" {"checked" if value and choice == value.value else ""}><label for="choice-{n}">{choice}</label></input>
+            <input
+                type="radio"
+                id="choice-{n}"
+                name="value"
+                value="{choice}"
+                {"checked" if value and choice == value.value else ""}
+            ><label for="choice-{n}">{choice}</label></input>
             """ for n, choice in enumerate(prop.extra_data.split(","))
         )
 
