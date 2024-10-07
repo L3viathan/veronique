@@ -116,7 +116,7 @@ class EntityType(Model):
             return f"""<a
                 class="clickable entity-type"
                 hx-push-url="true"
-                hx-get="/entity-types/{self.id}"
+                href="/entity-types/{self.id}"
                 hx-select="#container"
                 hx-target="#container"
                 hx-swap="outerHTML"
@@ -204,7 +204,7 @@ class Entity(Model):
                 hx-select="#container"
                 hx-target="#container"
                 hx-swap="outerHTML"
-                hx-get="/entities/{self.id}">{self.name}</a> <small>{self.entity_type}</small>"""
+                href="/entities/{self.id}">{self.name}</a> <small>{self.entity_type}</small>"""
         else:
             return f"""<a
                 class="clickable entity-link"
@@ -212,7 +212,7 @@ class Entity(Model):
                 hx-select="#container"
                 hx-target="#container"
                 hx-swap="outerHTML"
-                hx-get="/entities/{self.id}">{self.name}</a>"""
+                href="/entities/{self.id}">{self.name}</a>"""
 
     def __str__(self):
         return f"{self}"
@@ -393,7 +393,7 @@ class Property(Model):
                 <a
                     class="clickable"
                     hx-push-url="true"
-                    hx-get="/properties/{self.id}"
+                    href="/properties/{self.id}"
                     hx-select="#container"
                     hx-target="#container"
                     hx-swap="outerHTML"
@@ -410,7 +410,7 @@ class Property(Model):
         else:
             return f"""<a
                 class="clickable property"
-                hx-get="/properties/{self.id}"
+                href="/properties/{self.id}"
                 hx-push-url="true"
                 hx-select="#container"
                 hx-target="#container"
@@ -676,7 +676,7 @@ class Fact(Model):
         elif fmt == "short":
             info_button = f"""<a
                 class="hovershow clickable"
-                hx-get="/facts/{self.id}"
+                href="/facts/{self.id}"
                 hx-push-url="true"
                 hx-select="#container"
                 hx-target="#container"
