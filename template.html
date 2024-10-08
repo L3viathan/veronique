@@ -5,15 +5,16 @@
     <title>Véronique</title>
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/pico.min.css">
+    <meta name="htmx-config" content='{{"scrollIntoViewOnBoost": false}}'>
 </head>
 <body hx-boost="true">
     <header>
     <nav class="container">
         <ul><li><a href="/"><img src="/logo.svg" alt="Véronique"></a></li></ul>
         <ul>
-            <li><a href="/entities" hx-select="#container" hx-push-url="true" hx-target="#container">Entities</a></li>
-            <li><a href="/properties" hx-select="#container" hx-push-url="true" hx-target="#container">Properties</a></li>
-            <li><a href="/entity-types" hx-select="#container" hx-push-url="true" hx-target="#container">Entity Types</a></li>
+            <li><a href="/entities" hx-swap="outerHTML" hx-select="#container" hx-push-url="true" hx-target="#container">Entities</a></li>
+            <li><a href="/properties" hx-swap="outerHTML" hx-select="#container" hx-push-url="true" hx-target="#container">Properties</a></li>
+            <li><a href="/entity-types" hx-swap="outerHTML" hx-select="#container" hx-push-url="true" hx-target="#container">Entity Types</a></li>
             <li><input
                 id="search"
                 name="search"

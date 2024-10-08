@@ -143,7 +143,7 @@ async def list_entities(request):
             previous_type = entity.entity_type
         elif i:
             parts.append("<br>")
-        parts.append(f"{entity:full}")
+        parts.append(f"{entity}")
     return "".join(parts)
 
 
