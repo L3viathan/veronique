@@ -214,14 +214,13 @@ class enum(PropertyType):
 
 
 class age(PropertyType):
-    def display_html(self, value, **_):
-        # TODO: fix this, it was broken for a while.
-        # Perhaps a plain value knows about its fact?
-        # now = datetime.datetime.now()
-        # years_passed = (now - created_at).days // 365
-        # value += years_passed
-        # if now.day == created_at.day:
-        #     return f"""<span style="color: #2889be;">{value}</span>"""
+    def display_html(self, value, *, fact, **_):
+        now = datetime.datetime.now()
+        created_at = datetime.datetime.fromisoformat(fact.created_at)
+        years_passed = (now - created_at).days // 365
+        value += years_passed
+        if now.day == created_at.day:
+            return f"""<span style="color: #2889be;">{value}</span>"""
         return f"""<span style="color: #2889be;">{value}?</span>"""
 
     def input_html(self, entity, prop, value=None):

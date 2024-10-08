@@ -530,6 +530,7 @@ class Fact(Model):
             self.obj = Entity(row["object_id"])
         else:
             self.obj = Plain.decode(self.prop, row["value"])
+            self.obj.fact = self
         if row["reflected_fact_id"]:
             self.reflected_fact = +Fact(row["reflected_fact_id"])
         else:
@@ -826,6 +827,7 @@ class Plain:
     def __init__(self, value, prop):
         self.value = value
         self.prop = prop
+        self.fact = None
 
     @classmethod
     def decode(cls, prop, value):
@@ -835,7 +837,11 @@ class Plain:
         return self.prop.data_type.encode(self.value)
 
     def __str__(self):
-        text = self.prop.data_type.display_html(self.value, prop=self.prop)
+        text = self.prop.data_type.display_html(
+            self.value,
+            prop=self.prop,
+            fact=self.fact,
+        )
         for ref_id, entity in {
             ref_id: Entity(ref_id) for ref_id in set(map(int, TEXT_REF.findall(text)))
         }.items():
