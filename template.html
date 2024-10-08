@@ -16,10 +16,10 @@
             <li><a href="/properties" hx-swap="outerHTML" hx-select="#container" hx-push-url="true" hx-target="#container">Properties</a></li>
             <li><a href="/entity-types" hx-swap="outerHTML" hx-select="#container" hx-push-url="true" hx-target="#container">Entity Types</a></li>
             <li><input
-                id="search"
-                name="search"
+                id="q"
+                name="q"
                 type="search"
-                hx-post="/entities/search"
+                hx-get="/entities/search"
                 hx-trigger="input changed delay:200ms, search"
                 hx-select="#container"
                 hx-target="#container"

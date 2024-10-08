@@ -158,14 +158,16 @@ class Entity(Model):
         return Entity(cur.lastrowid)
 
     @classmethod
-    def search(cls, q):
+    def search(cls, q, *, page_size=20, page_no=0):
         cur = conn.cursor()
         for row in cur.execute(
-            """
+            f"""
             SELECT
                 id
             FROM entities
             WHERE UPPER(name) LIKE '%' || ? || '%'
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
             """,
             (q.upper(),),
         ).fetchall():

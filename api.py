@@ -45,17 +45,18 @@ def D(multival_dict):
 
 
 def pagination(url, page_no, *, more_results=True):
+    q = "&" if "?" in url else "?"
     return f"""<br>
         <a
             role="button"
             class="prev"
-            href="{url}?page={page_no - 1}"
+            href="{url}{q}page={page_no - 1}"
             {"disabled" if page_no == 1 else ""}
         >&lt;</a>
         <a
             class="next"
             role="button"
-            href="{url}?page={page_no + 1}"
+            href="{url}{q}page={page_no + 1}"
             {"disabled" if not more_results else ""}
         >&gt;</a>
     """
@@ -217,17 +218,30 @@ async def new_entity(request):
     """
 
 
-@app.post("/entities/search")
+@app.get("/entities/search")
 @page
 async def search_entities(request):
-    query = D(request.form)["search"]
-    entities = O.Entity.search(q=query)
+    page_no = int(request.args.get("page", 1))
+    query = D(request.args).get("q", "")
+    entities = O.Entity.search(
+        q=query,
+        page_no=page_no - 1,
+        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+    )
     parts = []
+    more_results = False
     for i, entity in enumerate(entities):
         if i:
             parts.append("<br>")
-        parts.append(f"{entity:full}")
-    return "".join(parts)
+        if i == PAGE_SIZE:
+            more_results = True
+        else:
+            parts.append(f"{entity:full}")
+    return "".join(parts) + pagination(
+        f"/entities/search?q={query}",
+        page_no=page_no,
+        more_results=more_results,
+    )
 
 
 @app.get("/entities/<entity_id>")
