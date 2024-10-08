@@ -129,12 +129,19 @@ async def new_entity_type(request):
 @page
 async def list_entities(request):
     # page = request.args.get("page", 1)  # TODO
-    parts = []
-    parts.append(
-        """<button hx-get="/entities/new" hx-swap="outerHTML" class="button-new">New entity</button><br>"""
-    )
-    for i, entity in enumerate(O.Entity.all()):
-        if i:
+    parts = [
+        """<button
+            hx-get="/entities/new"
+            hx-swap="outerHTML"
+            class="button-new"
+        >New entity</button><br>"""
+    ]
+    previous_type = None
+    for i, entity in enumerate(O.Entity.all(order_by="entity_type_id ASC, id DESC")):
+        if entity.entity_type != previous_type:
+            parts.append(f"<h3>{entity.entity_type}</h3>")
+            previous_type = entity.entity_type
+        elif i:
             parts.append("<br>")
         parts.append(f"{entity:full}")
     return "".join(parts)

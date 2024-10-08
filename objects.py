@@ -50,7 +50,7 @@ class Model:
             setattr(cls, field, lazy(field))
 
     @classmethod
-    def all(cls):
+    def all(cls, *, order_by="id ASC"):
         # FIXME: do this smarter, plus pagination
         cur = conn.cursor()
         for row in cur.execute(
@@ -58,6 +58,7 @@ class Model:
             SELECT
                 id
             FROM {getattr(cls, "table_name", f"{cls.__name__.lower()}s")}
+            ORDER BY {order_by}
             """
         ).fetchall():
             yield cls(row["id"])
@@ -170,7 +171,7 @@ class Entity(Model):
             yield cls(row["id"])
 
     @classmethod
-    def all(cls, entity_type=None):
+    def all(cls, *, order_by="id ASC", entity_type=None):
         # FIXME: do this smarter, plus pagination
         conditions = ["1=1"]
         values = []
@@ -185,6 +186,7 @@ class Entity(Model):
                 id
             FROM {getattr(cls, "table_name", f"{cls.__name__.lower()}s")}
             WHERE {" AND ".join(conditions)}
+            ORDER BY {order_by}
             """,
             tuple(values),
         ).fetchall():
@@ -397,7 +399,7 @@ class Property(Model):
             yield Fact(row["id"])
 
     @classmethod
-    def all(cls, subject_type=None, object_type=None):
+    def all(cls, *, subject_type=None, object_type=None, order_by="id ASC"):
         # FIXME: do this smarter, plus pagination
         conditions = ["1=1"]
         values = []
@@ -415,6 +417,7 @@ class Property(Model):
                 id
             FROM {getattr(cls, "table_name", f"{cls.__name__.lower()}s")}
             WHERE {" AND ".join(conditions)}
+            ORDER BY {order_by}
             """,
             tuple(values),
         ).fetchall():
