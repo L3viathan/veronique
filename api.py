@@ -44,6 +44,23 @@ def D(multival_dict):
     return {key: val[0] for key, val in multival_dict.items()}
 
 
+def pagination(url, page_no, *, more_results=True):
+    return f"""<br>
+        <a
+            role="button"
+            class="prev"
+            href="{url}?page={page_no - 1}"
+            {"disabled" if page_no == 1 else ""}
+        >&lt;</a>
+        <a
+            class="next"
+            role="button"
+            href="{url}?page={page_no + 1}"
+            {"disabled" if not more_results else ""}
+        >&gt;</a>
+    """
+
+
 with open("template.html") as f:
     TEMPLATE = f.read().format
 
@@ -124,22 +141,6 @@ async def new_entity_type(request):
         >New entity type</button>
         {entity_type}
         <br>
-    """
-
-def pagination(url, page_no, *, more_results=True):
-    return f"""<br>
-        <a
-            role="button"
-            class="prev"
-            href="{url}?page={page_no - 1}"
-            {"disabled" if page_no == 1 else ""}
-        >&lt;</a>
-        <a
-            class="next"
-            role="button"
-            href="{url}?page={page_no + 1}"
-            {"disabled" if not more_results else ""}
-        >&gt;</a>
     """
 
 
@@ -250,11 +251,29 @@ async def view_entity(request, entity_id: int):
 @app.get("/entity-types/<entity_type_id>")
 @page
 async def view_entity_type(request, entity_type_id: int):
+    page_no = int(request.args.get("page", 1))
     entity_type = O.EntityType(entity_type_id)
-    entities = O.Entity.all(entity_type=entity_type)
+    entities = O.Entity.all(
+        entity_type=entity_type,
+        page_no=page_no - 1,
+        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+    )
+    parts = []
+    more_results = False
+    for i, entity in enumerate(entities):
+        if i == PAGE_SIZE:
+            more_results = True
+        else:
+            parts.append(f"{entity}")
+
     return f"""
         {entity_type:heading}
-        {" ".join(f"{entity}" for entity in entities)}
+        {"<br>".join(parts)}
+        {pagination(
+            f"/entity-types/{entity_type_id}",
+            page_no,
+            more_results=more_results,
+        )}
     """
 
 

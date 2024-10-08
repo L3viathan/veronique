@@ -51,7 +51,6 @@ class Model:
 
     @classmethod
     def all(cls, *, order_by="id ASC", page_no=0, page_size=20):
-        # FIXME: do this smarter
         cur = conn.cursor()
         for row in cur.execute(
             f"""
@@ -174,7 +173,6 @@ class Entity(Model):
 
     @classmethod
     def all(cls, *, order_by="id ASC", entity_type=None, page_no=0, page_size=20):
-        # FIXME: do this smarter, plus pagination
         conditions = ["1=1"]
         values = []
         if entity_type is not None:
@@ -412,7 +410,6 @@ class Property(Model):
         page_no=0,
         page_size=20,
     ):
-        # FIXME: do this smarter, plus pagination
         conditions = ["1=1"]
         values = []
         if subject_type is not None:

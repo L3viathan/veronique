@@ -132,8 +132,10 @@ article button {
 
 .prev {
   float: left;
+  margin-top: 25px;
 }
 
 .next {
   float: right;
+  margin-top: 25px;
 }
