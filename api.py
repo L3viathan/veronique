@@ -6,6 +6,8 @@ from sanic import Sanic, HTTPResponse, html, file, redirect
 import objects as O
 from property_types import TYPES
 
+PAGE_SIZE = 20
+
 app = Sanic("Veronique")
 
 @app.on_request
@@ -124,11 +126,27 @@ async def new_entity_type(request):
         <br>
     """
 
+def pagination(url, page_no, *, more_results=True):
+    return f"""<br>
+        <a
+            role="button"
+            class="prev"
+            href="{url}?page={page_no - 1}"
+            {"disabled" if page_no == 1 else ""}
+        >&lt;</a>
+        <a
+            class="next"
+            role="button"
+            href="{url}?page={page_no + 1}"
+            {"disabled" if not more_results else ""}
+        >&gt;</a>
+    """
+
 
 @app.get("/entities")
 @page
 async def list_entities(request):
-    # page = request.args.get("page", 1)  # TODO
+    page_no = int(request.args.get("page", 1))
     parts = [
         """<button
             hx-get="/entities/new"
@@ -137,14 +155,28 @@ async def list_entities(request):
         >New entity</button><br>"""
     ]
     previous_type = None
-    for i, entity in enumerate(O.Entity.all(order_by="entity_type_id ASC, id DESC")):
+    n_results = 0
+    more_results = False
+    for i, entity in enumerate(O.Entity.all(
+        order_by="entity_type_id ASC, id DESC",
+        page_no=page_no-1,
+        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+    )):
         if entity.entity_type != previous_type:
             parts.append(f"<h3>{entity.entity_type}</h3>")
             previous_type = entity.entity_type
         elif i:
             parts.append("<br>")
-        parts.append(f"{entity}")
-    return "".join(parts)
+        if i == PAGE_SIZE:
+            more_results = True
+        else:
+            parts.append(f"{entity}")
+            n_results += 1
+    return "".join(parts) + pagination(
+        "/entities",
+        page_no,
+        more_results=more_results,
+    )
 
 
 @app.get("/entities/new")

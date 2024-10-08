@@ -129,3 +129,11 @@ article {
 article button {
   float: right;
 }
+
+.prev {
+  float: left;
+}
+
+.next {
+  float: right;
+}

@@ -50,8 +50,8 @@ class Model:
             setattr(cls, field, lazy(field))
 
     @classmethod
-    def all(cls, *, order_by="id ASC"):
-        # FIXME: do this smarter, plus pagination
+    def all(cls, *, order_by="id ASC", page_no=0, page_size=20):
+        # FIXME: do this smarter
         cur = conn.cursor()
         for row in cur.execute(
             f"""
@@ -59,6 +59,8 @@ class Model:
                 id
             FROM {getattr(cls, "table_name", f"{cls.__name__.lower()}s")}
             ORDER BY {order_by}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
             """
         ).fetchall():
             yield cls(row["id"])
@@ -171,7 +173,7 @@ class Entity(Model):
             yield cls(row["id"])
 
     @classmethod
-    def all(cls, *, order_by="id ASC", entity_type=None):
+    def all(cls, *, order_by="id ASC", entity_type=None, page_no=0, page_size=20):
         # FIXME: do this smarter, plus pagination
         conditions = ["1=1"]
         values = []
@@ -187,6 +189,8 @@ class Entity(Model):
             FROM {getattr(cls, "table_name", f"{cls.__name__.lower()}s")}
             WHERE {" AND ".join(conditions)}
             ORDER BY {order_by}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
             """,
             tuple(values),
         ).fetchall():
@@ -399,7 +403,15 @@ class Property(Model):
             yield Fact(row["id"])
 
     @classmethod
-    def all(cls, *, subject_type=None, object_type=None, order_by="id ASC"):
+    def all(
+        cls,
+        *,
+        subject_type=None,
+        object_type=None,
+        order_by="id ASC",
+        page_no=0,
+        page_size=20,
+    ):
         # FIXME: do this smarter, plus pagination
         conditions = ["1=1"]
         values = []
@@ -418,6 +430,8 @@ class Property(Model):
             FROM {getattr(cls, "table_name", f"{cls.__name__.lower()}s")}
             WHERE {" AND ".join(conditions)}
             ORDER BY {order_by}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
             """,
             tuple(values),
         ).fetchall():
