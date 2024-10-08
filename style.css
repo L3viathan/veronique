@@ -114,6 +114,9 @@ nav img{
   max-width: 300px;
   max-height: 200px;
 }
+.button-new {
+  float: right;
+}
 
 #container {
   padding: 1em;

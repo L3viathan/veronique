@@ -70,9 +70,13 @@ def page(fn):
 @page
 async def index(request):
     return f"""
+        <button
+            hx-get="/entities/new"
+            hx-swap="outerHTML"
+            class="button-new"
+        >New entity</button>
         <h2>This month</h2>
         {"".join(f"<p>{fact}</p>" for fact in O.Fact.all_of_same_month())}
-        <button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>
     """
 
 
@@ -80,10 +84,13 @@ async def index(request):
 @page
 async def list_types(request):
     types = O.EntityType.all()
-    return "<br>".join(str(type_) for type_ in types) + """
-    <br>
-    <button hx-get="/entity-types/new" hx-swap="outerHTML">New entity type</button>
-    """
+    return """
+    <button
+        hx-get="/entity-types/new"
+        hx-swap="outerHTML"
+        class="button-new"
+    >New entity type</button>
+    """ + "<br>".join(str(type_) for type_ in types)
 
 
 @app.get("/entity-types/new")
@@ -108,9 +115,13 @@ async def new_entity_type(request):
     name = form["name"]
     entity_type = O.EntityType.new(name)
     return f"""
+        <button
+            hx-get="/entity-types/new"
+            hx-swap="outerHTML"
+            class="button-new"
+        >New entity type</button>
         {entity_type}
         <br>
-        <button hx-get="/entity-types/new" hx-swap="outerHTML">New entity type</button>
     """
 
 
@@ -120,7 +131,7 @@ async def list_entities(request):
     # page = request.args.get("page", 1)  # TODO
     parts = []
     parts.append(
-        """<button hx-get="/entities/new" hx-swap="outerHTML">New entity</button><br>"""
+        """<button hx-get="/entities/new" hx-swap="outerHTML" class="button-new">New entity</button><br>"""
     )
     for i, entity in enumerate(O.Entity.all()):
         if i:
@@ -156,7 +167,11 @@ async def new_entity(request):
     name = form["name"]
     entity = O.Entity.new(name, O.Entity(int(form["entity_type"])))
     return f"""
-        <button hx-get="/entities/new" hx-swap="outerHTML">New entity</button>
+        <button
+            hx-get="/entities/new"
+            hx-swap="outerHTML"
+            class="button-new"
+        >New entity</button>
         <br>
         {entity:full}
     """
@@ -185,6 +200,7 @@ async def view_entity(request, entity_id: int):
             <button
                 hx-get="/facts/new/{entity_id}"
                 hx-swap="outerHTML"
+                class="button-new"
             >New fact</button>
         {"".join(f"<p>{fact:short}</p>" for fact in entity.facts)}
         </article>
@@ -392,7 +408,11 @@ async def new_fact(request, entity_id: int):
         value = O.Plain(value, prop)
     fact = O.Fact.new(O.Entity(entity_id), prop, value)
     return f"""
-        <button hx-get="/facts/new/{entity_id}" hx-swap="outerHTML">New fact</button>
+        <button
+            hx-get="/facts/new/{entity_id}"
+            hx-swap="outerHTML"
+            class="button-new"
+        >New fact</button>
         <p>{fact:short}</p>
     """
 
@@ -400,10 +420,14 @@ async def new_fact(request, entity_id: int):
 @app.get("/properties")
 @page
 async def list_properties(request):
-    parts = [f"{prop:full}" for prop in O.Property.all()]
-    parts.append(
-        """<button hx-get="/properties/new" hx-swap="outerHTML">New property</button>"""
-    )
+    parts = [
+        """<button
+            hx-get="/properties/new"
+            hx-swap="outerHTML"
+            class="button-new"
+        >New property</button>"""
+    ]
+    parts.extend(f"{prop:full}" for prop in O.Property.all())
     return "<br>".join(parts)
 
 
@@ -475,9 +499,12 @@ async def new_property(request):
         extra_data=data_type.encode_extra_data(form),
     )
     return f"""
+        <button
+            hx-get="/properties/new"
+            hx-swap="outerHTML"
+            class="button-new"
+        >New property</button>
         {prop:full}
-        <br>
-        <button hx-get="/properties/new" hx-swap="outerHTML">New property</button>
     """
 
 
