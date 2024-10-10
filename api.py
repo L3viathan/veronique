@@ -1,8 +1,10 @@
 import os
 import functools
 import base64
+from datetime import date
 from types import CoroutineType
 from sanic import Sanic, HTTPResponse, html, file, redirect
+from nomnidate import NonOmniscientDate
 import objects as O
 from property_types import TYPES
 
@@ -96,7 +98,12 @@ async def index(request):
             class="button-new"
         >New entity</button>
         <h2>This month</h2>
-        {"".join(f"<p>{fact}</p>" for fact in O.Fact.all_of_same_month())}
+        {"".join(f"<p>{fact}</p>" for fact in sorted(
+            O.Fact.all_of_same_month(),
+            key=lambda f: (
+                abs((date.today() - NonOmniscientDate(f.obj.value)).days)
+            ),
+        ))}
     """
 
 

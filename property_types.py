@@ -153,7 +153,15 @@ class date(PropertyType):
         d = NonOmniscientDate(value)
         today = datetime.date.today()
         td = today - d
-        return f"🗓️{value} <em>({td})</em>"
+        if td.days == 0:
+            class_ = "date-today"
+        elif td.days == 1:
+            class_ = "date-yesterday"
+        elif td.days == -1:
+            class_ = "date-tomorrow"
+        else:
+            class_ = ""
+        return f"""<span class="{class_}">🗓️{value} <em>({td})</em></span>"""
 
     def input_html(self, entity, prop, value=None):
         if value:

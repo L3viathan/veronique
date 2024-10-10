@@ -141,3 +141,20 @@ article button {
   margin-top: 25px;
   margin-bottom: 15px;
 }
+
+.fact:has(.date-today) {
+  animation: 0.5s infinite alternate pulsate;
+}
+
+.fact:has(.date-yesterday), .fact:has(.date-tomorrow) {
+  animation: 1s infinite alternate pulsate;
+}
+
+@keyframes pulsate {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.05);
+  }
+}
