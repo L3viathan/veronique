@@ -50,7 +50,7 @@ class entity(PropertyType):
     def input_html(self, entity, prop, value=None):
         # this won't scale, but good enough for now
         parts = []
-        for other_entity in O.Entity.all(entity_type=prop.object_type):
+        for other_entity in O.Entity.all(entity_type=prop.object_type, page_size=1000):
             if other_entity == entity:
                 continue
             if value and other_entity.id == value.id:
