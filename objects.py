@@ -4,7 +4,7 @@ from datetime import date, datetime
 from property_types import TYPES
 from db import conn
 
-TEXT_REF = re.compile("<@(\d+)>")
+TEXT_REF = re.compile(r"<@(\d+)>")
 SELF = object()
 UNSET = object()
 class lazy:
