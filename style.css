@@ -1,5 +1,6 @@
 html {
   font-size: 200%;
+  --lightgrey: #f1f1f1;
 }
 .hovershow {
   display: none;
@@ -71,7 +72,7 @@ small::after {
 
 .type-text, a.type-location {
   display: inline-block;
-  background-color: #f8f8f8;
+  background-color: var(--lightgrey);
   text-decoration: none;
   color: inherit;
   vertical-align: top;
@@ -157,4 +158,28 @@ article button {
   to {
     transform: scale(1.05);
   }
+}
+
+.ac-result {
+  display: block;
+  padding: 10px 0px 10px 20px;
+}
+
+.ac-widget {
+  border: 1px solid var(--lightgrey);
+  border-radius: 10px;
+  background-color: var(--lightgrey);
+}
+
+.ac-widget input {
+  margin-bottom: 0;
+}
+
+.clickable.ac-result:nth-child(1) {
+  margin-top: calc(-1 * var(--pico-spacing));
+  padding-top: 20px;
+}
+
+.clickable.ac-result:last-child {
+  margin-bottom: var(--pico-spacing);
 }

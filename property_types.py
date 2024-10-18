@@ -48,27 +48,28 @@ class entity(PropertyType):
         raise RuntimeError("How did we end up here? Entities are displayed differently")
 
     def input_html(self, entity, prop, value=None):
-        # this won't scale, but good enough for now
         parts = []
-        for other_entity in O.Entity.all(entity_type=prop.object_type, page_size=1000):
-            if other_entity == entity:
-                continue
-            if value and other_entity.id == value.id:
-                selected = " selected"
-                default_selected = ""
-            else:
-                selected = ""
-                default_selected = " selected"
-            parts.append(
-                f"""<option{selected}
-                    value="{other_entity.id}"
-                >{other_entity.name}</option>""",
-            )
+        if value is not None:
+            value_maybe = f"""value="{value.name}" """
+            hidden_input = """<input type="hidden" name="value" value="{value.id}">"""
+        else:
+            value_maybe = ""
+            hidden_input = ""
         return f"""
-            <select name="value">
-                <option{default_selected} disabled>--Entity--</option>
-                {"".join(parts)}
-            </select>
+            <div class="ac-widget">
+                <input
+                    name="ac-query"
+                    placeholder="Start typing..."
+                    hx-get="/entities/autocomplete/{prop.object_type.id}"
+                    hx-target="next .ac-results"
+                    hx-swap="innerHTML"
+                    hx-trigger="input changed delay:200ms, search"
+                    {value_maybe}
+                >
+                {hidden_input}
+                <div class="ac-results">
+                </div>
+            </div>
         """
 
     def next_step(self, args):

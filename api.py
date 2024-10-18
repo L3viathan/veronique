@@ -188,6 +188,44 @@ async def list_entities(request):
     )
 
 
+@app.get("/entities/autocomplete/<entity_type_id>")
+@fragment
+async def autocomplete_entities(request, entity_type_id: int):
+    parts = []
+    query = D(request.args).get("ac-query", "")
+    if not query:
+        return ""
+    entities = O.Entity.search(
+        q=query,
+        page_size=5,
+        entity_type_id=entity_type_id,
+    )
+    return "".join(
+        f"{entity:ac-result:{entity_type_id}}"
+        for entity in entities
+    )
+
+
+@app.get("/entities/autocomplete/accept/<entity_type_id>/<entity_id>")
+@fragment
+async def autocomplete_entities_accept(request, entity_type_id: int, entity_id: int):
+    entity = O.Entity(entity_id)
+    return f"""
+        <input
+            name="ac-query"
+            placeholder="Start typing..."
+            hx-get="/entities/autocomplete/{entity_type_id}"
+            hx-target="next .ac-results"
+            hx-swap="innerHTML"
+            hx-trigger="input changed delay:200ms, search"
+            value="{entity.name}"
+        >
+        <input type="hidden" name="value" value="{entity.id}"
+        <div class="ac-results">
+        </div>
+    """
+
+
 @app.get("/entities/new")
 @fragment
 async def new_entity_form(request):

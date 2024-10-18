@@ -158,18 +158,25 @@ class Entity(Model):
         return Entity(cur.lastrowid)
 
     @classmethod
-    def search(cls, q, *, page_size=20, page_no=0):
+    def search(cls, q, *, page_size=20, page_no=0, entity_type_id=None):
         cur = conn.cursor()
+        conditions = [
+            "UPPER(name) LIKE '%' || ? || '%'"
+        ]
+        bindings = [q.upper()]
+        if entity_type_id is not None:
+            conditions.append("entity_type_id = ?")
+            bindings.append(entity_type_id)
         for row in cur.execute(
             f"""
             SELECT
                 id
             FROM entities
-            WHERE UPPER(name) LIKE '%' || ? || '%'
+            WHERE {" AND ".join(conditions)}
             LIMIT {page_size}
             OFFSET {page_no * page_size}
             """,
-            (q.upper(),),
+            tuple(bindings),
         ).fetchall():
             yield cls(row["id"])
 
@@ -216,6 +223,14 @@ class Entity(Model):
                 hx-swap="outerHTML"
                 href="/entities/{self.id}"
             >{self.name}</a> <small>{self.entity_type}</small>"""
+        elif fmt.startswith("ac-result"):
+            entity_type_id = fmt.split(":")[-1]
+            return f"""<span
+                class="clickable ac-result"
+                hx-target="closest .ac-widget"
+                hx-swap="innerHTML"
+                hx-get="/entities/autocomplete/accept/{entity_type_id}/{self.id}"
+            >{self.name}</span>"""
         else:
             return f"""<a
                 class="clickable entity-link"
