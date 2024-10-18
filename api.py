@@ -259,6 +259,7 @@ async def new_entity(request):
             class="button-new"
         >New entity</button>
         <br>
+        <meta http-equiv="refresh" content="0; url=/entities/{entity.id}">
         {entity:full}
     """
 
