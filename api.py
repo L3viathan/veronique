@@ -656,6 +656,11 @@ async def pico_css(request):
     return await file("pico.min.css", mime_type="text/css")
 
 
+@app.get("/favicon.ico")
+async def favicon_ico(request):
+    return await file("favicon.ico", mime_type="image/x-icon")
+
+
 @app.get("/logo.svg")
 async def logo_svg(request):
     return await file("logo.svg", mime_type="image/svg+xml")
