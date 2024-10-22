@@ -642,6 +642,19 @@ async def view_fact(request, fact_id: int):
     """
 
 
+@app.put("/entities/<entity_id>/avatar")
+@fragment
+async def put_avatar(request, entity_id: int):
+    entity = O.Entity(entity_id)
+    entity.upload_avatar(request.files["file"][0].body)
+    return f"{entity:heading}"
+
+
+@app.get("/entities/<entity_id>/avatar")
+async def get_avatar(request, entity_id: int):
+    return await file(f"avatars/{entity_id}.jpg", mime_type="image/jpeg")
+
+
 @app.get("/htmx.js")
 async def htmx_js(request):
     return await file("htmx.js", mime_type="text/javascript")

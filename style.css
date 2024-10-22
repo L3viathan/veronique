@@ -46,7 +46,8 @@ a, .clickable {
 }
 
 h2 {
-  margin: 10px 0px 10px 0px;
+  margin-top: calc(var(--pico-typography-spacing-vertical) * 0.5) !important;
+  margin-bottom: calc(var(--pico-typography-spacing-vertical) * 0.5) !important;
 }
 
 small {
@@ -182,4 +183,47 @@ article button {
 
 .clickable.ac-result:last-child {
   margin-bottom: var(--pico-spacing);
+}
+
+header .avatar {
+  width: 145px;
+  height: 145px;
+  border: 2px solid white;
+  border-radius: 100px;
+  outline: 2px solid var(--lightgrey);
+  position: absolute;
+  margin-top: -24px;
+  object-fit: cover;
+}
+
+.entity-link .avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  vertical-align: middle;
+  margin-bottom: 6px;
+  display: inline;
+  margin-left: 5px;
+  object-fit: cover;
+}
+
+.avatar+h2 {
+  padding-left: 155px;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+form.avatar-form {
+  display: inline-block;
+  label {
+    display: none;
+    max-height: 0px;
+    color: var(--pico-form-element-placeholder-color);
+  }
+}
+
+h2:hover form.avatar-form label {
+  display: inherit;
 }

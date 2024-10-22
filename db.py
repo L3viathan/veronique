@@ -121,3 +121,13 @@ def add_validity(cur):
         ADD valid_until VARCHAR(10)
         """
     )
+
+
+@migration(3)
+def add_has_avatar(cur):
+    cur.execute(
+        """
+        ALTER TABLE entities
+        ADD has_avatar INT NOT NULL DEFAULT 0
+        """
+    )

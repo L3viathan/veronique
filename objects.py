@@ -129,14 +129,14 @@ class EntityType(Model):
 
 
 class Entity(Model):
-    fields = ("name", "entity_type")
+    fields = ("name", "entity_type", "has_avatar")
     table_name = "entities"
 
     def populate(self):
         cur = conn.cursor()
         row = cur.execute(
             """
-                SELECT name, entity_type_id
+                SELECT name, entity_type_id, has_avatar
                 FROM entities
                 WHERE id = ?
             """,
@@ -146,6 +146,7 @@ class Entity(Model):
             raise ValueError("No Entity with this ID found")
         self.name = row["name"]
         self.entity_type = EntityType(row["entity_type_id"])
+        self.has_avatar = bool(row["has_avatar"])
 
     @classmethod
     def new(cls, name, entity_type):
@@ -203,9 +204,26 @@ class Entity(Model):
         ).fetchall():
             yield cls(row["id"])
 
+    def avatar_form(self):
+        return f"""<form
+            id="uploadform"
+            class="avatar-form"
+            hx-put="/entities/{self.id}/avatar"
+            hx-encoding="multipart/form-data"
+            hx-trigger="change from:input.avatar-upload"
+            hx-target="closest header"
+            hx-swap="innerHTML"
+        >
+            <label for="avatar-upload">⇪</label>
+            <input id="avatar-upload" class="avatar-upload" type="file" name="file">
+        </form>"""
+
     def __format__(self, fmt):
         if fmt == "heading":
-            return f"""<h2>
+            return f"""
+            {f'<img src="/entities/{self.id}/avatar" class="avatar">' if self.has_avatar else ''}
+            <h2>
+            {self.avatar_form() if not self.has_avatar else ''}
             <span
                 hx-post="/entities/{self.id}/rename"
                 hx-swap="outerHTML"
@@ -222,7 +240,9 @@ class Entity(Model):
                 hx-target="#container"
                 hx-swap="outerHTML"
                 href="/entities/{self.id}"
-            >{self.name}</a> <small>{self.entity_type}</small>"""
+            >
+            {f'<img src="/entities/{self.id}/avatar" class="avatar">' if self.has_avatar else ''}
+            {self.name}</a> <small>{self.entity_type}</small>"""
         elif fmt.startswith("ac-result"):
             entity_type_id = fmt.split(":")[-1]
             return f"""<span
@@ -238,7 +258,9 @@ class Entity(Model):
                 hx-select="#container"
                 hx-target="#container"
                 hx-swap="outerHTML"
-                href="/entities/{self.id}">{self.name}</a>"""
+                href="/entities/{self.id}">
+                {f'<img src="/entities/{self.id}/avatar" class="avatar">' if self.has_avatar else ''}
+                {self.name}</a>"""
 
     def __str__(self):
         return f"{self}"
@@ -255,6 +277,21 @@ class Entity(Model):
         )
         conn.commit()
         self.name = name
+
+    def upload_avatar(self, file):
+        with open(f"avatars/{self.id}.jpg", "wb") as f:
+            f.write(file)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE entities
+            SET has_avatar=?
+            WHERE id = ?
+            """,
+            (1, self.id),
+        )
+        conn.commit()
+        self.has_avatar = True
 
     @property
     def facts(self):
