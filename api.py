@@ -164,7 +164,6 @@ async def list_entities(request):
         >New entity</button><br>"""
     ]
     previous_type = None
-    n_results = 0
     more_results = False
     for i, entity in enumerate(O.Entity.all(
         order_by="entity_type_id ASC, id DESC",
@@ -180,7 +179,6 @@ async def list_entities(request):
             more_results = True
         else:
             parts.append(f"{entity}")
-            n_results += 1
     return "".join(parts) + pagination(
         "/entities",
         page_no,
@@ -541,6 +539,7 @@ async def new_fact(request, entity_id: int):
 @app.get("/properties")
 @page
 async def list_properties(request):
+    page_no = int(request.args.get("page", 1))
     parts = [
         """<button
             hx-get="/properties/new"
@@ -548,8 +547,20 @@ async def list_properties(request):
             class="button-new"
         >New property</button>"""
     ]
-    parts.extend(f"{prop:full}" for prop in O.Property.all())
-    return "<br>".join(parts)
+    more_results = False
+    for i, prop in enumerate(O.Property.all(
+        page_no=page_no-1,
+        page_size=PAGE_SIZE + 1,
+    )):
+        if i == PAGE_SIZE:
+            more_results = True
+        else:
+            parts.append(f"{prop:full}")
+    return "<br>".join(parts) + pagination(
+        "/properties",
+        page_no,
+        more_results=more_results,
+    )
 
 
 @app.get("/properties/new")
