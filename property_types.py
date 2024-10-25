@@ -365,7 +365,7 @@ class social(PropertyType):
 class mtgcolors(PropertyType):
     def display_html(self, value, prop, **_):
         return "".join(
-            f'<span class="mana s{color} medium mana-{value[color]}"></span>'
+            f'<span class="mana s{color} small mana-{value[color]}"></span>'
             for color in "wubrg"
             if value.get(color) not in (None, 0, "0")
         )
