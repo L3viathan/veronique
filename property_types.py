@@ -378,12 +378,14 @@ class mtgcolors(PropertyType):
         }
 
     def input_html(self, entity, prop, value=None):
-        if not value:
+        if value:
+            value = value.value
+        else:
             value = {color: 0 for color in "wubrg"}
         return "".join(
             f"""
             <label><span class="mana s{color} medium"></span>
-                <input type="range" name="mana-{color}" min="0" max="5" value="{value.value[color]}">
+                <input type="range" name="mana-{color}" min="0" max="5" value="{value[color]}">
             </label>
             """
             for color in "wubrg"
