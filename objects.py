@@ -882,6 +882,10 @@ class Plain:
         self.fact = None
 
     @classmethod
+    def from_form(cls, prop, form):
+        return Plain(prop.data_type.extract_value(form), prop)
+
+    @classmethod
     def decode(cls, prop, value):
         return Plain(prop.data_type.decode(value), prop)
 

@@ -504,7 +504,7 @@ async def edit_fact(request, fact_id: int):
     if fact.prop.data_type.name == "entity":
         value = O.Entity(int(value))
     else:
-        value = O.Plain(value, fact.prop)
+        value = O.Plain.from_form(fact.prop, form)
         value.fact = fact
     fact.set_value(value)
     return f"{fact.obj}"
@@ -522,7 +522,7 @@ async def new_fact(request, entity_id: int):
     if prop.data_type.name == "entity":
         value = O.Entity(int(value))
     else:
-        value = O.Plain(value, prop)
+        value = O.Plain.from_form(prop, form)
     fact = O.Fact.new(O.Entity(entity_id), prop, value)
     if prop.data_type.name != "entity":
         value.fact = fact
@@ -674,6 +674,16 @@ async def htmx_js(request):
 @app.get("/style.css")
 async def style_css(request):
     return await file("style.css", mime_type="text/css")
+
+
+@app.get("/mana-cost.css")
+async def mana_cost_css(request):
+    return await file("mana-cost.css", mime_type="text/css")
+
+
+@app.get("/mana.svg")
+async def mana_svg(request):
+    return await file("mana.svg", mime_type="image/svg+xml")
 
 
 @app.get("/pico.min.css")

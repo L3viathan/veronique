@@ -1,3 +1,4 @@
+import json
 import datetime
 from urllib.parse import quote_plus
 import objects as O
@@ -34,6 +35,9 @@ class PropertyType:
 
     def decode(self, encoded):
         return str(encoded)
+
+    def extract_value(self, form):
+        return form.get("value")
 
     def __str__(self):
         return f"<em>{self.name}</em>"
@@ -356,3 +360,37 @@ class social(PropertyType):
 
     def encode_extra_data(self, form):
         return form["template"]
+
+
+class mtgcolors(PropertyType):
+    def display_html(self, value, prop, **_):
+        return "".join(
+            f'<span class="mana s{color} medium mana-{value[color]}"></span>'
+            for color in "wubrg"
+            if value.get(color) not in (None, 0, "0")
+        )
+
+    def extract_value(self, form):
+        return {
+            color: int(form[f"mana-{color}"])
+            for color in "wubrg"
+            if int(form[f"mana-{color}"]) != 0
+        }
+
+    def input_html(self, entity, prop, value=None):
+        if not value:
+            value = {color: 0 for color in "wubrg"}
+        return "".join(
+            f"""
+            <label><span class="mana s{color} medium"></span>
+                <input type="range" name="mana-{color}" min="0" max="5" value="{value.value[color]}">
+            </label>
+            """
+            for color in "wubrg"
+        )
+
+    def decode(self, encoded):
+        return json.loads(encoded)
+
+    def encode(self, value):
+        return json.dumps(value)
