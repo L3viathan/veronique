@@ -31,12 +31,20 @@ class PropertyType:
         return None
 
     def encode(self, value):
+        """Encode how value should be represented in the DB."""
         return str(value)
 
     def decode(self, encoded):
+        """Decode from string in database to desired value."""
         return str(encoded)
 
     def extract_value(self, form):
+        """
+        Given a form object, extract the value in the form we want it.
+
+        Typically, this is just whatever is in the value field, but this can be
+        used to implement widgets with several <input>s.
+        """
         return form.get("value")
 
     def __str__(self):
