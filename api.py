@@ -47,6 +47,8 @@ def D(multival_dict):
 
 
 def pagination(url, page_no, *, more_results=True):
+    if page_no == 1 and not more_results:
+        return ""
     q = "&" if "?" in url else "?"
     return f"""<br>
         <a
