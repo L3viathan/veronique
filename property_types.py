@@ -1,6 +1,8 @@
 import json
 import datetime
+import unicodedata
 from urllib.parse import quote_plus
+
 import objects as O
 from nomnidate import NonOmniscientDate
 
@@ -404,3 +406,34 @@ class mtgcolors(PropertyType):
 
     def encode(self, value):
         return json.dumps(value)
+
+
+class alpha2(PropertyType):
+    def display_html(self, value, prop, **_):
+        country = value.upper()
+        flag = "".join(
+            unicodedata.lookup(
+                f"REGIONAL INDICATOR SYMBOL LETTER {c}"
+            )
+            for c in country
+        )
+        return f'<span class="type-alpha2">{flag} {country}</span>'
+
+    def encode(self, string):
+        val = string.upper()
+        if (
+            len(val) == 2
+            and 65 <= ord(val[0]) <= 90
+            and 65 <= ord(val[1]) <= 90
+        ):
+            return val
+        raise ValueError("Needs to be two-letter ASCII")
+
+
+    def input_html(self, entity, prop, value=None):
+        if value:
+            quot = '"'
+            value = f' value="{value.value.replace(quot, "&quot;")}"'
+        else:
+            value = ""
+        return f"""<input name="value"{value}></input>"""
