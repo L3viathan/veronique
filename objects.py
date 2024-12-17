@@ -308,6 +308,30 @@ class Entity(Model):
             yield Fact(row["id"])
 
     @property
+    def graph_elements(self):
+        yield {
+            "group": "nodes",
+            "data": {
+                "label": self.name,
+                "id": str(self.id),
+            },
+        }
+        for fact in self.facts:
+            if not isinstance(fact.obj, Entity):
+                continue
+            if fact.reflected_fact and fact.reflected_fact.id < fact.id:
+                continue
+            yield {
+                "group": "edges",
+                "data": {
+                    "source": str(self.id),
+                    "target": str(fact.obj.id),
+                    "label": fact.prop.label,
+                },
+            }
+
+
+    @property
     def incoming_facts(self):
         cur = conn.cursor()
         for row in cur.execute(

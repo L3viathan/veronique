@@ -251,3 +251,9 @@ h2:hover form.avatar-form label {
 .mana-5 {
   opacity: 100%;
 }
+
+#cy {
+  height: 800px;
+  width: 1200px;
+  display: block;
+}

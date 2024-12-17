@@ -1,7 +1,9 @@
 import os
 import functools
+import json
 import base64
 from datetime import date
+from itertools import chain
 from types import CoroutineType
 from sanic import Sanic, HTTPResponse, html, file, redirect
 from nomnidate import NonOmniscientDate
@@ -106,6 +108,53 @@ async def index(request):
                 abs((date.today() - NonOmniscientDate(f.obj.value)).days)
             ),
         ))}
+    """
+
+
+@app.get("/network")
+@page
+async def network(request):
+    entities = O.Entity.all(page_size=9999)
+    elements = chain.from_iterable(
+        e.graph_elements
+        for e in entities
+    )
+    return f"""
+    <script src="/cytoscape.min.js"></script>
+    <div id="cy"></div>
+    <script>
+        var cy = cytoscape({{
+            container: document.getElementById("cy"),
+            elements: [
+            {",".join(json.dumps(element) for element in elements)}
+            ],
+            style: [
+                {{
+                    selector: 'node',
+                    style: {{
+                        'label': 'data(label)',
+                        'width': '5px',
+                        'height': '5px',
+                        'font-size': '5pt',
+                    }}
+                }},
+                {{
+                    selector: 'edge',
+                    style: {{
+                        'label': 'data(label)',
+                        'font-size': '4pt',
+                        'width': '1px',
+                        'line-opacity': 0.2,
+                    }}
+                }},
+            ],
+        }});
+        layout = cy.layout({{
+            name: 'cose',
+            initialTemp: 4000,
+        }});
+        layout.run();
+    </script>
     """
 
 
@@ -691,6 +740,11 @@ async def mana_svg(request):
 @app.get("/pico.min.css")
 async def pico_css(request):
     return await file("pico.min.css", mime_type="text/css")
+
+
+@app.get("/cytoscape.min.js")
+async def cytoscape_js(request):
+    return await file("cytoscape.min.js", mime_type="text/javascript")
 
 
 @app.get("/favicon.ico")
