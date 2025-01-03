@@ -1,3 +1,4 @@
+import os
 import sys
 import sqlite3
 
@@ -131,3 +132,6 @@ def add_has_avatar(cur):
         ADD has_avatar INT NOT NULL DEFAULT 0
         """
     )
+
+if os.environ.get("VERONIQUE_READONLY"):
+    conn.execute("pragma query_only = ON;")
