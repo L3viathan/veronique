@@ -114,9 +114,14 @@ async def index(request):
 @app.get("/network")
 @page
 async def network(request):
-    entities = O.Entity.all(page_size=9999)
+    if "entity_type" in request.args:
+        ids = [int(part) for part in request.args.get("entity_type").split(",")]
+        entity_types = [O.EntityType(entity_type_id) for entity_type_id in ids]
+    else:
+        entity_types = None
+    entities = O.Entity.all(page_size=9999, entity_types=entity_types)
     elements = chain.from_iterable(
-        e.graph_elements
+        e.graph_elements(entity_types)
         for e in entities
     )
     return f"""
@@ -363,7 +368,7 @@ async def view_entity_type(request, entity_type_id: int):
     page_no = int(request.args.get("page", 1))
     entity_type = O.EntityType(entity_type_id)
     entities = O.Entity.all(
-        entity_type=entity_type,
+        entity_types=[entity_type],
         page_no=page_no - 1,
         page_size=PAGE_SIZE + 1,  # so we know if there would be more results
     )

@@ -182,16 +182,21 @@ class Entity(Model):
             yield cls(row["id"])
 
     @classmethod
-    def all(cls, *, order_by="id ASC", entity_type=None, page_no=0, page_size=20):
+    def all(cls, *, order_by="id ASC", entity_types=None, page_no=0, page_size=20):
         conditions = ["1=1"]
         values = []
-        if entity_type is not None:
-            conditions.append("entity_type_id = ?")
-            values.append(entity_type.id)
+        if entity_types is not None:
+            # I can't get the parametrized form to work, "entity_type_id IN ?"
+            # doesn't want to work with either of tuple/list/set, despite
+            # "entity_type_id = ?" working previously. Given that we know these
+            # are ints here this is safe to do, but I still don't like it.
+            conditions.append(
+                f"entity_type_id IN ({','.join(str(t.id) for t in entity_types)})"
+            )
+            # values.append(tuple(entity_type.id for entity_type in entity_types))
 
         cur = conn.cursor()
-        for row in cur.execute(
-            f"""
+        query = f"""
             SELECT
                 id
             FROM {getattr(cls, "table_name", f"{cls.__name__.lower()}s")}
@@ -199,7 +204,9 @@ class Entity(Model):
             ORDER BY {order_by}
             LIMIT {page_size}
             OFFSET {page_no * page_size}
-            """,
+        """
+        for row in cur.execute(
+            query,
             tuple(values),
         ).fetchall():
             yield cls(row["id"])
@@ -307,8 +314,7 @@ class Entity(Model):
         ).fetchall():
             yield Fact(row["id"])
 
-    @property
-    def graph_elements(self):
+    def graph_elements(self, target_entity_types=None):
         yield {
             "group": "nodes",
             "data": {
@@ -320,6 +326,8 @@ class Entity(Model):
             if not isinstance(fact.obj, Entity):
                 continue
             if fact.reflected_fact and fact.reflected_fact.id < fact.id:
+                continue
+            if target_entity_types and fact.obj.entity_type not in target_entity_types:
                 continue
             yield {
                 "group": "edges",
