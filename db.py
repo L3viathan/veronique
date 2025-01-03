@@ -2,7 +2,7 @@ import os
 import sys
 import sqlite3
 
-conn = sqlite3.connect("veronique.db")
+conn = sqlite3.connect(os.environ.get("VERONIQUE_DB", "veronique.db"))
 conn.row_factory = sqlite3.Row
 
 
