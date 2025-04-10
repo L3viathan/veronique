@@ -95,6 +95,22 @@ def page(fn):
 @app.get("/")
 @page
 async def index(request):
+    recent_events = []
+    past_today = False
+    for fact in sorted(
+        O.Fact.all_of_same_month(),
+        key=lambda f: (
+            (date.today() - NonOmniscientDate(f.obj.value)).days
+        ),
+        reverse=True,
+    ):
+        difference = (date.today() - NonOmniscientDate(fact.obj.value)).days
+        if difference == 0:
+            past_today = True
+        elif not past_today and difference < 0:
+            recent_events.append('<hr class="date-today">')
+            past_today = True
+        recent_events.append(f"<p>{fact}</p>")
     return f"""
         <button
             hx-get="/entities/new"
@@ -102,12 +118,7 @@ async def index(request):
             class="button-new"
         >New entity</button>
         <h2>This month</h2>
-        {"".join(f"<p>{fact}</p>" for fact in sorted(
-            O.Fact.all_of_same_month(),
-            key=lambda f: (
-                abs((date.today() - NonOmniscientDate(f.obj.value)).days)
-            ),
-        ))}
+        {"".join(recent_events)}
     """
 
 

@@ -146,10 +146,16 @@ article button {
 
 .fact:has(.date-today) {
   animation: 0.5s infinite alternate pulsate;
+  box-shadow: green 0px 0px 15px;
 }
 
 .fact:has(.date-yesterday), .fact:has(.date-tomorrow) {
   animation: 1s infinite alternate pulsate;
+}
+
+hr.date-today {
+  border-top: 4px solid green;
+  box-shadow: green 0px 0px 10px;
 }
 
 @keyframes pulsate {
