@@ -351,7 +351,7 @@ class Entity(Model):
             ON f.property_id = p.id
             WHERE (
                 f.object_id = ?
-                AND (p.reflected_property_id IS NULL OR p.reflected_property_id <> p.id)
+                AND p.reflected_property_id IS NULL
             ) OR f.value LIKE '%<@' || ? || '>%'
             """,
             (self.id, self.id),
