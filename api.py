@@ -446,7 +446,7 @@ async def rename_property(request, property_id: int):
 @fragment
 async def new_fact_form(request, entity_id: int):
     entity = O.Entity(entity_id)
-    props = O.Property.all(subject_type=entity.entity_type)
+    props = O.Property.all(subject_type=entity.entity_type, page_size=9999)
     return f"""
         <form
             hx-post="/facts/new/{entity_id}"
