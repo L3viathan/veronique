@@ -2,7 +2,7 @@ import re
 from datetime import date, datetime
 
 from property_types import TYPES
-from db import conn
+from db import conn, make_search_key
 
 TEXT_REF = re.compile(r"<@(\d+)>")
 SELF = object()
@@ -152,8 +152,8 @@ class Entity(Model):
     def new(cls, name, entity_type):
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO entities (name, entity_type_id) VALUES (?, ?)",
-            (name, entity_type.id),
+            "INSERT INTO entities (name, search_key, entity_type_id) VALUES (?, ?, ?)",
+            (name, make_search_key(name), entity_type.id),
         )
         conn.commit()
         return Entity(cur.lastrowid)
@@ -162,9 +162,9 @@ class Entity(Model):
     def search(cls, q, *, page_size=20, page_no=0, entity_type_id=None):
         cur = conn.cursor()
         conditions = [
-            "UPPER(name) LIKE '%' || ? || '%'"
+            "search_key LIKE '%' || ? || '%'"
         ]
-        bindings = [q.upper()]
+        bindings = [make_search_key(q)]
         if entity_type_id is not None:
             conditions.append("entity_type_id = ?")
             bindings.append(entity_type_id)
@@ -277,10 +277,10 @@ class Entity(Model):
         cur.execute(
             """
             UPDATE entities
-            SET name=?
+            SET name=?, search_key=?
             WHERE id = ?
             """,
-            (name, self.id),
+            (name, make_search_key(name), self.id),
         )
         conn.commit()
         self.name = name

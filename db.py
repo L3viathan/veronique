@@ -1,6 +1,7 @@
 import os
 import sys
 import sqlite3
+import unicodedata
 
 conn = sqlite3.connect(os.environ.get("VERONIQUE_DB", "veronique.db"))
 conn.row_factory = sqlite3.Row
@@ -131,6 +132,41 @@ def add_has_avatar(cur):
         ALTER TABLE entities
         ADD has_avatar INT NOT NULL DEFAULT 0
         """
+    )
+
+
+def make_search_key(name):
+    word = []
+    words = []
+    for char in unicodedata.normalize("NFKD", name):
+        cat = unicodedata.category(char)[0]
+        if cat == "L":  # letters
+            word.append(char)
+        elif cat in "ZP" and word:
+            # whitespace, punctuation
+            words.append("".join(word))
+            word = []
+        elif cat == "M":
+            # modifier: ignore
+            continue
+    if word:
+        words.append("".join(word))
+    return " ".join(words).casefold()
+
+
+@migration(4)
+def add_search_key(cur):
+    cur.execute(
+        """
+        ALTER TABLE entities
+        ADD search_key TEXT
+        """
+    )
+    cur.execute("SELECT id, name FROM entities")
+    rows = cur.fetchall()
+    cur.executemany(
+        "UPDATE entities SET search_key=? WHERE id=?",
+        ((make_search_key(name), id) for id, name in rows)
     )
 
 if os.environ.get("VERONIQUE_READONLY"):
