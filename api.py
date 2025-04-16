@@ -136,7 +136,6 @@ async def network(request):
         for e in entities
     )
     return f"""
-    <script src="/cytoscape.min.js"></script>
     <div id="cy"></div>
     <script>
         var cy = cytoscape({{
