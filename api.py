@@ -125,14 +125,14 @@ async def index(request):
 @app.get("/network")
 @page
 async def network(request):
-    if "entity_type" in request.args:
-        ids = [int(part) for part in request.args.get("entity_type").split(",")]
-        entity_types = [O.EntityType(entity_type_id) for entity_type_id in ids]
+    if "category" in request.args:
+        ids = [int(part) for part in request.args.get("categories").split(",")]
+        categories = [O.Category(category_id) for category_id in ids]
     else:
-        entity_types = None
-    entities = O.Entity.all(page_size=9999, entity_types=entity_types)
+        categories = None
+    entities = O.Entity.all(page_size=9999, categories=categories)
     elements = chain.from_iterable(
-        e.graph_elements(entity_types)
+        e.graph_elements(categories)
         for e in entities
     )
     return f"""
@@ -173,25 +173,25 @@ async def network(request):
     """
 
 
-@app.get("/entity-types")
+@app.get("/categories")
 @page
-async def list_types(request):
-    types = O.EntityType.all()
+async def list_categories(request):
+    categories = O.Category.all()
     return """
     <button
-        hx-get="/entity-types/new"
+        hx-get="/category/new"
         hx-swap="outerHTML"
         class="button-new"
-    >New entity type</button>
-    """ + "<br>".join(str(type_) for type_ in types)
+    >New category</button>
+    """ + "<br>".join(str(category) for category in categories)
 
 
-@app.get("/entity-types/new")
+@app.get("/categories/new")
 @fragment
-async def new_entity_type_form(request):
+async def new_category_form(request):
     return """
         <form
-            hx-post="/entity-types/new"
+            hx-post="/categories/new"
             hx-swap="outerHTML"
             hx-encoding="multipart/form-data"
         >
@@ -201,19 +201,19 @@ async def new_entity_type_form(request):
     """
 
 
-@app.post("/entity-types/new")
+@app.post("/categories/new")
 @fragment
-async def new_entity_type(request):
+async def new_category(request):
     form = D(request.form)
     name = form["name"]
-    entity_type = O.EntityType.new(name)
+    category = O.Category.new(name)
     return f"""
         <button
-            hx-get="/entity-types/new"
+            hx-get="/categories/new"
             hx-swap="outerHTML"
             class="button-new"
-        >New entity type</button>
-        {entity_type}
+        >New category</button>
+        {category}
         <br>
     """
 
@@ -232,13 +232,13 @@ async def list_entities(request):
     previous_type = None
     more_results = False
     for i, entity in enumerate(O.Entity.all(
-        order_by="entity_type_id ASC, id DESC",
+        order_by="category_id ASC, id DESC",
         page_no=page_no-1,
         page_size=PAGE_SIZE + 1,  # so we know if there would be more results
     )):
-        if entity.entity_type != previous_type:
-            parts.append(f"<h3>{entity.entity_type}</h3>")
-            previous_type = entity.entity_type
+        if entity.category != previous_type:
+            parts.append(f"<h3>{entity.category}</h3>")
+            previous_type = entity.category
         elif i:
             parts.append("<br>")
         if i == PAGE_SIZE:
@@ -252,9 +252,9 @@ async def list_entities(request):
     )
 
 
-@app.get("/entities/autocomplete/<entity_type_id>")
+@app.get("/entities/autocomplete/<category_id>")
 @fragment
-async def autocomplete_entities(request, entity_type_id: int):
+async def autocomplete_entities(request, category_id: int):
     parts = []
     query = D(request.args).get("ac-query", "")
     if not query:
@@ -262,23 +262,23 @@ async def autocomplete_entities(request, entity_type_id: int):
     entities = O.Entity.search(
         q=query,
         page_size=5,
-        entity_type_id=entity_type_id,
+        category_id=category_id,
     )
     return "".join(
-        f"{entity:ac-result:{entity_type_id}}"
+        f"{entity:ac-result:{category_id}}"
         for entity in entities
     )
 
 
-@app.get("/entities/autocomplete/accept/<entity_type_id>/<entity_id>")
+@app.get("/entities/autocomplete/accept/<category_id>/<entity_id>")
 @fragment
-async def autocomplete_entities_accept(request, entity_type_id: int, entity_id: int):
+async def autocomplete_entities_accept(request, category_id: int, entity_id: int):
     entity = O.Entity(entity_id)
     return f"""
         <input
             name="ac-query"
             placeholder="Start typing..."
-            hx-get="/entities/autocomplete/{entity_type_id}"
+            hx-get="/entities/autocomplete/{category_id}"
             hx-target="next .ac-results"
             hx-swap="innerHTML"
             hx-trigger="input changed delay:200ms, search"
@@ -293,7 +293,7 @@ async def autocomplete_entities_accept(request, entity_type_id: int, entity_id: 
 @app.get("/entities/new")
 @fragment
 async def new_entity_form(request):
-    types = O.EntityType.all()
+    categories = O.Category.all()
     return f"""
         <form
             hx-post="/entities/new"
@@ -301,9 +301,9 @@ async def new_entity_form(request):
             hx-encoding="multipart/form-data"
         >
             <input name="name" placeholder="name"></input>
-            <select name="entity_type">
-                <option selected disabled>--Entity Type--</option>
-                {"".join(f'<option value="{et.id}">{et.name}</option>' for et in types)}
+            <select name="category">
+                <option selected disabled>--Category--</option>
+                {"".join(f'<option value="{c.id}">{c.name}</option>' for c in categories)}
             </select>
             <button type="submit">»</button>
         </form>
@@ -315,7 +315,7 @@ async def new_entity_form(request):
 async def new_entity(request):
     form = D(request.form)
     name = form["name"]
-    entity = O.Entity.new(name, O.Entity(int(form["entity_type"])))
+    entity = O.Entity.new(name, O.Entity(int(form["category"])))
     return f"""
         <button
             hx-get="/entities/new"
@@ -372,13 +372,13 @@ async def view_entity(request, entity_id: int):
         {"".join(f"<p>{fact}</p>" for fact in entity.incoming_facts)}
     """
 
-@app.get("/entity-types/<entity_type_id>")
+@app.get("/categories/<category_id>")
 @page
-async def view_entity_type(request, entity_type_id: int):
+async def view_category(request, category_id: int):
     page_no = int(request.args.get("page", 1))
-    entity_type = O.EntityType(entity_type_id)
+    category = O.Category(category_id)
     entities = O.Entity.all(
-        entity_types=[entity_type],
+        categories=[category],
         page_no=page_no - 1,
         page_size=PAGE_SIZE + 1,  # so we know if there would be more results
     )
@@ -391,24 +391,24 @@ async def view_entity_type(request, entity_type_id: int):
             parts.append(f"{entity}")
 
     return f"""
-        {entity_type:heading}
+        {category:heading}
         {"<br>".join(parts)}
         {pagination(
-            f"/entity-types/{entity_type_id}",
+            f"/categories/{category_id}",
             page_no,
             more_results=more_results,
         )}
     """
 
 
-@app.post("/entity-types/<entity_type_id>/rename")
+@app.post("/categories/<category_id>/rename")
 @fragment
-async def rename_entity_type(request, entity_type_id: int):
-    entity_type = O.EntityType(entity_type_id)
+async def rename_category(request, category_id: int):
+    category = O.Category(category_id)
     name = D(request.form)["name"]
     if name:
-        entity_type.rename(name)
-    return f"{entity_type:heading}"
+        category.rename(name)
+    return f"{category:heading}"
 
 
 @app.post("/entities/<entity_id>/rename")
@@ -445,7 +445,7 @@ async def rename_property(request, property_id: int):
 @fragment
 async def new_fact_form(request, entity_id: int):
     entity = O.Entity(entity_id)
-    props = O.Property.all(subject_type=entity.entity_type, page_size=9999)
+    props = O.Property.all(subject_category=entity.category, page_size=9999)
     return f"""
         <form
             hx-post="/facts/new/{entity_id}"
@@ -633,15 +633,15 @@ async def list_properties(request):
 @fragment
 async def new_property_form(request):
     type_options = []
-    for entity_type in O.EntityType.all():
-        type_options.append(f'<option value="{entity_type.id}">{entity_type}</option>')
+    for category in O.Category.all():
+        type_options.append(f'<option value="{category.id}">{category}</option>')
     return f"""
         <form
             hx-post="/properties/new"
             hx-swap="outerHTML"
             hx-encoding="multipart/form-data"
         >
-            <select name="subject_type">
+            <select name="subject_category">
                 <option selected disabled>--Subject--</option>
                 {"".join(type_options)}
             </select>
@@ -688,10 +688,10 @@ async def new_property(request):
             if form["reflectivity"] == "self"
             else form["inversion"]
         ),
-        subject_type=O.EntityType(int(form["subject_type"])),
-        object_type=(
-            O.EntityType(int(form["object_type"]))
-            if "object_type" in form
+        subject_category=O.Category(int(form["subject_category"])),
+        object_category=(
+            O.Category(int(form["object_category"]))
+            if "object_category" in form
             else None
         ),
         extra_data=data_type.encode_extra_data(form),

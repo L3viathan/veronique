@@ -5,6 +5,7 @@ import unicodedata
 
 conn = sqlite3.connect(os.environ.get("VERONIQUE_DB", "veronique.db"))
 conn.row_factory = sqlite3.Row
+orig_isolation_level, conn.isolation_level = conn.isolation_level, None
 
 
 try:
@@ -23,14 +24,15 @@ def migration(number):
             print("Running migration", fn.__name__)
             try:
                 cur = conn.cursor()
+                cur.execute("BEGIN")
                 fn(cur)
                 cur.execute("UPDATE state SET version = ?", (version + 1,))
-                conn.commit()
+                cur.execute("COMMIT")
                 print("Migration successful")
                 version += 1
             except sqlite3.OperationalError as e:
                 print("Rolling back migration:", e)
-                conn.rollback()
+                cur.execute("ROLLBACK")
                 sys.exit(1)
             cur.close()
     return deco
@@ -169,5 +171,131 @@ def add_search_key(cur):
         ((make_search_key(name), id) for id, name in rows)
     )
 
+@migration(5)
+def rename_entity_type_to_category(cur):
+    cur.execute("ALTER TABLE entity_types RENAME TO categories")
+    cur.execute("ALTER TABLE entities RENAME COLUMN entity_type_id TO category_id")
+    cur.execute("ALTER TABLE properties RENAME COLUMN subject_type_id TO subject_category_id")
+    cur.execute("ALTER TABLE properties RENAME COLUMN object_type_id TO object_category_id")
+
+
+@migration(6)
+def remove_constraints(cur):
+    # These constraints do more harm than good, since they're not enforced
+    # They also refer to the wrong table names now.
+    cur.execute("""
+        CREATE TABLE properties_tmp (
+            id INTEGER PRIMARY KEY,
+            label VARCHAR(32) UNIQUE,
+            data_type VARCHAR(32),
+            reflected_property_id INTEGER,
+            extra_data TEXT,
+            subject_category_id INTEGER NOT NULL,
+            object_category_id INTEGER
+        )
+    """)
+    cur.execute("""
+        INSERT INTO properties_tmp (
+            id,
+            label,
+            data_type,
+            reflected_property_id,
+            extra_data,
+            subject_category_id,
+            object_category_id
+        ) SELECT
+            id,
+            label,
+            data_type,
+            reflected_property_id,
+            extra_data,
+            subject_category_id,
+            object_category_id
+        FROM properties
+    """)
+    cur.execute("""
+        DROP TABLE properties
+    """)
+    cur.execute("""
+        ALTER TABLE properties_tmp RENAME TO properties
+    """)
+    cur.execute("""
+        CREATE TABLE entities_tmp (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            category_id INTEGER NOT NULL,
+            has_avatar INT NOT NULL DEFAULT 0,
+            search_key TEXT
+        )
+    """)
+    cur.execute("""
+        INSERT INTO entities_tmp (
+            id,
+            name,
+            category_id,
+            has_avatar,
+            search_key
+        ) SELECT
+            id,
+            name,
+            category_id,
+            has_avatar,
+            search_key
+        FROM entities
+    """)
+    cur.execute("""
+        DROP TABLE entities
+    """)
+    cur.execute("""
+        ALTER TABLE entities_tmp RENAME TO entities
+    """)
+    cur.execute("""
+        CREATE TABLE facts_tmp (
+            id INTEGER PRIMARY KEY,
+            subject_id INTEGER NOT NULL,
+            property_id INTEGER NOT NULL,
+            value TEXT, -- for anything other than relations
+            object_id INTEGER,  -- for relations
+            reflected_fact_id INTEGER,
+            created_at TIMESTAMP DEFAULT (datetime('now')),
+            updated_at TIMESTAMP,
+            valid_from VARCHAR(10),
+            valid_until VARCHAR(10)
+        )
+    """)
+    cur.execute("""
+        INSERT INTO facts_tmp (
+            id,
+            subject_id,
+            property_id,
+            value,
+            object_id,
+            reflected_fact_id,
+            created_at,
+            updated_at,
+            valid_from,
+            valid_until
+        ) SELECT
+            id,
+            subject_id,
+            property_id,
+            value,
+            object_id,
+            reflected_fact_id,
+            created_at,
+            updated_at,
+            valid_from,
+            valid_until
+        FROM facts
+    """)
+    cur.execute("""
+        DROP TABLE facts
+    """)
+    cur.execute("""
+        ALTER TABLE facts_tmp RENAME TO facts
+    """)
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
+
+conn.isolation_level = orig_isolation_level

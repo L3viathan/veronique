@@ -65,8 +65,8 @@ class Model:
             yield cls(row["id"])
 
 
-class EntityType(Model):
-    table_name = "entity_types"
+class Category(Model):
+    table_name = "categories"
     fields = ("name",)
 
     def populate(self):
@@ -75,19 +75,19 @@ class EntityType(Model):
             """
                 SELECT
                     id, name
-                FROM entity_types
+                FROM categories
                 WHERE id = ?
             """,
             (self.id,),
         ).fetchone()
         if not row:
-            raise ValueError("No EntityType with this ID found")
+            raise ValueError("No Category with this ID found")
         self.name = row["name"]
 
     @classmethod
     def new(cls, name):
         cur = conn.cursor()
-        cur.execute("INSERT INTO entity_types (name) VALUES (?)", (name,))
+        cur.execute("INSERT INTO categories (name) VALUES (?)", (name,))
         conn.commit()
         return cls(cur.lastrowid)
 
@@ -95,7 +95,7 @@ class EntityType(Model):
         cur = conn.cursor()
         cur.execute(
             """
-            UPDATE entity_types
+            UPDATE categories
             SET name=?
             WHERE id = ?
             """,
@@ -107,7 +107,7 @@ class EntityType(Model):
     def __format__(self, fmt):
         if fmt == "heading":
             return f"""<h2
-                hx-post="/entity-types/{self.id}/rename"
+                hx-post="/categories/{self.id}/rename"
                 hx-swap="outerHTML"
                 hx-trigger="blur delay:500ms"
                 hx-target="closest h2"
@@ -116,9 +116,9 @@ class EntityType(Model):
             >{self.name}</h2>"""
         else:
             return f"""<a
-                class="clickable entity-type"
+                class="clickable category"
                 hx-push-url="true"
-                href="/entity-types/{self.id}"
+                href="/categories/{self.id}"
                 hx-select="#container"
                 hx-target="#container"
                 hx-swap="outerHTML"
@@ -129,14 +129,14 @@ class EntityType(Model):
 
 
 class Entity(Model):
-    fields = ("name", "entity_type", "has_avatar")
+    fields = ("name", "category", "has_avatar")
     table_name = "entities"
 
     def populate(self):
         cur = conn.cursor()
         row = cur.execute(
             """
-                SELECT name, entity_type_id, has_avatar
+                SELECT name, category_id, has_avatar
                 FROM entities
                 WHERE id = ?
             """,
@@ -145,29 +145,29 @@ class Entity(Model):
         if not row:
             raise ValueError("No Entity with this ID found")
         self.name = row["name"]
-        self.entity_type = EntityType(row["entity_type_id"])
+        self.category = Category(row["category_id"])
         self.has_avatar = bool(row["has_avatar"])
 
     @classmethod
-    def new(cls, name, entity_type):
+    def new(cls, name, category):
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO entities (name, search_key, entity_type_id) VALUES (?, ?, ?)",
-            (name, make_search_key(name), entity_type.id),
+            "INSERT INTO entities (name, search_key, category_id) VALUES (?, ?, ?)",
+            (name, make_search_key(name), category.id),
         )
         conn.commit()
         return Entity(cur.lastrowid)
 
     @classmethod
-    def search(cls, q, *, page_size=20, page_no=0, entity_type_id=None):
+    def search(cls, q, *, page_size=20, page_no=0, category_id=None):
         cur = conn.cursor()
         conditions = [
             "search_key LIKE '%' || ? || '%'"
         ]
         bindings = [make_search_key(q)]
-        if entity_type_id is not None:
-            conditions.append("entity_type_id = ?")
-            bindings.append(entity_type_id)
+        if category_id is not None:
+            conditions.append("category_id = ?")
+            bindings.append(category_id)
         for row in cur.execute(
             f"""
             SELECT
@@ -182,18 +182,18 @@ class Entity(Model):
             yield cls(row["id"])
 
     @classmethod
-    def all(cls, *, order_by="id ASC", entity_types=None, page_no=0, page_size=20):
+    def all(cls, *, order_by="id ASC", categories=None, page_no=0, page_size=20):
         conditions = ["1=1"]
         values = []
-        if entity_types is not None:
-            # I can't get the parametrized form to work, "entity_type_id IN ?"
+        if categories is not None:
+            # I can't get the parametrized form to work, "category_id IN ?"
             # doesn't want to work with either of tuple/list/set, despite
-            # "entity_type_id = ?" working previously. Given that we know these
+            # "category_id = ?" working previously. Given that we know these
             # are ints here this is safe to do, but I still don't like it.
             conditions.append(
-                f"entity_type_id IN ({','.join(str(t.id) for t in entity_types)})"
+                f"category_id IN ({','.join(str(c.id) for c in categories)})"
             )
-            # values.append(tuple(entity_type.id for entity_type in entity_types))
+            # values.append(tuple(category.id for category in categories))
 
         cur = conn.cursor()
         query = f"""
@@ -238,7 +238,7 @@ class Entity(Model):
                 hx-target="closest h2"
                 hx-vals="javascript: name:htmx.find('span').innerHTML"
                 contenteditable
-            >{self.name}</span> <small>{self.entity_type}</small></h2>"""
+            >{self.name}</span> <small>{self.category}</small></h2>"""
         elif fmt == "full":
             return f"""<a
                 class="clickable entity-link"
@@ -249,14 +249,14 @@ class Entity(Model):
                 href="/entities/{self.id}"
             >
             {f'<img src="/entities/{self.id}/avatar" class="avatar">' if self.has_avatar else ''}
-            {self.name}</a> <small>{self.entity_type}</small>"""
+            {self.name}</a> <small>{self.category}</small>"""
         elif fmt.startswith("ac-result"):
-            entity_type_id = fmt.split(":")[-1]
+            category_id = fmt.split(":")[-1]
             return f"""<span
                 class="clickable ac-result"
                 hx-target="closest .ac-widget"
                 hx-swap="innerHTML"
-                hx-get="/entities/autocomplete/accept/{entity_type_id}/{self.id}"
+                hx-get="/entities/autocomplete/accept/{category_id}/{self.id}"
             >{self.name}</span>"""
         else:
             return f"""<a
@@ -314,7 +314,7 @@ class Entity(Model):
         ).fetchall():
             yield Fact(row["id"])
 
-    def graph_elements(self, target_entity_types=None):
+    def graph_elements(self, target_categories=None):
         yield {
             "group": "nodes",
             "data": {
@@ -327,7 +327,7 @@ class Entity(Model):
                 continue
             if fact.reflected_fact and fact.reflected_fact.id < fact.id:
                 continue
-            if target_entity_types and fact.obj.entity_type not in target_entity_types:
+            if target_categories and fact.obj.category not in target_categories:
                 continue
             yield {
                 "group": "edges",
@@ -364,8 +364,8 @@ class Property(Model):
         "label",
         "data_type",
         "extra_data",
-        "subject_type",
-        "object_type",
+        "subject_category",
+        "object_category",
         "reflected_property",
     )
     table_name = "properties"
@@ -378,8 +378,8 @@ class Property(Model):
                 label,
                 data_type,
                 extra_data,
-                subject_type_id,
-                object_type_id,
+                subject_category_id,
+                object_category_id,
                 reflected_property_id
             FROM properties
             WHERE id = ?
@@ -391,12 +391,12 @@ class Property(Model):
         self.label = row["label"]
         self.data_type = TYPES[row["data_type"]]
         self.extra_data = row["extra_data"]
-        self.subject_type = EntityType(row["subject_type_id"])
-        if row["object_type_id"]:
+        self.subject_category = Category(row["subject_category_id"])
+        if row["object_category_id"]:
             # relation to an entity
-            self.object_type = EntityType(row["object_type_id"])
+            self.object_category = Category(row["object_category_id"])
         else:
-            self.object_type = None
+            self.object_category = None
         if row["reflected_property_id"]:
             self.reflected_property = Property(row["reflected_property_id"])
         else:
@@ -408,9 +408,9 @@ class Property(Model):
         label,
         *,
         data_type,
-        subject_type,
+        subject_category,
         reflected_property_name=None,
-        object_type=None,
+        object_category=None,
         extra_data=None,
     ):
         if reflected_property_name and data_type.name != "entity":
@@ -426,16 +426,16 @@ class Property(Model):
                     label,
                     data_type,
                     extra_data,
-                    subject_type_id,
-                    object_type_id
+                    subject_category_id,
+                    object_category_id
                 ) VALUES (?, ?, ?, ?, ?)
             """,
             (
                 label,
                 data_type.name,
                 extra_data,
-                subject_type.id,
-                object_type and object_type.id,
+                subject_category.id,
+                object_category and object_category.id,
             ),
         )
         first_property_id = cur.lastrowid
@@ -452,8 +452,8 @@ class Property(Model):
                         label,
                         data_type,
                         reflected_property_id,
-                        subject_type_id,
-                        object_type_id
+                        subject_category_id,
+                        object_category_id
                     )
                     VALUES (?, ?, ?, ?, ?)
                     """,
@@ -461,8 +461,8 @@ class Property(Model):
                         reflected_property_name,
                         data_type.name,
                         first_property_id,
-                        object_type.id,
-                        subject_type.id,
+                        object_category.id,
+                        subject_category.id,
                     ),
                 )
                 cur.execute(
@@ -490,20 +490,20 @@ class Property(Model):
     def all(
         cls,
         *,
-        subject_type=None,
-        object_type=None,
+        subject_category=None,
+        object_category=None,
         order_by="id ASC",
         page_no=0,
         page_size=20,
     ):
         conditions = ["1=1"]
         values = []
-        if subject_type is not None:
-            conditions.append("subject_type_id = ?")
-            values.append(subject_type.id)
-        if object_type is not None:
-            conditions.append("object_type_id = ?")
-            values.append(object_type.id)
+        if subject_category is not None:
+            conditions.append("subject_category_id = ?")
+            values.append(subject_category.id)
+        if object_category is not None:
+            conditions.append("object_category_id = ?")
+            values.append(object_category.id)
 
         cur = conn.cursor()
         for row in cur.execute(
@@ -523,13 +523,13 @@ class Property(Model):
     def __format__(self, fmt):
         if fmt == "full":
             arrow = (
-                "" if self.object_type is None  # not a entity-entity link
+                "" if self.object_category is None  # not a entity-entity link
                 else "⭢" if self.reflected_property is None
                 else "⮂" if self.reflected_property.id != self.id
                 else "⭤"
             )
             return f"""<span class="property">
-                    {self.subject_type}
+                    {self.subject_category}
                 <a
                     class="clickable"
                     hx-push-url="true"
@@ -537,7 +537,7 @@ class Property(Model):
                     hx-select="#container"
                     hx-target="#container"
                     hx-swap="outerHTML"
-                >{self.label}</a> {self.object_type or self.data_type}{arrow}</span>"""
+                >{self.label}</a> {self.object_category or self.data_type}{arrow}</span>"""
         elif fmt == "heading":
             return f"""<h2
                 hx-post="/properties/{self.id}/rename"
