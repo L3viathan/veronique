@@ -74,7 +74,7 @@ class entity(PropertyType):
                 <input
                     name="ac-query"
                     placeholder="Start typing..."
-                    hx-get="/entities/autocomplete/{prop.object_type.id}"
+                    hx-get="/entities/autocomplete/{prop.object_category.id}"
                     hx-target="next .ac-results"
                     hx-swap="innerHTML"
                     hx-trigger="input changed delay:200ms, search"
@@ -87,10 +87,10 @@ class entity(PropertyType):
         """
 
     def next_step(self, args):
-        type_options = []
-        for entity_type in O.EntityType.all():
-            type_options.append(
-                f'<option value="{entity_type.id}">{entity_type}</option>',
+        category_options = []
+        for category in O.Category.all():
+            category_options.append(
+                f'<option value="{category.id}">{category}</option>',
             )
         if "reflectivity" in args:
             if args["reflectivity"] in ("none", "self"):
@@ -100,9 +100,9 @@ class entity(PropertyType):
                 <button type="submit">»</button>
             """
         return f"""
-            <select name="object_type">
+            <select name="object_category">
                 <option selected disabled>--Object--</option>
-                {"".join(type_options)}
+                {"".join(category_options)}
             </select>
             <select
                 name="reflectivity"
