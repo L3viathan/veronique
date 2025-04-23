@@ -125,17 +125,28 @@ async def index(request):
 @app.get("/network")
 @page
 async def network(request):
-    if "category" in request.args:
-        ids = [int(part) for part in request.args.get("categories").split(",")]
+    all_categories = list(O.Category.all())
+    if "categories" in request.args:
+        ids = [int(part.removeprefix("cat")) for part in request.args["categories"]]
         categories = [O.Category(category_id) for category_id in ids]
     else:
-        categories = None
+        categories = all_categories
     entities = O.Entity.all(page_size=9999, categories=categories)
     elements = chain.from_iterable(
         e.graph_elements(categories)
         for e in entities
     )
     return f"""
+    <form id="categoryform">
+    <fieldset>
+      <legend>Categories:</legend>
+      {
+          "".join(f'''<input type="checkbox" id="cat{cat.id}" name="categories" value="cat{cat.id}" {"checked" if cat in categories else ""} hx-get="/network" hx-include="#categoryform" hx-swap="innerHTML" hx-target="#container" hx-select="#container" />
+          <label for="cat{cat.id}">{cat.name}</label>'''
+          for cat in all_categories)
+      }
+    </fieldset>
+    </form>
     <div id="cy"></div>
     <script>
         var cy = cytoscape({{
