@@ -131,20 +131,68 @@ async def network(request):
         categories = [O.Category(category_id) for category_id in ids]
     else:
         categories = all_categories
+    all_properties = list(O.Property.all(data_type="entity"))
+    if "properties" in request.args:
+        ids = [int(part.removeprefix("prop")) for part in request.args["properties"]]
+        properties = [O.Property(property_id) for property_id in ids]
+    else:
+        properties = all_properties
     entities = O.Entity.all(page_size=9999, categories=categories)
     elements = chain.from_iterable(
-        e.graph_elements(categories)
+        e.graph_elements(categories, properties=properties)
         for e in entities
     )
     return f"""
-    <form id="categoryform">
-    <fieldset>
-      <legend>Categories:</legend>
+    <form id="networkform">
+    <fieldset class="grid">
+    <details class="dropdown">
+    <summary>Select Categories...</summary>
+      <ul>
       {
-          "".join(f'''<input type="checkbox" id="cat{cat.id}" name="categories" value="cat{cat.id}" {"checked" if cat in categories else ""} hx-get="/network" hx-include="#categoryform" hx-swap="innerHTML" hx-target="#container" hx-select="#container" />
-          <label for="cat{cat.id}">{cat.name}</label>'''
-          for cat in all_categories)
+          "".join(
+              f'''<li><input
+                  type="checkbox"
+                  id="cat{cat.id}"
+                  name="categories"
+                  value="cat{cat.id}"
+                  {"checked" if cat in categories else ""}
+                  hx-get="/network"
+                  hx-include="#networkform"
+                  hx-swap="innerHTML"
+                  hx-target="#container"
+                  hx-select="#container"
+              />
+              <label for="cat{cat.id}">{cat.name}</label></li>
+              '''
+              for cat in all_categories
+          )
       }
+      </ul>
+    </details>
+    <details class="dropdown">
+    <summary>Select Properties...</summary>
+      <ul>
+      {
+          "".join(
+              f'''<li><input
+                  type="checkbox"
+                  id="prop{prop.id}"
+                  name="properties"
+                  value="prop{prop.id}"
+                  {"checked" if prop in properties else ""}
+                  hx-get="/network"
+                  hx-include="#networkform"
+                  hx-swap="innerHTML"
+                  hx-target="#container"
+                  hx-select="#container"
+              />
+              <label for="prop{prop.id}">{prop.label}</label></li>
+              '''
+              for prop in all_properties
+          )
+      }
+      </ul>
+    </details>
     </fieldset>
     </form>
     <div id="cy"></div>

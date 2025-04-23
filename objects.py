@@ -314,7 +314,7 @@ class Entity(Model):
         ).fetchall():
             yield Fact(row["id"])
 
-    def graph_elements(self, target_categories=None):
+    def graph_elements(self, target_categories=None, properties=None):
         yield {
             "group": "nodes",
             "data": {
@@ -324,6 +324,8 @@ class Entity(Model):
         }
         for fact in self.facts:
             if not isinstance(fact.obj, Entity):
+                continue
+            if properties and fact.prop not in properties:
                 continue
             if fact.reflected_fact and fact.reflected_fact.id < fact.id:
                 continue
@@ -492,6 +494,7 @@ class Property(Model):
         *,
         subject_category=None,
         object_category=None,
+        data_type=None,
         order_by="id ASC",
         page_no=0,
         page_size=20,
@@ -504,6 +507,9 @@ class Property(Model):
         if object_category is not None:
             conditions.append("object_category_id = ?")
             values.append(object_category.id)
+        if data_type is not None:
+            conditions.append("data_type = ?")
+            values.append(data_type)
 
         cur = conn.cursor()
         for row in cur.execute(
