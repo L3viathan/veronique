@@ -158,7 +158,7 @@ async def network(request):
                   {"checked" if cat in categories else ""}
                   hx-get="/network"
                   hx-include="#networkform"
-                  hx-swap="innerHTML"
+                  hx-swap="outerHTML"
                   hx-target="#container"
                   hx-select="#container"
               />
@@ -182,7 +182,7 @@ async def network(request):
                   {"checked" if prop in properties else ""}
                   hx-get="/network"
                   hx-include="#networkform"
-                  hx-swap="innerHTML"
+                  hx-swap="outerHTML"
                   hx-target="#container"
                   hx-select="#container"
               />
