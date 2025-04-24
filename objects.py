@@ -913,6 +913,91 @@ class Fact(Model):
         return f"{self}"
 
 
+class Query(Model):
+    table_name = "queries"
+    fields = ("label", "sql",)
+
+    def populate(self):
+        cur = conn.cursor()
+        row = cur.execute(
+            """
+                SELECT
+                    id, label, sql
+                FROM queries
+                WHERE id = ?
+            """,
+            (self.id,),
+        ).fetchone()
+        if not row:
+            raise ValueError("No Query with this ID found")
+        self.label = row["label"]
+        self.sql = row["sql"]
+
+    @classmethod
+    def new(cls, label, sql):
+        cur = conn.cursor()
+        cur.execute("INSERT INTO queries (label, sql) VALUES (?, ?)", (label, sql))
+        conn.commit()
+        return cls(cur.lastrowid)
+
+    def rename(self, label):
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE queries
+            SET label=?
+            WHERE id = ?
+            """,
+            (label, self.id),
+        )
+        conn.commit()
+        self.label = label
+
+    def __format__(self, fmt):
+        if fmt == "heading":
+            return f"""<h2
+            >{self.label} <a
+                href="/queries/{self.id}/edit"
+            >✎</a></h2>"""
+        else:
+            return f"""<a
+                class="clickable query"
+                hx-push-url="true"
+                href="/queries/{self.id}"
+                hx-select="#container"
+                hx-target="#container"
+                hx-swap="outerHTML"
+            ><strong>{self.label}</strong></a>"""
+
+    def run(self, page_no, page_size):
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            {self.sql}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
+            """
+        )
+        return cur.fetchall()
+
+    def update(self, sql, label):
+        cur = conn.cursor()
+        cur.execute(
+            f"""
+            UPDATE queries
+            SET label=?, sql=?
+            WHERE id=?
+            """,
+            (label, sql, self.id),
+        )
+        conn.commit()
+        self.sql = sql
+        self.label = label
+
+    def __str__(self):
+        return f"{self}"
+
+
 class Plain:
     def __init__(self, value, prop):
         self.value = value

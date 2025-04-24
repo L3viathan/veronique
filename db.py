@@ -295,6 +295,18 @@ def remove_constraints(cur):
         ALTER TABLE facts_tmp RENAME TO facts
     """)
 
+@migration(7)
+def add_queries_table(cur):
+    # TODO: Is "sql" a full query? Only the part _after_ SELECT? Not including
+    # OFFSET/LIMIT?
+    cur.execute("""
+        CREATE TABLE queries (
+            id INTEGER PRIMARY KEY,
+            label VARCHAR(32) UNIQUE,
+            sql TEXT
+        )
+    """)
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 

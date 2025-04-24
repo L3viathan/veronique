@@ -8,6 +8,7 @@ from types import CoroutineType
 from sanic import Sanic, HTTPResponse, html, file, redirect
 from nomnidate import NonOmniscientDate
 import objects as O
+from db import conn
 from property_types import TYPES
 
 PAGE_SIZE = 20
@@ -776,6 +777,173 @@ async def view_fact(request, fact_id: int):
         valid_from: {fact:valid_from}<br>
         valid_until: {fact:valid_until}<br>
     """
+
+
+@app.get("/queries")
+@page
+async def list_queries(request):
+    page_no = int(request.args.get("page", 1))
+    parts = [
+        """<button
+            hx-get="/queries/new"
+            hx-swap="outerHTML"
+            hx-target="#container"
+            hx-select="#container"
+            hx-push-url="true"
+            class="button-new"
+        >New query</button>"""
+    ]
+    more_results = False
+    for i, query in enumerate(O.Query.all(
+        page_no=page_no-1,
+        page_size=PAGE_SIZE + 1,
+    )):
+        if i == PAGE_SIZE:
+            more_results = True
+        else:
+            parts.append(f"{query:full}")
+    return "<br>".join(parts) + pagination(
+        "/queries",
+        page_no,
+        more_results=more_results,
+    )
+
+
+@app.get("/queries/new")
+@page
+async def new_query_form(request):
+    return f"""
+        <form
+            hx-post="/queries/new"
+            hx-encoding="multipart/form-data"
+        >
+            <input name="label" placeholder="label"></input>
+            <textarea
+                hx-post="/queries/preview"
+                hx-target="#preview"
+                hx-trigger="keyup delay:500ms"
+                name="sql"
+            ></textarea>
+            <button type="submit">»</button>
+            <div id="preview"></div>
+        </form>
+    """
+
+
+@app.get("/queries/<query_id>/edit")
+@page
+async def edit_query_form(request, query_id: int):
+    query = O.Query(query_id)
+    return f"""
+        <form
+            hx-put="/queries/{query_id}"
+            hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+        >
+            <input name="label" placeholder="label" value="{query.label}"></input>
+            <textarea
+                hx-post="/queries/preview"
+                hx-target="#preview"
+                hx-trigger="keyup delay:500ms"
+                name="sql"
+            >{query.sql}</textarea>
+            <button type="submit">»</button>
+            <div id="preview"></div>
+        </form>
+    """
+
+
+SPECIAL_COL_NAMES = {}
+for singular, plural, model in (
+    ("entity", "entities", O.Entity),
+    ("fact", "facts", O.Fact),
+    ("category", "categories", O.Category),
+    ("property", "properties", O.Property),
+):
+    SPECIAL_COL_NAMES[singular] = model
+    SPECIAL_COL_NAMES[plural] = lambda value, model=model: ", ".join(
+        str(model(int(part)))
+        for part in value.split(",")
+    )
+
+
+def display_query_result(result):
+    if result:
+        header = dict(result[0]).keys()
+        parts = [
+            "<table><thead><tr>",
+            *(f"<td>{col}</td>" for col in header),
+            "</tr></thead><tbody>",
+        ]
+        for row in result:
+            parts.append("<tr>")
+            for col in header:
+                value = row[col]
+                if col in SPECIAL_COL_NAMES:
+                    value = SPECIAL_COL_NAMES[col](value)
+                parts.append(f"<td>{value}</td>")
+            parts.append("</tr>")
+        parts.append("</tbody></table>")
+        return "".join(parts)
+    return ""
+
+
+@app.post("/queries/preview")
+@fragment
+async def preview_query(request):
+    form = D(request.form)
+    res = None
+    try:
+        cur = conn.cursor()
+        res = cur.execute(form["sql"]).fetchall()
+    finally:
+        conn.rollback()
+    return display_query_result(res)
+
+
+@app.post("/queries/new")
+@fragment
+async def new_query(request):
+    form = D(request.form)
+    query = O.Query.new(
+        form["label"],
+        form["sql"],
+    )
+    return f"""
+        <meta http-equiv="refresh" content="0; url=/queries/{query.id}">
+    """
+
+
+@app.put("/queries/<query_id>")
+@fragment
+async def edit_query(request, query_id: int):
+    query = O.Query(query_id)
+    form = D(request.form)
+    query.update(label=form["label"], sql=form["sql"])
+    return f"""
+        <meta http-equiv="refresh" content="0; url=/queries/{query_id}">
+    """
+
+
+@app.get("/queries/<query_id>")
+@page
+async def get_query(request, query_id: int):
+    page_no = int(request.args.get("page", 1))
+    query = O.Query(query_id)
+    result = query.run(
+        page_no=page_no-1,
+        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+    )
+    if len(result) > PAGE_SIZE:
+        more_results = True
+        result = result[:-1]
+    else:
+        more_results = False
+    return f"{query:heading}{display_query_result(result)}" + pagination(
+        f"/queries/{query_id}",
+        page_no,
+        more_results=more_results,
+    )
 
 
 @app.put("/entities/<entity_id>/avatar")
