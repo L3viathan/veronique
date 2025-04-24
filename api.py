@@ -11,23 +11,23 @@ import objects as O
 from property_types import TYPES
 
 PAGE_SIZE = 20
+CORRECT_AUTH = os.environ["VERONIQUE_CREDS"]
 
 app = Sanic("Veronique")
 
 @app.on_request
 async def auth(request):
-    correct_auth = os.environ["VERONIQUE_CREDS"]
     cookie = request.cookies.get("auth")
-    if cookie == correct_auth:
+    if cookie == CORRECT_AUTH:
         return
     try:
         auth = request.headers["Authorization"]
         _, _, encoded = auth.partition(" ")
-        if base64.b64decode(encoded).decode() == correct_auth:
+        if base64.b64decode(encoded).decode() == CORRECT_AUTH:
             response = redirect("/")
             response.add_cookie(
                 "auth",
-                correct_auth,
+                CORRECT_AUTH,
                 secure=True,
                 httponly=True,
                 samesite="Strict",
