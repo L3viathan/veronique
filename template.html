@@ -9,16 +9,21 @@
     <meta name="htmx-config" content='{{"scrollIntoViewOnBoost": false}}'>
     <script src="/cytoscape.min.js"></script>
 </head>
-<body hx-boost="true">
+<body>
     <header>
     <nav class="container">
         <ul><li><a href="/"><img src="/logo.svg" alt="Véronique"></a></li></ul>
+        <ul><li>
+        <details class="dropdown">
+        <summary>Go to...</summary>
         <ul>
-            <li><a href="/entities" hx-swap="outerHTML" hx-select="#container" hx-push-url="true" hx-target="#container">Entities</a></li>
-            <li><a href="/properties" hx-swap="outerHTML" hx-select="#container" hx-push-url="true" hx-target="#container">Properties</a></li>
-            <li><a href="/categories" hx-swap="outerHTML" hx-select="#container" hx-push-url="true" hx-target="#container">Categories</a></li>
-            <li><a href="/network" hx-swap="outerHTML" hx-select="#container" hx-push-url="true" hx-target="#container">Network</a></li>
-            <li><a href="/queries" hx-swap="outerHTML" hx-select="#container" hx-push-url="true" hx-target="#container">Queries</a></li>
+            <li><a href="/entities">Entities</a></li>
+            <li><a href="/properties">Properties</a></li>
+            <li><a href="/categories">Categories</a></li>
+            <li><a href="/network">Network</a></li>
+            <li><a href="/queries">Queries</a></li>
+        </ul>
+        </details>
             <li><input
                 id="q"
                 name="q"
