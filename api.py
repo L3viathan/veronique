@@ -832,7 +832,7 @@ def _queries_textarea(value=None):
             spellcheck="false"
             oninput="update(this.value); sync_scroll(this);"
             onscroll="sync_scroll(this);"
-            onload="update(this.value); sync_scroll(this);"
+            onload="setTimeout(function(){{update(this.value); sync_scroll(this);}}, 100)"
         >{value or ""}</textarea>
         <pre id="highlighting" aria-hidden="true"><code
                 class="language-sql"
