@@ -264,6 +264,11 @@ h2:hover form.avatar-form label {
   display: block;
 }
 
+
+.error {
+  color: var(--pico-form-element-invalid-active-border-color);
+}
+
 /* BEGIN: syntax highlighting */
 /* Please see the article */
 

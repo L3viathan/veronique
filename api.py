@@ -2,6 +2,7 @@ import os
 import functools
 import json
 import base64
+import sqlite3
 from datetime import date
 from itertools import chain
 from types import CoroutineType
@@ -853,7 +854,16 @@ async def new_query_form(request):
         >
             <input name="label" placeholder="label"></input>
             {_queries_textarea()}
+            <div role="group">
+            <button
+                class="secondary"
+                hx-post="/queries/preview"
+                hx-target="#preview"
+                hx-include="#editing"
+                hx-swap="innerHTML"
+            >Preview</button>
             <button type="submit">»</button>
+            </div>
             <div id="preview"></div>
         </form>
     """
@@ -871,7 +881,16 @@ async def edit_query_form(request, query_id: int):
         >
             <input name="label" placeholder="label" value="{query.label}"></input>
             {_queries_textarea(query.sql)}
+            <div role="group">
+            <button
+                class="secondary"
+                hx-post="/queries/preview"
+                hx-target="#preview"
+                hx-include="#editing"
+                hx-swap="innerHTML"
+            >Preview</button>
             <button type="submit">»</button>
+            </div>
             <div id="preview"></div>
         </form>
     """
@@ -924,7 +943,9 @@ async def preview_query(request):
     res = None
     try:
         cur = conn.cursor()
-        res = cur.execute(form["sql"]).fetchall()
+        res = cur.execute(form["sql"] + " LIMIT 10").fetchall()
+    except (sqlite3.Warning, sqlite3.OperationalError) as e:
+        return f"""<article class="error"><strong>Error:</strong> {e.args[0]}</article>"""
     finally:
         conn.rollback()
     return display_query_result(res)
