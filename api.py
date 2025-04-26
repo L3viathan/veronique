@@ -853,7 +853,12 @@ async def edit_query_form(request, query_id: int):
     """
 
 
-SPECIAL_COL_NAMES = {}
+SPECIAL_COL_NAMES = {
+    "short_fact": lambda value: f"{O.Fact(int(value)):short}",
+    "short_facts": lambda value: ", ".join(
+        f"{O.Fact(int(part)):short}" for part in value.split(",")
+    ),
+}
 for singular, plural, model in (
     ("entity", "entities", O.Entity),
     ("fact", "facts", O.Fact),
