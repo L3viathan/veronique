@@ -2,6 +2,7 @@ import os
 import functools
 import json
 import base64
+import sqlite3
 from datetime import date
 from itertools import chain
 from types import CoroutineType
@@ -823,6 +824,26 @@ async def list_queries(request):
     )
 
 
+def _queries_textarea(value=None):
+    return f"""
+        <div>
+        <textarea
+            id="editing"
+            name="sql"
+            spellcheck="false"
+            oninput="update(this.value); sync_scroll(this);"
+            onscroll="sync_scroll(this);"
+            onload="setTimeout(function(){{update(this.value); sync_scroll(this);}}, 100)"
+        >{value or ""}</textarea>
+        <pre id="highlighting" aria-hidden="true"><code
+                class="language-sql"
+                id="highlighting-content"
+            >{value or ""}</code>
+        </pre>
+        </div>
+    """
+
+
 @app.get("/queries/new")
 @page
 async def new_query_form(request):
@@ -832,13 +853,17 @@ async def new_query_form(request):
             hx-encoding="multipart/form-data"
         >
             <input name="label" placeholder="label"></input>
-            <textarea
+            {_queries_textarea()}
+            <div role="group">
+            <button
+                class="secondary"
                 hx-post="/queries/preview"
                 hx-target="#preview"
-                hx-trigger="keyup delay:500ms"
-                name="sql"
-            ></textarea>
+                hx-include="#editing"
+                hx-swap="innerHTML"
+            >Preview</button>
             <button type="submit">»</button>
+            </div>
             <div id="preview"></div>
         </form>
     """
@@ -855,13 +880,17 @@ async def edit_query_form(request, query_id: int):
             hx-encoding="multipart/form-data"
         >
             <input name="label" placeholder="label" value="{query.label}"></input>
-            <textarea
+            {_queries_textarea(query.sql)}
+            <div role="group">
+            <button
+                class="secondary"
                 hx-post="/queries/preview"
                 hx-target="#preview"
-                hx-trigger="keyup delay:500ms"
-                name="sql"
-            >{query.sql}</textarea>
+                hx-include="#editing"
+                hx-swap="innerHTML"
+            >Preview</button>
             <button type="submit">»</button>
+            </div>
             <div id="preview"></div>
         </form>
     """
@@ -914,7 +943,9 @@ async def preview_query(request):
     res = None
     try:
         cur = conn.cursor()
-        res = cur.execute(form["sql"]).fetchall()
+        res = cur.execute(form["sql"] + " LIMIT 10").fetchall()
+    except (sqlite3.Warning, sqlite3.OperationalError) as e:
+        return f"""<article class="error"><strong>Error:</strong> {e.args[0]}</article>"""
     finally:
         conn.rollback()
     return display_query_result(res)
@@ -998,9 +1029,19 @@ async def mana_svg(request):
     return await file("mana.svg", mime_type="image/svg+xml")
 
 
+@app.get("/prism.css")
+async def prism_css(request):
+    return await file("prism.css", mime_type="text/css")
+
+
 @app.get("/pico.min.css")
 async def pico_css(request):
     return await file("pico.min.css", mime_type="text/css")
+
+
+@app.get("/prism.js")
+async def prism_js(request):
+    return await file("prism.js", mime_type="text/javascript")
 
 
 @app.get("/cytoscape.min.js")

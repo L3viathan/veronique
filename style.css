@@ -263,3 +263,49 @@ h2:hover form.avatar-form label {
   width: 1200px;
   display: block;
 }
+
+
+.error {
+  color: var(--pico-form-element-invalid-active-border-color);
+}
+
+/* BEGIN: syntax highlighting */
+/* Please see the article */
+
+#editing, #highlighting {
+  /* Both elements need the same text and space styling so they are directly on top of each other */
+  margin: 10px;
+  padding: 10px;
+  border: 0;
+  width: calc(100% - 32px);
+  height: 150px;
+  position: relative;
+  top: 0;
+  left: 0;
+  overflow: auto;
+  white-space: pre; /* Allows textarea to scroll horizontally */
+}
+#editing, #highlighting, #highlighting * {
+  /* Also add text styles to highlighing tokens */
+  font-size: 15pt;
+  font-family: monospace;
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+
+/* Move the textarea in front of the result */
+
+#editing {
+  z-index: 1;
+  color: transparent;
+  background: transparent;
+  caret-color: white; /* Or choose your favourite color */
+  resize: none;
+}
+#highlighting {
+  z-index: 0;
+  transform: translateY(calc(-100% - 10px));
+  background: #000;  /* same color as the highlighting background */
+}
+/* END: syntax highlighting */
