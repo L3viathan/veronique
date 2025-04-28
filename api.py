@@ -101,18 +101,21 @@ async def index(request):
     past_today = False
     reference_date = date.today()
     if page_no != 1:
-        reference_date = reference_date.replace(month=((reference_date.month + (page_no - 1)) % 12) or 12)
+        reference_date = reference_date.replace(
+            day=1,
+            month=((reference_date.month + (page_no - 1)) % 12) or 12,
+        )
     for fact in sorted(
         O.Fact.all_of_same_month(reference_date),
         key=lambda f: (
-            (reference_date - NonOmniscientDate(f.obj.value)).days or 99
+            (reference_date - NonOmniscientDate(f.obj.value)).days or 0
         ),
         reverse=True,
     ):
         difference = (reference_date - NonOmniscientDate(fact.obj.value)).days
         if difference == 0:
             past_today = True
-        elif not past_today and difference < 0 and page_no == 1:
+        elif not past_today and (difference or 0) < 0 and page_no == 1:
             recent_events.append('<hr class="date-today">')
             past_today = True
         recent_events.append(f"<p>{fact}</p>")
