@@ -664,8 +664,10 @@ class Fact(Model):
         ]
 
     @classmethod
-    def all_of_same_month(cls):
+    def all_of_same_month(cls, reference_date=None):
         cur = conn.cursor()
+        if reference_date is None:
+            reference_date = date.today()
         return [
             cls(row[0])
             for row in cur.execute(
@@ -675,7 +677,7 @@ class Fact(Model):
                 LEFT JOIN properties p ON f.property_id = p.id
                 WHERE p.data_type = 'date' AND f.value LIKE '%-' || ? || '-%'
                 """,
-                (date.today().strftime("%m"),),
+                (reference_date.strftime("%m"),),
             )
         ]
 

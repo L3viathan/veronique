@@ -49,7 +49,7 @@ def D(multival_dict):
     return {key: val[0] for key, val in multival_dict.items()}
 
 
-def pagination(url, page_no, *, more_results=True):
+def pagination(url, page_no, *, more_results=True, allow_negative=False):
     if page_no == 1 and not more_results:
         return ""
     q = "&" if "?" in url else "?"
@@ -58,7 +58,7 @@ def pagination(url, page_no, *, more_results=True):
             role="button"
             class="prev"
             href="{url}{q}page={page_no - 1}"
-            {"disabled" if page_no == 1 else ""}
+            {"disabled" if page_no == 1 and not allow_negative else ""}
         >&lt;</a>
         <a
             class="next"
@@ -97,21 +97,27 @@ def page(fn):
 @page
 async def index(request):
     recent_events = []
+    page_no = int(request.args.get("page", 1))
     past_today = False
+    reference_date = date.today()
+    if page_no != 1:
+        reference_date = reference_date.replace(month=((reference_date.month + (page_no - 1)) % 12) or 12)
     for fact in sorted(
-        O.Fact.all_of_same_month(),
+        O.Fact.all_of_same_month(reference_date),
         key=lambda f: (
-            (date.today() - NonOmniscientDate(f.obj.value)).days
+            (reference_date - NonOmniscientDate(f.obj.value)).days or 99
         ),
         reverse=True,
     ):
-        difference = (date.today() - NonOmniscientDate(fact.obj.value)).days
+        difference = (reference_date - NonOmniscientDate(fact.obj.value)).days
         if difference == 0:
             past_today = True
-        elif not past_today and difference < 0:
+        elif not past_today and difference < 0 and page_no == 1:
             recent_events.append('<hr class="date-today">')
             past_today = True
         recent_events.append(f"<p>{fact}</p>")
+    if page_no == 1 and not past_today:
+        recent_events.append('<hr class="date-today">')
     return f"""
         <button
             hx-get="/entities/new"
@@ -120,7 +126,12 @@ async def index(request):
         >New entity</button>
         <h2>This month</h2>
         {"".join(recent_events)}
-    """
+    """ + pagination(
+        "/",
+        page_no,
+        more_results=True,
+        allow_negative=True,
+    )
 
 
 @app.get("/network")
