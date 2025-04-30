@@ -1,4 +1,6 @@
 import os
+import re
+import base64
 import sys
 import sqlite3
 import unicodedata
@@ -6,6 +8,8 @@ import unicodedata
 conn = sqlite3.connect(os.environ.get("VERONIQUE_DB", "veronique.db"))
 conn.row_factory = sqlite3.Row
 orig_isolation_level, conn.isolation_level = conn.isolation_level, None
+
+DATA_LABELS = [ROOT, LABEL, IS_A, VALID_FROM, VALID_UNTIL, AVATAR] = range(-1, -7, -1)
 
 
 try:
@@ -297,8 +301,6 @@ def remove_constraints(cur):
 
 @migration(7)
 def add_queries_table(cur):
-    # TODO: Is "sql" a full query? Only the part _after_ SELECT? Not including
-    # OFFSET/LIMIT?
     cur.execute("""
         CREATE TABLE queries (
             id INTEGER PRIMARY KEY,
@@ -306,6 +308,196 @@ def add_queries_table(cur):
             sql TEXT
         )
     """)
+
+
+def rebuild_search_index(cur):
+    cur.execute("DELETE FROM search_index")
+    for row in cur.execute("SELECT subject_id, value FROM claims WHERE verb_id = ?", (LABEL,)).fetchall():
+        cur.execute(
+            "INSERT INTO search_index (table_name, id, value) VALUES ('claims', ?, ?)",
+            (row["subject_id"], make_search_key(row["value"])),
+        )
+    for row in cur.execute("SELECT id, label FROM verbs").fetchall():
+        cur.execute(
+            "INSERT INTO search_index (table_name, id, value) VALUES ('verbs', ?, ?)",
+            (row["id"], make_search_key(row["label"])),
+        )
+    for row in cur.execute("SELECT id, label FROM queries").fetchall():
+        cur.execute(
+            "INSERT INTO search_index (table_name, id, value) VALUES ('queries', ?, ?)",
+            (row["id"], make_search_key(row["label"])),
+        )
+
+
+@migration(8)
+def add_claims(cur):
+    cur.execute("""
+        CREATE TABLE verbs (
+            id INTEGER PRIMARY KEY,
+            label,
+            data_type,  -- regular, plus "directed_link", "undirected_link"
+            internal BOOL
+        )
+    """)
+    cur.execute(f"""
+        INSERT INTO verbs (
+            id,
+            label,
+            data_type,
+            internal
+        ) VALUES (
+            {ROOT},
+            '',
+            'directed_link',
+            TRUE
+        ), (
+            {LABEL},
+            'label',
+            'string',
+            TRUE
+        ), (
+            {IS_A},
+            'category',
+            'directed_link',
+            TRUE
+        ), (
+            {VALID_FROM},
+            'valid from',
+            'date',
+            TRUE
+        ), (
+            {VALID_UNTIL},
+            'valid until',
+            'date',
+            TRUE
+        ), (
+            {AVATAR},
+            'avatar',
+            'picture',
+            TRUE
+        )
+    """)
+    prop_map = {}  # old->new
+    for prop in cur.execute("SELECT * FROM properties").fetchall():
+        refl_id = prop["reflected_property_id"]
+        if refl_id == prop["id"]:
+            # undirected
+            data_type = "undirected_link"
+        elif refl_id in prop_map:
+            # we already processed the other side
+            continue
+        elif prop["data_type"] == "entity":
+            data_type = "directed_link"
+        else:
+            data_type = prop["data_type"]
+        cur.execute("""
+                INSERT INTO verbs (
+                    label,
+                    data_type,
+                    internal
+                ) VALUES (
+                    ?,
+                    ?,
+                    FALSE
+                )
+            """,
+            (prop["label"], data_type),
+        )
+        prop_map[prop["id"]] = cur.lastrowid
+
+    cur.execute("""
+        CREATE TABLE claims (
+            id INTEGER PRIMARY KEY,
+            subject_id,
+            verb_id,
+            value,
+            object_id,
+            created_at TIMESTAMP DEFAULT (datetime('now')),
+            updated_at TIMESTAMP DEFAULT (datetime('now'))
+        )
+    """)
+    cat_map = {}  # old -> new
+    for cat in cur.execute("SELECT * FROM categories").fetchall():
+        cur.execute("INSERT INTO claims (verb_id) VALUES (?)", (ROOT,))
+        cat_map[cat["id"]] = cur.lastrowid
+        cur.execute(
+            "INSERT INTO claims (subject_id, verb_id, value) VALUES (?, ?, ?)",
+            (cur.lastrowid, LABEL, cat["name"]),
+        )
+
+    entity_map = {}  # old -> new
+    for entity in cur.execute("SELECT * FROM entities").fetchall():
+        cur.execute(
+            "INSERT INTO claims (verb_id) VALUES (?)",
+            (ROOT,),
+        )
+        new_id = cur.lastrowid
+        entity_map[entity["id"]] = new_id
+        cur.execute(
+            "INSERT INTO claims (subject_id, verb_id, value) VALUES (?, ?, ?)",
+            (new_id, LABEL, entity["name"]),
+        )
+        cur.execute(
+            "INSERT INTO claims (subject_id, verb_id, object_id) VALUES (?, ?, ?)",
+            (new_id, IS_A, cat_map[entity["category_id"]]),
+        )
+        if entity["has_avatar"]:
+            with open(f"avatars/{entity['id']}.jpg", "rb") as f:
+                body = f.read()
+            cur.execute(
+                "INSERT INTO claims (subject_id, verb_id, value) VALUES (?, ?, ?)",
+                (
+                    new_id,
+                    AVATAR,
+                    f"data:image/jpeg;base64,{base64.b64encode(body).decode()}"
+                ),
+            )
+
+    imported_facts = set()
+    text_ref = re.compile(r"<@(\d+)>")
+    for fact in cur.execute("SELECT * FROM facts").fetchall():
+        if fact["object_id"]:
+            if fact["property_id"] not in prop_map:
+                # Skip loser of a directed relation (we deleted one half of
+                # them earlier)
+                continue
+            if fact["reflected_fact_id"] in imported_facts:
+                # Only import self-reflected facts (e.g. partner, friend) once
+                continue
+            cur.execute(
+                "INSERT INTO claims (subject_id, verb_id, object_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                (entity_map[fact["subject_id"]], prop_map[fact["property_id"]], entity_map[fact["object_id"]], fact["created_at"], fact["updated_at"]),
+            )
+            imported_facts.add(fact["id"])
+        else:
+            value = fact["value"]
+            for ref_id in set(map(int, text_ref.findall(value))):
+                value = value.replace(f"<@{ref_id}>", f"<@{entity_map[ref_id]}>")
+            cur.execute(
+                "INSERT INTO claims (subject_id, verb_id, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                (entity_map[fact["subject_id"]], prop_map[fact["property_id"]], value, fact["created_at"], fact["updated_at"]),
+            )
+            imported_facts.add(fact["id"])
+        new_id = cur.lastrowid
+        if fact["valid_from"]:
+            cur.execute(
+                "INSERT INTO claims (subject_id, verb_id, value) VALUES (?, ?, ?)",
+                (new_id, VALID_FROM, fact["valid_from"]),
+            )
+        if fact["valid_until"]:
+            cur.execute(
+                "INSERT INTO claims (subject_id, verb_id, value) VALUES (?, ?, ?)",
+                (new_id, VALID_UNTIL, fact["valid_until"]),
+            )
+
+    cur.execute("""
+        CREATE TABLE search_index (
+            table_name TEXT,
+            id INTEGER,
+            value TEXT
+        )
+    """)
+    rebuild_search_index(cur)
 
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")

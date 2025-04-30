@@ -1,8 +1,18 @@
 import re
 from datetime import date, datetime
 
-from property_types import TYPES
-from db import conn, make_search_key
+from data_types import TYPES
+from db import (
+    conn,
+    make_search_key,
+    LABEL,
+    IS_A,
+    AVATAR,
+    ROOT,
+    VALID_FROM,
+    VALID_UNTIL,
+    DATA_LABELS,
+)
 
 TEXT_REF = re.compile(r"<@(\d+)>")
 SELF = object()
@@ -65,312 +75,13 @@ class Model:
             yield cls(row["id"])
 
 
-class Category(Model):
-    table_name = "categories"
-    fields = ("name",)
-
-    def populate(self):
-        cur = conn.cursor()
-        row = cur.execute(
-            """
-                SELECT
-                    id, name
-                FROM categories
-                WHERE id = ?
-            """,
-            (self.id,),
-        ).fetchone()
-        if not row:
-            raise ValueError("No Category with this ID found")
-        self.name = row["name"]
-
-    @classmethod
-    def new(cls, name):
-        cur = conn.cursor()
-        cur.execute("INSERT INTO categories (name) VALUES (?)", (name,))
-        conn.commit()
-        return cls(cur.lastrowid)
-
-    def rename(self, name):
-        cur = conn.cursor()
-        cur.execute(
-            """
-            UPDATE categories
-            SET name=?
-            WHERE id = ?
-            """,
-            (name, self.id),
-        )
-        conn.commit()
-        self.name = name
-
-    def __format__(self, fmt):
-        if fmt == "heading":
-            return f"""<h2
-                hx-post="/categories/{self.id}/rename"
-                hx-swap="outerHTML"
-                hx-trigger="blur delay:500ms"
-                hx-target="closest h2"
-                hx-vals="javascript: name:htmx.find('h2').innerHTML"
-                contenteditable
-            >{self.name}</h2>"""
-        else:
-            return f"""<a
-                class="clickable category"
-                hx-push-url="true"
-                href="/categories/{self.id}"
-                hx-select="#container"
-                hx-target="#container"
-                hx-swap="outerHTML"
-            ><strong>{self.name}</strong></a>"""
-
-    def __str__(self):
-        return f"{self}"
-
-
-class Entity(Model):
-    fields = ("name", "category", "has_avatar")
-    table_name = "entities"
-
-    def populate(self):
-        cur = conn.cursor()
-        row = cur.execute(
-            """
-                SELECT name, category_id, has_avatar
-                FROM entities
-                WHERE id = ?
-            """,
-            (self.id,),
-        ).fetchone()
-        if not row:
-            raise ValueError("No Entity with this ID found")
-        self.name = row["name"]
-        self.category = Category(row["category_id"])
-        self.has_avatar = bool(row["has_avatar"])
-
-    @classmethod
-    def new(cls, name, category):
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO entities (name, search_key, category_id) VALUES (?, ?, ?)",
-            (name, make_search_key(name), category.id),
-        )
-        conn.commit()
-        return Entity(cur.lastrowid)
-
-    @classmethod
-    def search(cls, q, *, page_size=20, page_no=0, category_id=None):
-        cur = conn.cursor()
-        conditions = [
-            "search_key LIKE '%' || ? || '%'"
-        ]
-        bindings = [make_search_key(q)]
-        if category_id is not None:
-            conditions.append("category_id = ?")
-            bindings.append(category_id)
-        for row in cur.execute(
-            f"""
-            SELECT
-                id
-            FROM entities
-            WHERE {" AND ".join(conditions)}
-            LIMIT {page_size}
-            OFFSET {page_no * page_size}
-            """,
-            tuple(bindings),
-        ).fetchall():
-            yield cls(row["id"])
-
-    @classmethod
-    def all(cls, *, order_by="id ASC", categories=None, page_no=0, page_size=20):
-        conditions = ["1=1"]
-        values = []
-        if categories is not None:
-            # I can't get the parametrized form to work, "category_id IN ?"
-            # doesn't want to work with either of tuple/list/set, despite
-            # "category_id = ?" working previously. Given that we know these
-            # are ints here this is safe to do, but I still don't like it.
-            conditions.append(
-                f"category_id IN ({','.join(str(c.id) for c in categories)})"
-            )
-            # values.append(tuple(category.id for category in categories))
-
-        cur = conn.cursor()
-        query = f"""
-            SELECT
-                id
-            FROM {getattr(cls, "table_name", f"{cls.__name__.lower()}s")}
-            WHERE {" AND ".join(conditions)}
-            ORDER BY {order_by}
-            LIMIT {page_size}
-            OFFSET {page_no * page_size}
-        """
-        for row in cur.execute(
-            query,
-            tuple(values),
-        ).fetchall():
-            yield cls(row["id"])
-
-    def avatar_form(self):
-        return f"""<form
-            id="uploadform"
-            class="avatar-form"
-            hx-put="/entities/{self.id}/avatar"
-            hx-encoding="multipart/form-data"
-            hx-trigger="change from:input.avatar-upload"
-            hx-target="closest header"
-            hx-swap="innerHTML"
-        >
-            <label for="avatar-upload">⇪</label>
-            <input id="avatar-upload" class="avatar-upload" type="file" name="file">
-        </form>"""
-
-    def __format__(self, fmt):
-        if fmt == "heading":
-            return f"""
-            {f'<img src="/entities/{self.id}/avatar" class="avatar">' if self.has_avatar else ''}
-            <h2>
-            {self.avatar_form() if not self.has_avatar else ''}
-            <span
-                hx-post="/entities/{self.id}/rename"
-                hx-swap="outerHTML"
-                hx-trigger="blur delay:500ms"
-                hx-target="closest h2"
-                hx-vals="javascript: name:htmx.find('span').innerHTML"
-                contenteditable
-            >{self.name}</span> <small>{self.category}</small></h2>"""
-        elif fmt == "full":
-            return f"""<a
-                class="clickable entity-link"
-                hx-push-url="true"
-                hx-select="#container"
-                hx-target="#container"
-                hx-swap="outerHTML"
-                href="/entities/{self.id}"
-            >
-            {f'<img src="/entities/{self.id}/avatar" class="avatar">' if self.has_avatar else ''}
-            {self.name}</a> <small>{self.category}</small>"""
-        elif fmt.startswith("ac-result"):
-            category_id = fmt.split(":")[-1]
-            return f"""<span
-                class="clickable ac-result"
-                hx-target="closest .ac-widget"
-                hx-swap="innerHTML"
-                hx-get="/entities/autocomplete/accept/{category_id}/{self.id}"
-            >{self.name}</span>"""
-        else:
-            return f"""<a
-                class="clickable entity-link"
-                hx-push-url="true"
-                hx-select="#container"
-                hx-target="#container"
-                hx-swap="outerHTML"
-                href="/entities/{self.id}">
-                {f'<img src="/entities/{self.id}/avatar" class="avatar">' if self.has_avatar else ''}
-                {self.name}</a>"""
-
-    def __str__(self):
-        return f"{self}"
-
-    def rename(self, name):
-        cur = conn.cursor()
-        cur.execute(
-            """
-            UPDATE entities
-            SET name=?, search_key=?
-            WHERE id = ?
-            """,
-            (name, make_search_key(name), self.id),
-        )
-        conn.commit()
-        self.name = name
-
-    def upload_avatar(self, file):
-        with open(f"avatars/{self.id}.jpg", "wb") as f:
-            f.write(file)
-        cur = conn.cursor()
-        cur.execute(
-            """
-            UPDATE entities
-            SET has_avatar=?
-            WHERE id = ?
-            """,
-            (1, self.id),
-        )
-        conn.commit()
-        self.has_avatar = True
-
-    @property
-    def facts(self):
-        cur = conn.cursor()
-        for row in cur.execute(
-            """
-            SELECT
-                id
-            FROM facts
-            WHERE subject_id = ?
-            """,
-            (self.id,),
-        ).fetchall():
-            yield Fact(row["id"])
-
-    def graph_elements(self, target_categories=None, properties=None):
-        yield {
-            "group": "nodes",
-            "data": {
-                "label": self.name,
-                "id": str(self.id),
-            },
-        }
-        for fact in self.facts:
-            if not isinstance(fact.obj, Entity):
-                continue
-            if properties and fact.prop not in properties:
-                continue
-            if fact.reflected_fact and fact.reflected_fact.id < fact.id:
-                continue
-            if target_categories and fact.obj.category not in target_categories:
-                continue
-            yield {
-                "group": "edges",
-                "data": {
-                    "source": str(self.id),
-                    "target": str(fact.obj.id),
-                    "label": fact.prop.label,
-                },
-            }
-
-
-    @property
-    def incoming_facts(self):
-        cur = conn.cursor()
-        for row in cur.execute(
-            """
-            SELECT
-                f.id
-            FROM facts f
-            LEFT JOIN properties p
-            ON f.property_id = p.id
-            WHERE (
-                f.object_id = ?
-                AND p.reflected_property_id IS NULL
-            ) OR f.value LIKE '%<@' || ? || '>%'
-            """,
-            (self.id, self.id),
-        ).fetchall():
-            yield Fact(row["id"])
-
-
-class Property(Model):
+class Verb(Model):
     fields = (
         "label",
         "data_type",
-        "extra_data",
-        "subject_category",
-        "object_category",
-        "reflected_property",
+        "internal",
     )
-    table_name = "properties"
+    table_name = "verbs"
 
     def populate(self):
         cur = conn.cursor()
@@ -379,30 +90,17 @@ class Property(Model):
             SELECT
                 label,
                 data_type,
-                extra_data,
-                subject_category_id,
-                object_category_id,
-                reflected_property_id
-            FROM properties
+                internal
+            FROM verbs
             WHERE id = ?
             """,
             (self.id,),
         ).fetchone()
         if not row:
-            raise ValueError("No Property with this ID found")
+            raise ValueError("No Verb with this ID found")
         self.label = row["label"]
         self.data_type = TYPES[row["data_type"]]
-        self.extra_data = row["extra_data"]
-        self.subject_category = Category(row["subject_category_id"])
-        if row["object_category_id"]:
-            # relation to an entity
-            self.object_category = Category(row["object_category_id"])
-        else:
-            self.object_category = None
-        if row["reflected_property_id"]:
-            self.reflected_property = Property(row["reflected_property_id"])
-        else:
-            self.reflected_property = None
+        self.internal = row["internal"]
 
     @classmethod
     def new(
@@ -410,90 +108,50 @@ class Property(Model):
         label,
         *,
         data_type,
-        subject_category,
-        reflected_property_name=None,
-        object_category=None,
-        extra_data=None,
     ):
-        if reflected_property_name and data_type.name != "entity":
-            raise ValueError(
-                f"Reflexivity only makes sense with entities, not with {data_type}.",
-            )
         cur = conn.cursor()
         cur.execute(
             """
             INSERT INTO
-                properties
+                verbs
                 (
                     label,
                     data_type,
-                    extra_data,
-                    subject_category_id,
-                    object_category_id
-                ) VALUES (?, ?, ?, ?, ?)
+                    internal
+                ) VALUES (?, ?, FALSE)
             """,
             (
                 label,
                 data_type.name,
-                extra_data,
-                subject_category.id,
-                object_category and object_category.id,
             ),
         )
-        first_property_id = cur.lastrowid
-        if reflected_property_name:
-            if reflected_property_name is SELF:
-                cur.execute(
-                    "UPDATE properties SET reflected_property_id = ? WHERE id = ?",
-                    (first_property_id, first_property_id),
-                )
-            else:
-                cur.execute(
-                    """
-                    INSERT INTO properties (
-                        label,
-                        data_type,
-                        reflected_property_id,
-                        subject_category_id,
-                        object_category_id
-                    )
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
-                    (
-                        reflected_property_name,
-                        data_type.name,
-                        first_property_id,
-                        object_category.id,
-                        subject_category.id,
-                    ),
-                )
-                cur.execute(
-                    "UPDATE properties SET reflected_property_id = ? WHERE id = ?",
-                    (cur.lastrowid, first_property_id),
-                )
+        verb_id = cur.lastrowid
+        cur.execute(
+            "INSERT INTO search_index (table_name, id, value) VALUES ('verbs', ?, ?)",
+            (cur.lastrowid, make_search_key(label)),
+        )
         conn.commit()
-        return Property(first_property_id)
+        return Verb(verb_id)
 
-    @property
-    def facts(self):
+    def claims(self, page_no=0, page_size=20):
         cur = conn.cursor()
         for row in cur.execute(
-            """
+            f"""
             SELECT
                 id
-            FROM facts
-            WHERE property_id = ?
+            FROM claims
+            WHERE verb_id = ?
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
             """,
             (self.id,),
         ).fetchall():
-            yield Fact(row["id"])
+            yield Claim(row["id"])
 
     @classmethod
     def all(
         cls,
         *,
-        subject_category=None,
-        object_category=None,
         data_type=None,
         order_by="id ASC",
         page_no=0,
@@ -501,14 +159,8 @@ class Property(Model):
     ):
         conditions = ["1=1"]
         values = []
-        if subject_category is not None:
-            conditions.append("subject_category_id = ?")
-            values.append(subject_category.id)
-        if object_category is not None:
-            conditions.append("object_category_id = ?")
-            values.append(object_category.id)
         if data_type is not None:
-            conditions.append("data_type = ?")
+            conditions.append("data_type LIKE ?")
             values.append(data_type)
 
         cur = conn.cursor()
@@ -528,46 +180,22 @@ class Property(Model):
 
     def __format__(self, fmt):
         if fmt == "full":
-            arrow = (
-                "" if self.object_category is None  # not a entity-entity link
-                else "⭢" if self.reflected_property is None
-                else "⮂" if self.reflected_property.id != self.id
-                else "⭤"
-            )
-            return f"""<span class="property">
-                    {self.subject_category}
-                <a
-                    class="clickable"
-                    hx-push-url="true"
-                    href="/properties/{self.id}"
-                    hx-select="#container"
-                    hx-target="#container"
-                    hx-swap="outerHTML"
-                >{self.label}</a> {self.object_category or self.data_type}{arrow}</span>"""
+            return f"""<span class="verb">
+                <a class="clickable" href="/verbs/{self.id}">{self.label}</a>
+                {self.data_type}</span>"""
         elif fmt == "heading":
-            return f"""<h2
-                hx-post="/properties/{self.id}/rename"
-                hx-swap="outerHTML"
-                hx-trigger="blur delay:500ms"
-                hx-target="closest h2"
-                hx-vals="javascript: name:htmx.find('h2').innerHTML"
-                contenteditable
-            >{self.label}</h2>"""
+            return f"""<h2>{self.label}</h2>"""
         else:
             return f"""<a
-                class="clickable property"
-                href="/properties/{self.id}"
-                hx-push-url="true"
-                hx-select="#container"
-                hx-target="#container"
-                hx-swap="outerHTML"
+                class="clickable verb"
+                href="/verbs/{self.id}"
             >{self.label}</a>"""
 
     def rename(self, name):
         cur = conn.cursor()
         cur.execute(
             """
-            UPDATE properties
+            UPDATE verbs
             SET label=?
             WHERE id = ?
             """,
@@ -580,17 +208,13 @@ class Property(Model):
         return f"{self}"
 
 
-class Fact(Model):
+class Claim(Model):
     fields = (
-        "subj",
-        "prop",
-        "obj",
-        "reflected_fact",
-        "created_at",
-        "updated_at",
-        "valid_from",
-        "valid_until",
+        "subject",
+        "verb",
+        "object",
     )
+    table_name = "claims"
 
     def populate(self):
         cur = conn.cursor()
@@ -598,70 +222,58 @@ class Fact(Model):
             """
             SELECT
                 subject_id,
-                property_id,
+                verb_id,
                 value,
-                object_id,
-                reflected_fact_id,
-                created_at,
-                updated_at,
-                valid_from,
-                valid_until
+                object_id
             FROM
-                facts
+                claims
             WHERE id = ?
             """,
             (self.id,),
         ).fetchone()
         if not row:
-            raise ValueError("No Fact with this ID found")
-        self.subj = Entity(row["subject_id"])
-        self.prop = Property(row["property_id"])
+            raise ValueError("No Claim with this ID found")
+        if row["subject_id"]:
+            self.subject = Claim(row["subject_id"])
+        else:
+            self.subject = None
+        self.verb = Verb(row["verb_id"])
         if row["object_id"]:
-            self.obj = Entity(row["object_id"])
+            self.object = Claim(row["object_id"])
+        elif row["value"] is not None:
+            self.object = Plain.decode(self.verb, row["value"])
         else:
-            self.obj = Plain.decode(self.prop, row["value"])
-            self.obj.fact = self
-        if row["reflected_fact_id"]:
-            self.reflected_fact = +Fact(row["reflected_fact_id"])
-        else:
-            self.reflected_fact = None
-        self.created_at = row["created_at"]
-        self.updated_at = row["updated_at"]
-        self.valid_from = (
-            datetime.strptime(row["valid_from"], "%Y-%m-%d")
-            if row["valid_from"]
-            else None
-        )
-        self.valid_until = (
-            datetime.strptime(row["valid_until"], "%Y-%m-%d")
-            if row["valid_until"]
-            else None
-        )
-
-    @property
-    def is_valid(self):
-        now = datetime.utcnow()
-        return (
-            (not self.valid_from or now >= self.valid_from)
-            and
-            (not self.valid_until or now <= self.valid_until)
-        )
+            # ROOT claim
+            self.object = None
 
     @classmethod
-    def all_of_same_date(cls):
+    def all(cls, *, subject_id=None, verb_ids=None, object_id=None, order_by="id ASC", page_no=0, page_size=20):
         cur = conn.cursor()
-        return [
-            cls(row[0])
-            for row in cur.execute(
-                """
-                SELECT f.id
-                FROM facts f
-                LEFT JOIN properties p ON f.property_id = p.id
-                WHERE p.data_type = 'date' AND f.value LIKE '%-' || ?
-                """,
-                (date.today().strftime("%m-%d"),),
+        conditions = ["1=1"]
+        bindings = []
+        if subject_id is not None:
+            conditions.append("subject_id = ?")
+            bindings.append(subject_id)
+        if object_id is not None:
+            conditions.append("object_id = ?")
+            bindings.append(object_id)
+        if verb_ids is not None:
+            conditions.append(
+                f"verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
             )
-        ]
+        for row in cur.execute(
+            f"""
+            SELECT
+                id
+            FROM claims c
+            WHERE {" AND ".join(conditions)}
+            ORDER BY {order_by}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
+            """,
+            tuple(bindings)
+        ).fetchall():
+            yield cls(row["id"])
 
     @classmethod
     def all_of_same_month(cls, reference_date=None):
@@ -672,52 +284,127 @@ class Fact(Model):
             cls(row[0])
             for row in cur.execute(
                 """
-                SELECT f.id
-                FROM facts f
-                LEFT JOIN properties p ON f.property_id = p.id
-                WHERE p.data_type = 'date' AND f.value LIKE '%-' || ? || '-%'
+                SELECT c.id
+                FROM claims c
+                LEFT JOIN verbs v ON c.verb_id = v.id
+                WHERE v.id != ? AND v.id != ? AND v.data_type = 'date' AND c.value LIKE '%-' || ? || '-%'
                 """,
-                (reference_date.strftime("%m"),),
+                (VALID_FROM, VALID_UNTIL, reference_date.strftime("%m"),),
             )
         ]
 
+    @classmethod
+    def search(cls, q, *, page_size=20, page_no=0, category_id=None):
+        cur = conn.cursor()
+        for row in cur.execute(
+            f"""
+            SELECT
+                id
+            FROM search_index
+            WHERE table_name = 'claims'
+            AND value LIKE '%' || ? || '%'
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
+            """,
+            (q,),
+        ).fetchall():
+            yield cls(row["id"])
+
+    def incoming_claims(self):
+        cur = conn.cursor()
+        for row in cur.execute(
+            f"""
+            SELECT
+                c.id
+            FROM claims c
+            LEFT JOIN verbs v
+            ON c.verb_id = v.id
+            WHERE c.object_id = ?
+            AND v.data_type <> 'undirected_link'
+            """,
+            (self.id,),
+        ).fetchall():
+            yield Claim(row["id"])
+
+    def incoming_mentions(self):
+        cur = conn.cursor()
+        for row in cur.execute(
+            f"""
+            SELECT
+                c.id
+            FROM claims c
+            LEFT JOIN verbs v
+            ON c.verb_id = v.id
+            WHERE c.value LIKE '%<@' || ? || '>%'
+            """,
+            (self.id,),
+        ).fetchall():
+            yield Claim(row["id"])
+
+    def outgoing_claims(self):
+        cur = conn.cursor()
+        for row in cur.execute(
+            f"""
+            SELECT
+                c.id
+            FROM claims c
+            LEFT JOIN verbs v
+            ON c.verb_id = v.id
+            WHERE c.subject_id = ?
+            OR (v.data_type = 'undirected_link' AND c.object_id = ?)
+            """,
+            (self.id, self.id),
+        ).fetchall():
+            yield Claim(row["id"])
+
+    @classmethod
+    def all_labelled(cls, *, order_by="id ASC", page_no=0, page_size=20):
+        cur = conn.cursor()
+        for row in cur.execute(
+            f"""
+            SELECT
+                c.id AS id
+            FROM claims c
+            LEFT JOIN claims l
+            ON l.subject_id = c.id
+            WHERE l.verb_id = {LABEL}
+            ORDER BY {order_by}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
+            """
+        ).fetchall():
+            yield cls(row["id"])
+
+    @classmethod
+    def all_categories(cls, *, order_by="id ASC", page_no=0, page_size=20):
+        cur = conn.cursor()
+        for row in cur.execute(
+            f"""
+            SELECT
+                DISTINCT(object_id) AS id
+            FROM claims c
+            WHERE c.verb_id = {IS_A}
+            ORDER BY {order_by}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
+            """
+        ).fetchall():
+            yield cls(row["id"])
+
     def delete(self):
         cur = conn.cursor()
-        if self.reflected_fact:
-            cur.execute("DELETE FROM facts WHERE id = ?", (self.reflected_fact.id,))
-            # evict deleted fact from cache:
-            self._cache.pop(self.reflected_fact.id)
-        cur.execute("DELETE FROM facts WHERE id = ?", (self.id,))
-        # evict deleted fact from cache:
+        cur.execute("DELETE FROM claims WHERE id = ?", (self.id,))
+        # evict deleted claim from cache:
+        conn.commit()
         self._cache.pop(self.id)
 
     def set_value(self, value):
         cur = conn.cursor()
-        if self.prop.data_type.name == "entity":
-            cur.execute(
-                """
-                    UPDATE facts
-                    SET object_id = ?, updated_at = datetime('now')
-                    WHERE id = ?
-                """,
-                (
-                    value.id, self.id
-                ),
-            )
-            if self.reflected_fact:
-                cur.execute("DELETE FROM facts WHERE id = ?", (self.reflected_fact.id,))
-                # evict deleted fact from cache:
-                self._cache.pop(self.reflected_fact.id)
-            self._create_reflected_fact(
-                cur,
-                fact_id=self.id,
-                subj=self.subj,
-                obj=value,
-                prop=self.prop,
-            )
+        if self.verb.data_type.name.endswith("directed_link"):
+            raise RuntimeError("Can't edit link; delete it and create it again")
         else:
             cur.execute("""
-                UPDATE facts
+                UPDATE claims
                 SET value = ?, updated_at = datetime('now')
                 WHERE id = ?
                 """,
@@ -728,191 +415,159 @@ class Fact(Model):
         conn.commit()
         self.populate()
 
-    def set_validity(self, valid_from=UNSET, valid_until=UNSET):
-        cur = conn.cursor()
-        if valid_from is not UNSET:
-            self.valid_from = datetime.strptime(valid_from, "%Y-%m-%d")
-        if valid_until is not UNSET:
-            self.valid_until = datetime.strptime(valid_until, "%Y-%m-%d")
-        if self.reflected_fact:
-            if valid_from is not UNSET:
-                self.reflected_fact.valid_from = datetime.strptime(
-                    valid_from,
-                    "%Y-%m-%d",
-                )
-            if valid_until is not UNSET:
-                self.reflected_fact.valid_until = datetime.strptime(
-                    valid_until,
-                    "%Y-%m-%d",
-                )
-            cur.execute("""
-                UPDATE facts
-                SET valid_from = ?, valid_until = ?, updated_at = datetime('now')
-                WHERE id = ?
-                """,
-                (
-                    (
-                        f"{self.reflected_fact.valid_from:%Y-%m-%d}"
-                        if self.reflected_fact.valid_from
-                        else None
-                    ),
-                    (
-                        f"{self.reflected_fact.valid_until:%Y-%m-%d}"
-                        if self.reflected_fact.valid_until
-                        else None
-                    ),
-                    self.reflected_fact.id,
-                ),
-            )
-        cur.execute("""
-            UPDATE facts
-            SET valid_from = ?, valid_until = ?, updated_at = datetime('now')
-            WHERE id = ?
-            """,
-            (
-                f"{self.valid_from:%Y-%m-%d}" if self.valid_from else None,
-                f"{self.valid_until:%Y-%m-%d}" if self.valid_until else None,
-                self.id,
-            ),
-        )
-        conn.commit()
-
     @classmethod
-    def new(cls, entity, prop, value):
+    def new(cls, subject, verb, value_or_object):
         cur = conn.cursor()
-        if prop.data_type.name == "entity":
+        if verb.data_type.name.endswith("directed_link"):
+            # "entity"
             cur.execute(
                 """
-                    INSERT INTO facts
-                        (subject_id, property_id, object_id)
+                    INSERT INTO claims
+                        (subject_id, verb_id, object_id)
                     VALUES
                         (?, ?, ?)
                 """,
                 (
-                    entity.id, prop.id, value.id
+                    subject.id, verb.id, value_or_object.id
                 ),
-            )
-            first_fact_id = cur.lastrowid
-            cls._create_reflected_fact(
-                cur,
-                fact_id=first_fact_id,
-                subj=entity,
-                obj=value,
-                prop=prop,
             )
         else:
             cur.execute("""
-                INSERT INTO facts
-                    (subject_id, property_id, value)
+                INSERT INTO claims
+                    (subject_id, verb_id, value)
                 VALUES
                     (?, ?, ?)
                 """,
                 (
-                    entity.id, prop.id, value.encode()
+                    subject.id, verb.id, value_or_object.encode()
                 ),
             )
-            first_fact_id = cur.lastrowid
         conn.commit()
-        return Fact(first_fact_id)
+        return Claim(cur.lastrowid)
 
-    @staticmethod
-    def _create_reflected_fact(cur, *, fact_id, subj, obj, prop):
-        if prop.reflected_property:
-            cur.execute(
-                """
-                    INSERT INTO facts
-                        (subject_id, property_id, object_id, reflected_fact_id)
-                    VALUES
-                        (?, ?, ?, ?)
-                """,
-                (
-                    obj.id, prop.reflected_property.id, subj.id, fact_id
-                ),
-            )
-            cur.execute(
-                """
-                    UPDATE facts
-                    SET reflected_fact_id = ?
-                    WHERE id = ?
-                """,
-                (cur.lastrowid, fact_id),
-            )
+    @classmethod
+    def new_root(cls, name):
+        cur = conn.cursor()
+        cur.execute("INSERT INTO claims (verb_id) VALUES (?)", (ROOT,))
+        new_id = cur.lastrowid
+        cur.execute(
+            "INSERT INTO claims (subject_id, verb_id, value) VALUES (?, ?, ?)",
+            (new_id, LABEL, name),
+        )
+        cur.execute(
+            "INSERT INTO search_index (table_name, id, value) VALUES ('claims', ?, ?)",
+            (new_id, make_search_key(name)),
+        )
+        conn.commit()
+        return Claim(new_id)
+
+    def get_data(self):
+        data = {}
+        for cl in Claim.all(subject_id=self.id, verb_ids=DATA_LABELS):
+            data.setdefault(cl.verb.id, []).append(cl)
+        return data
 
     def __format__(self, fmt):
-        if self.is_valid:
-            maybe_invalid = ""
-            validity_msg = ""
-        else:
-            maybe_invalid = " invalid" if not self.is_valid else ""
-
-            validity_msg = f"""<span class="validity">valid
-                {f"from {self.valid_from:%Y-%m-%d}" if self.valid_from else ""}
-                {f"until {self.valid_until:%Y-%m-%d}" if self.valid_until else ""}
-                </span>
-            """
-        if fmt == "heading":
-            edit_button = f"""<a
-                hx-target="closest h2"
-                hx-get="/facts/{self.id}/edit"
-            >✎</a>"""
-            delete_button = f"""<a
-                hx-confirm="Are you sure you want to delete this fact?"
-                hx-delete="/facts/{self.id}"
-            >⌫</a>"""
-            return f"<h2>{self} {edit_button}{delete_button}</h2>"
-        elif fmt == "short":
-            info_button = f"""<a
-                class="hovershow clickable"
-                href="/facts/{self.id}"
-                hx-push-url="true"
-                hx-select="#container"
-                hx-target="#container"
-                hx-swap="outerHTML"
-            >ⓘ</a>"""
-            edit_button = f"""<a
-                hx-target="closest .obj" class="hovershow"
-                hx-get="/facts/{self.id}/edit"
-            >✎</a>"""
-            delete_button = f"""<a
-                hx-target="closest .vp" class="hovershow"
-                hx-confirm="Are you sure you want to delete this fact?"
-                hx-delete="/facts/{self.id}"
-            >⌫</a>"""
-            return f"""<span class="vp{maybe_invalid}">
-                {self.prop}
-                <span class="obj">
-                    {self.obj}{validity_msg}
-                    {info_button}
-                    {edit_button}
-                    {delete_button}
-                </span>
-            </span>
-            """
-        elif fmt == "valid_from":
+        data = self.get_data()
+        today = date.today()
+        invalid = (
+            VALID_FROM in data and date.fromisoformat(data[VALID_FROM][0].object.value) > today
+            or VALID_UNTIL in data and date.fromisoformat(data[VALID_UNTIL][0].object.value) < today
+        )
+        validity = " invalid" if invalid else ""
+        if fmt == "label":
+            return data[LABEL][0].object.value
+        elif fmt == "link":
+            if LABEL in data:
+                return f'<a class="claim-link{validity}" href="/claims/{self.id}">{data[LABEL][0].object.value}</a>'
+            else:
+                return f'{self:svo}'
+        elif fmt == "heading":
+            if IS_A in data:
+                cat = f"""<br><small>&lt;{", ".join(f'<span>{c:handle}{c.object:link}</span>' for c in data[IS_A])}&gt;</small>"""
+            else:
+                cat = ""
+            buttons = []
+            if isinstance(self.object, Plain):
+                buttons.append(f"""<a
+                    hx-target="#edit-area"
+                    hx-get="/claims/{self.id}/edit"
+                    role="button"
+                    class="outline contrast toolbutton"
+                >✎ Edit</a>""")
+            if not list(self.outgoing_claims()) and not list(self.incoming_claims()):
+                buttons.append(f"""<a
+                    hx-target="#edit-area"
+                    hx-delete="/claims/{self.id}"
+                    hx-confirm="Are you sure you want to delete this claim?"
+                    role="button"
+                    class="outline contrast toolbutton"
+                >\N{WASTEBASKET}\ufe0e Delete</a>""")
+            if LABEL in data:
+                if self.verb.id == ROOT:
+                    label = data[LABEL][0]
+                    return f"""<h2>{label:handle}{label.object.value} {cat}</h2>{" ".join(buttons)}"""
+                else:
+                    # non-roots should still show their actual SVO
+                    return f"""<h2>{label:handle}{label.object.value} {cat}<br>{self:svo}</h2>{" ".join(buttons)}"""
+            else:
+                return f"""<h2>{self:svo}</h2>{" ".join(buttons)}"""
+        elif fmt.startswith("vo:"):
+            subj_id = int(fmt[3:])
+            # Handle undirected links properly (always display the _other_ claim)
+            if self.subject.id == subj_id:
+                return f'<span class="vo{validity}">{self:handle}{self.verb:link} {self.object:link}</span>'
+            else:
+                return f'<span class="vo{validity}">{self:handle}{self.verb:link} {self.subject:link}</span>'
+        elif fmt == "sv":
+            return f'<span class="sv{validity}">{self:handle}{self.subject:link} {self.verb:link}</span>'
+        elif fmt == "svo":
+            return f'<span class="svo{validity}">{self:handle}{self.subject:link} {self.verb:link} {self.object:link}</span>'
+        elif fmt == "handle":
+            return f'<a class="handle" href="/claims/{self.id}">↱</a>'
+        elif fmt == "ac-result":
             return f"""<span
-                class="clickable validity-editable"
-                hx-get="/facts/{self.id}/change-valid-from"
-                hx-swap="outerHTML"
-            >{self.valid_from or "(null)"}</span>"""
-        elif fmt == "valid_until":
-            return f"""<span
-                class="clickable validity-editable"
-                hx-get="/facts/{self.id}/change-valid-until"
-                hx-swap="outerHTML"
-            >{self.valid_until or "(null)"}</span>"""
-        else:
-            return f"""<span class="fact{maybe_invalid}">
-                {self.subj}
-                <span class="vp">
-                    {self.prop}
-                    {self.obj}
-                </span>
-                {validity_msg}
-            </span>
-            """
+                class="clickable ac-result"
+                hx-target="closest .ac-widget"
+                hx-swap="innerHTML"
+                hx-get="/claims/autocomplete/accept/{self.id}"
+            >{self:label}</span>"""
+        elif fmt == "avatar":
+            if AVATAR not in data:
+                return ""
+            return f'<img src="{data[AVATAR][0].object.value}" class="avatar">'
+        return f"TODO: {fmt!r}"
 
     def __str__(self):
-        return f"{self}"
+        return f"{self:link}"
+
+    def graph_elements(self, verbs=None):
+        node = {
+            "group": "nodes",
+            "data": {
+                "label": f"{self:label}",
+                "id": str(self.id),
+            },
+        }
+        edges = []
+        for link in self.outgoing_claims():
+            if not link.verb.data_type.name.endswith("directed_link"):
+                continue
+            if verbs and link.verb not in verbs:
+                continue
+            if self.id == link.object.id:
+                continue
+            if link.verb.id in (IS_A, ROOT):
+                continue
+            edges.append({
+                "group": "edges",
+                "data": {
+                    "source": str(self.id),
+                    "target": str(link.object.id),
+                    "label": link.verb.label,
+                },
+            })
+        return node, edges
 
 
 class Query(Model):
@@ -939,8 +594,13 @@ class Query(Model):
     def new(cls, label, sql):
         cur = conn.cursor()
         cur.execute("INSERT INTO queries (label, sql) VALUES (?, ?)", (label, sql))
+        q_id = cur.lastrowid
+        cur.execute(
+            "INSERT INTO search_index (table_name, id, value) VALUES ('queries', ?, ?)",
+            (q_id, make_search_key(label)),
+        )
         conn.commit()
-        return cls(cur.lastrowid)
+        return cls(q_id)
 
     def rename(self, label):
         cur = conn.cursor()
@@ -1004,7 +664,6 @@ class Plain:
     def __init__(self, value, prop):
         self.value = value
         self.prop = prop
-        self.fact = None
 
     @classmethod
     def from_form(cls, prop, form):
@@ -1017,14 +676,13 @@ class Plain:
     def encode(self):
         return self.prop.data_type.encode(self.value)
 
+    def __format__(self, fmt):
+        return str(self)
+
     def __str__(self):
-        text = self.prop.data_type.display_html(
-            self.value,
-            prop=self.prop,
-            fact=self.fact,
-        )
-        for ref_id, entity in {
-            ref_id: Entity(ref_id) for ref_id in set(map(int, TEXT_REF.findall(text)))
+        text = self.prop.data_type.display_html(self.value)
+        for ref_id, claim in {
+            ref_id: Claim(ref_id) for ref_id in set(map(int, TEXT_REF.findall(text)))
         }.items():
-            text = text.replace(f"<@{ref_id}>", str(entity))
+            text = text.replace(f"<@{ref_id}>", f"{claim:link}")
         return text

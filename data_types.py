@@ -15,21 +15,17 @@ def float_int(val):
     return val
 
 
-# these are the data_types
-class PropertyType:
+class DataType:
     def __init_subclass__(cls):
         TYPES[cls.__name__] = cls()
 
     def display_html(self, value, **_):
-        return f"placeholder, not implemented for property type {type(self).__name__}."
+        return f"placeholder, not implemented for data type {type(self).__name__}."
 
-    def input_html(self, entity, prop, value=None):
-        return f"placeholder, not implemented for property type {type(self).__name__}."
+    def input_html(self, value=None):
+        return f"placeholder, not implemented for data type {type(self).__name__}."
 
     def next_step(self, args):
-        return None
-
-    def encode_extra_data(self, form):
         return None
 
     def encode(self, value):
@@ -57,74 +53,31 @@ class PropertyType:
         return type(self).__name__
 
 
-class entity(PropertyType):
-    def display_html(self, value, **_):
-        raise RuntimeError("How did we end up here? Entities are displayed differently")
-
-    def input_html(self, entity, prop, value=None):
-        parts = []
-        if value is not None:
-            value_maybe = f"""value="{value.name}" """
-            hidden_input = """<input type="hidden" name="value" value="{value.id}">"""
-        else:
-            value_maybe = ""
-            hidden_input = ""
+class directed_link(DataType):
+    def input_html(self, value=None):
         return f"""
             <div class="ac-widget">
                 <input
                     name="ac-query"
                     placeholder="Start typing..."
-                    hx-get="/entities/autocomplete/{prop.object_category.id}"
+                    hx-get="/claims/autocomplete"
                     hx-target="next .ac-results"
                     hx-swap="innerHTML"
                     hx-trigger="input changed delay:200ms, search"
-                    {value_maybe}
                 >
-                {hidden_input}
                 <div class="ac-results">
                 </div>
             </div>
         """
 
-    def next_step(self, args):
-        category_options = []
-        for category in O.Category.all():
-            category_options.append(
-                f'<option value="{category.id}">{category}</option>',
-            )
-        if "reflectivity" in args:
-            if args["reflectivity"] in ("none", "self"):
-                return None
-            return """
-                <input name="inversion"></input>
-                <button type="submit">»</button>
-            """
-        return f"""
-            <select name="object_category">
-                <option selected disabled>--Object--</option>
-                {"".join(category_options)}
-            </select>
-            <select
-                name="reflectivity"
-                hx-get="/properties/new/steps"
-                hx-target="#step2"
-                hx-swap="innerHTML"
-                hx-include="[name='data_type']"
-            >
-                <option selected disabled>--Reflectivity--</option>
-                <option value="none">unidirectional</option>
-                <option value="self">self-reflected</option>
-                <option value="other">reflected</option>
-            </select>
-            <span id="step2"></span>
-        """
+TYPES["undirected_link"] = directed_link()
 
 
-class string(PropertyType):
+class string(DataType):
     def display_html(self, value, **_):
         return f'<span class="type-string">"{value}"</span>'
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -133,11 +86,11 @@ class string(PropertyType):
         return f"""<input type="text" name="value"{value}></input>"""
 
 
-class number(PropertyType):
+class number(DataType):
     def display_html(self, value, **_):
         return f'<span class="type-number">{value}</span>'
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         if value:
             value = f' value="{value.value}"'
         else:
@@ -148,14 +101,14 @@ class number(PropertyType):
         return float_int(encoded)
 
 
-class color(PropertyType):
+class color(DataType):
     def display_html(self, value, **_):
         return f"""
             <span style="color: {value}; text-shadow: 0 0 3px black;">&#9632;</span>
             {value}
         """
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         if value:
             value = f' value="{value.value}"'
         else:
@@ -163,7 +116,7 @@ class color(PropertyType):
         return f"""<input type="color" name="value"{value}></input>"""
 
 
-class date(PropertyType):
+class date(DataType):
     def display_html(self, value, **_):
         d = NonOmniscientDate(value)
         today = datetime.date.today()
@@ -178,7 +131,7 @@ class date(PropertyType):
             class_ = ""
         return f"""<span class="{class_}">🗓️{value} <em>({td})</em></span>"""
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         if value:
             value = f' value="{value.value}"'
         else:
@@ -191,14 +144,14 @@ class date(PropertyType):
         ></input>"""
 
 
-class boolean(PropertyType):
+class boolean(DataType):
     def display_html(self, value, **_):
         if value:
             return """<span style="color: green">✔</span>"""
         else:
             return """<span style="color: red">✘</span>"""
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         checked = " checked" if value and value.value else ""
         return f"""<input type="checkbox" name="value"{checked}></input>"""
 
@@ -209,57 +162,7 @@ class boolean(PropertyType):
         return value == "on"
 
 
-class enum(PropertyType):
-    def display_html(self, value, **_):
-        return f"""<span style="color: #be5128;">{value}</span>"""
-
-    def input_html(self, entity, prop, value=None):
-        return "\n".join(
-            f"""
-            <input
-                type="radio"
-                id="choice-{n}"
-                name="value"
-                value="{choice}"
-                {"checked" if value and choice == value.value else ""}
-            ><label for="choice-{n}">{choice}</label></input>
-            """ for n, choice in enumerate(prop.extra_data.split(","))
-        )
-
-    def next_step(self, args):
-        return """
-            <input name="choices" placeholder="choices, comma-separated"></input>
-            <button type="submit">»</button>
-        """
-
-    def encode_extra_data(self, form):
-        return form["choices"]
-
-
-class age(PropertyType):
-    def display_html(self, value, *, fact, **_):
-        now = datetime.datetime.now()
-        created_at = datetime.datetime.fromisoformat(fact.created_at)
-        years_passed = (now - created_at).days // 365
-        value += years_passed
-        if now.day == created_at.day:
-            return f"""<span style="color: #2889be;">{value}</span>"""
-        return f"""<span style="color: #2889be;">{value}?</span>"""
-
-    def input_html(self, entity, prop, value=None):
-        if value:
-            value = f' value="{value.value}"'
-        else:
-            value = ""
-        return f"""
-            <input type="number" min=0 name="value"{value}></input>
-        """
-
-    def decode(self, encoded):
-        return float_int(encoded)
-
-
-class location(PropertyType):
+class location(DataType):
     def display_html(self, value, **_):
         newline = "\n"
         return f"""<a
@@ -269,7 +172,7 @@ class location(PropertyType):
             class="type-location"
         >{value.replace(newline, "<br>")}</a>"""
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         if value:
             value = value.value
         else:
@@ -279,12 +182,12 @@ class location(PropertyType):
         """
 
 
-class text(PropertyType):
+class text(DataType):
     def display_html(self, value, **_):
         newline = "\n"
         return f"""<span class="type-text">{value.replace(newline, "<br>")}</span>"""
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         if value:
             value = value.value
         else:
@@ -294,11 +197,11 @@ class text(PropertyType):
         """
 
 
-class email(PropertyType):
+class email(DataType):
     def display_html(self, value, **_):
         return f'<span class="type-email"><a href="mailto:{value}">{value}</a></span>'
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -307,11 +210,11 @@ class email(PropertyType):
         return f"""<input type="email" name="value"{value}></input>"""
 
 
-class website(PropertyType):
+class website(DataType):
     def display_html(self, value, **_):
         return f'<span class="type-website"><a href="{value}">{value}</a></span>'
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -320,7 +223,7 @@ class website(PropertyType):
         return f"""<input type="url" name="value"{value}></input>"""
 
 
-class phonenumber(PropertyType):
+class phonenumber(DataType):
     def display_html(self, value, **_):
         return f"""<span
             class="type-phonenumber"
@@ -328,7 +231,7 @@ class phonenumber(PropertyType):
             <a href="tel:{value}">{value}</a>
         </span>"""
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -337,20 +240,19 @@ class phonenumber(PropertyType):
         return f"""<input type="tel" name="value"{value}></input>"""
 
 
-class picture(PropertyType):
+class picture(DataType):
     def display_html(self, value, **_):
         return f'<img class="type-picture" src="{value}">'
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         return """<input name="value" type="file"></input>"""
 
 
-class social(PropertyType):
-    def display_html(self, value, prop, **_):
-        link = prop.extra_data.format(value)
-        return f'<span class="type-social"><a href="{link}">{value}</a></span>'
+class social(DataType):
+    def display_html(self, value, **_):
+        return f'<span class="type-social">{value}</span>'
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -368,12 +270,9 @@ class social(PropertyType):
             <button type="submit">»</button>
         """
 
-    def encode_extra_data(self, form):
-        return form["template"]
 
-
-class mtgcolors(PropertyType):
-    def display_html(self, value, prop, **_):
+class mtgcolors(DataType):
+    def display_html(self, value, **_):
         return "".join(
             f'<span class="mana s{color} small mana-{value[color]}"></span>'
             for color in "wubrg"
@@ -387,7 +286,7 @@ class mtgcolors(PropertyType):
             if int(form[f"mana-{color}"]) != 0
         }
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         if value:
             value = value.value
         else:
@@ -408,8 +307,8 @@ class mtgcolors(PropertyType):
         return json.dumps(value)
 
 
-class alpha2(PropertyType):
-    def display_html(self, value, prop, **_):
+class alpha2(DataType):
+    def display_html(self, value, **_):
         country = value.upper()
         flag = "".join(
             unicodedata.lookup(
@@ -430,7 +329,7 @@ class alpha2(PropertyType):
         raise ValueError("Needs to be two-letter ASCII")
 
 
-    def input_html(self, entity, prop, value=None):
+    def input_html(self, value=None):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'

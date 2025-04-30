@@ -35,12 +35,12 @@
     <nav class="container">
         <ul><li><a href="/"><img src="/logo.svg" alt="Véronique"></a></li></ul>
         <ul><li>
+        <a href="/claims/new-root" role="button" id="add-button">+</a>
         <details class="dropdown">
         <summary>Go to...</summary>
         <ul>
-            <li><a href="/entities">Entities</a></li>
-            <li><a href="/properties">Properties</a></li>
-            <li><a href="/categories">Categories</a></li>
+            <li><a href="/claims">Claims</a></li>
+            <li><a href="/verbs">Verbs</a></li>
             <li><a href="/network">Network</a></li>
             <li><a href="/queries">Queries</a></li>
         </ul>
@@ -49,7 +49,7 @@
                 id="q"
                 name="q"
                 type="search"
-                hx-get="/entities/search"
+                hx-get="/search"
                 hx-trigger="input changed delay:200ms, search"
                 hx-select="#container"
                 hx-target="#container"
@@ -58,6 +58,6 @@
         </ul>
     </nav>
     </header>
-    <main id="container" class="container">{}</main>
+    <main id="container">{}</main>
 </body>
 </html>

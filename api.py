@@ -9,8 +9,8 @@ from types import CoroutineType
 from sanic import Sanic, HTTPResponse, html, file, redirect
 from nomnidate import NonOmniscientDate
 import objects as O
-from db import conn
-from property_types import TYPES
+from db import conn, LABEL, IS_A, ROOT, AVATAR
+from data_types import TYPES
 
 PAGE_SIZE = 20
 CORRECT_AUTH = os.environ["VERONIQUE_CREDS"]
@@ -106,63 +106,71 @@ async def index(request):
             day=1,
             month=((reference_date.month + (page_no - 1)) % 12) or 12,
         )
-    for fact in sorted(
-        O.Fact.all_of_same_month(reference_date),
-        key=lambda f: (
-            (reference_date - NonOmniscientDate(f.obj.value)).days or 0
+    for claim in sorted(
+        O.Claim.all_of_same_month(reference_date),
+        key=lambda c: (
+            (reference_date - NonOmniscientDate(c.object.value)).days or 0
         ),
         reverse=True,
     ):
-        difference = (reference_date - NonOmniscientDate(fact.obj.value)).days
+        difference = (reference_date - NonOmniscientDate(claim.object.value)).days
         if difference == 0:
             past_today = True
         elif not past_today and (difference or 0) < 0 and page_no == 1:
             recent_events.append('<hr class="date-today">')
             past_today = True
-        recent_events.append(f"<p>{fact}</p>")
+        recent_events.append(f"<p>{claim:link}</p>")
     if page_no == 1 and not past_today:
         recent_events.append('<hr class="date-today">')
     return f"""
-        <button
-            hx-get="/entities/new"
-            hx-swap="outerHTML"
-            class="button-new"
-        >New entity</button>
+        <article><header>
         <h2>This month</h2>
+        </header>
         {"".join(recent_events)}
     """ + pagination(
         "/",
         page_no,
         more_results=True,
         allow_negative=True,
-    )
+    ) + "</article>"
 
 
 @app.get("/network")
 @page
 async def network(request):
-    all_categories = list(O.Category.all())
+    all_categories = list(O.Claim.all_categories(page_size=9999))
     if "categories" in request.args:
         ids = [int(part.removeprefix("cat")) for part in request.args["categories"]]
-        categories = [O.Category(category_id) for category_id in ids]
+        categories = {O.Claim(category_id) for category_id in ids}
     else:
-        categories = all_categories
-    all_properties = list(O.Property.all(data_type="entity"))
-    if "properties" in request.args:
-        ids = [int(part.removeprefix("prop")) for part in request.args["properties"]]
-        properties = [O.Property(property_id) for property_id in ids]
+        categories = None
+    all_verbs = list(O.Verb.all(data_type="%directed_link"))
+    if "verbs" in request.args:
+        ids = [int(part.removeprefix("verb")) for part in request.args["verbs"]]
+        verbs = [O.Verb(verb_id) for verb_id in ids]
     else:
-        properties = all_properties
-    entities = O.Entity.all(page_size=9999, categories=categories)
-    elements = chain.from_iterable(
-        e.graph_elements(categories, properties=properties)
-        for e in entities
+        verbs = all_verbs
+    claims = (
+        c
+        for c in O.Claim.all_labelled(page_size=9999)
+        if categories is None or ({cat.object for cat in c.get_data().get(IS_A, set())} & categories)
     )
+    node_ids = set()
+    elements, all_edges = [], []
+    for c in claims:
+        node, edges = c.graph_elements(verbs=verbs)
+        elements.append(node)
+        node_ids.add(node["data"]["id"])
+        all_edges.extend(edges)
+    for edge in all_edges:
+        if edge["data"]["source"] in node_ids and edge["data"]["target"] in node_ids:
+            elements.append(edge)
+
     return f"""
     <form id="networkform">
     <fieldset class="grid">
     <details class="dropdown">
-    <summary>Select Categories...</summary>
+      <summary>Select Categories...</summary>
       <ul>
       {
           "".join(
@@ -171,14 +179,14 @@ async def network(request):
                   id="cat{cat.id}"
                   name="categories"
                   value="cat{cat.id}"
-                  {"checked" if cat in categories else ""}
+                  {"checked" if categories is None or cat in categories else ""}
                   hx-get="/network"
                   hx-include="#networkform"
                   hx-swap="outerHTML"
                   hx-target="#container"
                   hx-select="#container"
               />
-              <label for="cat{cat.id}">{cat.name}</label></li>
+              <label for="cat{cat.id}">{cat:label}</label></li>
               '''
               for cat in all_categories
           )
@@ -186,25 +194,26 @@ async def network(request):
       </ul>
     </details>
     <details class="dropdown">
-    <summary>Select Properties...</summary>
+    <summary>Select Verbs...</summary>
       <ul>
       {
           "".join(
               f'''<li><input
                   type="checkbox"
-                  id="prop{prop.id}"
-                  name="properties"
-                  value="prop{prop.id}"
-                  {"checked" if prop in properties else ""}
+                  id="verb{verb.id}"
+                  name="verbs"
+                  value="verb{verb.id}"
+                  {"checked" if verb in verbs else ""}
                   hx-get="/network"
                   hx-include="#networkform"
                   hx-swap="outerHTML"
                   hx-target="#container"
                   hx-select="#container"
               />
-              <label for="prop{prop.id}">{prop.label}</label></li>
+              <label for="verb{verb.id}">{verb.label}</label></li>
               '''
-              for prop in all_properties
+              for verb in all_verbs
+              if verb.id not in (IS_A, ROOT)
           )
       }
       </ul>
@@ -248,297 +257,89 @@ async def network(request):
     """
 
 
-@app.get("/categories")
-@page
-async def list_categories(request):
-    categories = O.Category.all()
-    return """
-    <button
-        hx-get="/category/new"
-        hx-swap="outerHTML"
-        class="button-new"
-    >New category</button>
-    """ + "<br>".join(str(category) for category in categories)
-
-
-@app.get("/categories/new")
+@app.get("/claims/autocomplete")
 @fragment
-async def new_category_form(request):
-    return """
-        <form
-            hx-post="/categories/new"
-            hx-swap="outerHTML"
-            hx-encoding="multipart/form-data"
-        >
-            <input name="name" placeholder="name"></input>
-            <button type="submit">»</button>
-        </form>
-    """
-
-
-@app.post("/categories/new")
-@fragment
-async def new_category(request):
-    form = D(request.form)
-    name = form["name"]
-    category = O.Category.new(name)
-    return f"""
-        <button
-            hx-get="/categories/new"
-            hx-swap="outerHTML"
-            class="button-new"
-        >New category</button>
-        {category}
-        <br>
-    """
-
-
-@app.get("/entities")
-@page
-async def list_entities(request):
-    page_no = int(request.args.get("page", 1))
-    parts = [
-        """<button
-            hx-get="/entities/new"
-            hx-swap="outerHTML"
-            class="button-new"
-        >New entity</button><br>"""
-    ]
-    previous_type = None
-    more_results = False
-    for i, entity in enumerate(O.Entity.all(
-        order_by="category_id ASC, id DESC",
-        page_no=page_no-1,
-        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
-    )):
-        if entity.category != previous_type:
-            parts.append(f"<h3>{entity.category}</h3>")
-            previous_type = entity.category
-        elif i:
-            parts.append("<br>")
-        if i == PAGE_SIZE:
-            more_results = True
-        else:
-            parts.append(f"{entity}")
-    return "".join(parts) + pagination(
-        "/entities",
-        page_no,
-        more_results=more_results,
-    )
-
-
-@app.get("/entities/autocomplete/<category_id>")
-@fragment
-async def autocomplete_entities(request, category_id: int):
+async def autocomplete_claims(request):
     parts = []
     query = D(request.args).get("ac-query", "")
     if not query:
         return ""
-    entities = O.Entity.search(
+    claims = O.Claim.search(
         q=query,
         page_size=5,
-        category_id=category_id,
     )
     return "".join(
-        f"{entity:ac-result:{category_id}}"
-        for entity in entities
+        f"{claim:ac-result}"
+        for claim in claims
     )
 
 
-@app.get("/entities/autocomplete/accept/<category_id>/<entity_id>")
+@app.get("/claims/autocomplete/accept/<claim_id>")
 @fragment
-async def autocomplete_entities_accept(request, category_id: int, entity_id: int):
-    entity = O.Entity(entity_id)
+async def autocomplete_claims_accept(request, claim_id: int):
+    claim = O.Claim(claim_id)
     return f"""
         <input
             name="ac-query"
             placeholder="Start typing..."
-            hx-get="/entities/autocomplete/{category_id}"
+            hx-get="/claims/autocomplete"
             hx-target="next .ac-results"
             hx-swap="innerHTML"
             hx-trigger="input changed delay:200ms, search"
-            value="{entity.name}"
+            value="{claim:label}"
         >
-        <input type="hidden" name="value" value="{entity.id}"
+        <input type="hidden" name="value" value="{claim.id}"
         <div class="ac-results">
         </div>
     """
 
 
-@app.get("/entities/new")
-@fragment
-async def new_entity_form(request):
-    categories = O.Category.all()
+@app.get("/claims/new-root")
+@page
+async def new_root_claim_form(request):
     return f"""
-        <form
-            hx-post="/entities/new"
-            hx-swap="outerHTML"
-            hx-encoding="multipart/form-data"
-        >
+    <article>
+    <heading><h2>New root claim</h2></heading>
+        <form action="/claims/new-root" method="POST">
             <input name="name" placeholder="name"></input>
-            <select name="category">
-                <option selected disabled>--Category--</option>
-                {"".join(f'<option value="{c.id}">{c.name}</option>' for c in categories)}
-            </select>
             <button type="submit">»</button>
         </form>
+    </article>
     """
 
 
-@app.post("/entities/new")
-@fragment
-async def new_entity(request):
+@app.post("/claims/new-root")
+async def new_root_claim(request):
     form = D(request.form)
     name = form["name"]
-    entity = O.Entity.new(name, O.Entity(int(form["category"])))
-    return f"""
-        <button
-            hx-get="/entities/new"
-            hx-swap="outerHTML"
-            class="button-new"
-        >New entity</button>
-        <br>
-        <meta http-equiv="refresh" content="0; url=/entities/{entity.id}">
-        {entity:full}
-    """
+    claim = O.Claim.new_root(name)
+    return redirect(f"/claims/{claim.id}")
 
 
-@app.get("/entities/search")
-@page
-async def search_entities(request):
-    page_no = int(request.args.get("page", 1))
-    query = D(request.args).get("q", "")
-    entities = O.Entity.search(
-        q=query,
-        page_no=page_no - 1,
-        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
-    )
-    parts = []
-    more_results = False
-    for i, entity in enumerate(entities):
-        if i:
-            parts.append("<br>")
-        if i == PAGE_SIZE:
-            more_results = True
-        else:
-            parts.append(f"{entity:full}")
-    return "".join(parts) + pagination(
-        f"/entities/search?q={query}",
-        page_no=page_no,
-        more_results=more_results,
-    )
-
-
-@app.get("/entities/<entity_id>")
-@page
-async def view_entity(request, entity_id: int):
-    entity = O.Entity(entity_id)
-    return f"""
-        <article>
-            <header>{entity:heading}</header>
-            <button
-                hx-get="/facts/new/{entity_id}"
-                hx-swap="outerHTML"
-                class="button-new"
-            >New fact</button>
-        {"".join(f"<p>{fact:short}</p>" for fact in entity.facts)}
-        </article>
-        <h3>References</h3>
-        {"".join(f"<p>{fact}</p>" for fact in entity.incoming_facts)}
-    """
-
-@app.get("/categories/<category_id>")
-@page
-async def view_category(request, category_id: int):
-    page_no = int(request.args.get("page", 1))
-    category = O.Category(category_id)
-    entities = O.Entity.all(
-        categories=[category],
-        page_no=page_no - 1,
-        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
-    )
-    parts = []
-    more_results = False
-    for i, entity in enumerate(entities):
-        if i == PAGE_SIZE:
-            more_results = True
-        else:
-            parts.append(f"{entity}")
-
-    return f"""
-        {category:heading}
-        {"<br>".join(parts)}
-        {pagination(
-            f"/categories/{category_id}",
-            page_no,
-            more_results=more_results,
-        )}
-    """
-
-
-@app.post("/categories/<category_id>/rename")
+@app.get("/claims/new/<claim_id>/<direction:incoming|outgoing>")
 @fragment
-async def rename_category(request, category_id: int):
-    category = O.Category(category_id)
-    name = D(request.form)["name"]
-    if name:
-        category.rename(name)
-    return f"{category:heading}"
-
-
-@app.post("/entities/<entity_id>/rename")
-@fragment
-async def rename_entity(request, entity_id: int):
-    entity = O.Entity(entity_id)
-    name = D(request.form)["name"]
-    if name:
-        entity.rename(name)
-    return f"{entity:heading}"
-
-
-@app.get("/properties/<property_id>")
-@page
-async def view_property(request, property_id: int):
-    prop = O.Property(property_id)
-    parts = [f"{prop:heading}"]
-    for fact in prop.facts:
-        parts.append(str(fact))
-    return "".join(parts)
-
-
-@app.post("/properties/<property_id>/rename")
-@fragment
-async def rename_property(request, property_id: int):
-    prop = O.Property(property_id)
-    name = D(request.form)["name"]
-    if name:
-        prop.rename(name)
-    return f"{prop:heading}"
-
-
-@app.get("/facts/new/<entity_id>")
-@fragment
-async def new_fact_form(request, entity_id: int):
-    entity = O.Entity(entity_id)
-    props = O.Property.all(subject_category=entity.category, page_size=9999)
+async def new_claim_form(request, claim_id: int, direction: str):
+    claim = O.Claim(claim_id)
+    verbs = O.Verb.all(page_size=9999, data_type="directed_link" if direction == "incoming" else None)
     return f"""
         <form
-            hx-post="/facts/new/{entity_id}"
-            hx-swap="outerHTML"
-            hx-encoding="multipart/form-data"
+            action="/claims/new/{claim_id}/{direction}"
+            method="POST"
+            enctype="multipart/form-data"
         >
             <select
-                name="property"
-                hx-get="/facts/new/{entity_id}/property"
+                name="verb"
+                hx-get="/claims/new/{claim_id}/verb"
                 hx-target="#valueinput"
                 hx-swap="innerHTML"
             >
-                <option selected disabled>--Property--</option>
+                <option selected disabled>--Verb--</option>
                 {"".join(
                     f'''<option
-                            value="{prop.id}"
-                        >{prop.label} ({prop.data_type})</option>'''
-                    for prop in props
+                            value="{verb.id}"
+                        >{verb.label} ({verb.data_type})</option>'''
+                    for verb in verbs
+                    if verb.id != ROOT
                 )}
             </select>
             <span id="valueinput"></span>
@@ -546,184 +347,155 @@ async def new_fact_form(request, entity_id: int):
     """
 
 
-@app.get("/facts/new/<entity_id>/property")
+@app.get("/claims/new/<claim_id>/verb")
 @fragment
-async def new_fact_form_property_input(request, entity_id: int):
-    prop = O.Property(int(D(request.args)["property"]))
-    entity = O.Entity(entity_id)
+async def new_claim_form_verb_input(request, claim_id: int):
+    verb = O.Verb(int(D(request.args)["verb"]))
+    claim = O.Claim(claim_id)
     return f"""
-        {prop.data_type.input_html(entity, prop)}
+        {verb.data_type.input_html()}
         <button type="submit">»</button>
         """
 
 
-@app.get("/facts/<fact_id>/edit")
+@app.post("/claims/new/<claim_id>/<direction:incoming|outgoing>")
+async def new_claim(request, claim_id: int, direction: str):
+    claim = O.Claim(claim_id)
+    form = D(request.form)
+    if "value" in request.files:
+        f = request.files["value"][0]
+        form["value"] = f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
+    verb = O.Verb(int(form["verb"]))
+    value = form.get("value")
+    if verb.data_type.name.endswith("directed_link"):
+        value = O.Claim(int(value))
+    else:
+        value = O.Plain.from_form(verb, form)
+    if direction == "incoming":
+        new_claim = O.Claim.new(value, verb, claim)
+    else:
+        new_claim = O.Claim.new(claim, verb, value)
+    return redirect(f"/claims/{claim_id}")
+
+
+@app.get("/search")
+@page
+async def search(request):
+    page_no = int(request.args.get("page", 1))
+    query = D(request.args).get("q", "")
+    cur = conn.cursor()
+    hits = cur.execute(
+        """
+            SELECT table_name, id
+            FROM search_index WHERE value LIKE '%' || ? || '%'
+            LIMIT ?
+            OFFSET ?
+        """,
+        (query, PAGE_SIZE + 1, PAGE_SIZE * (page_no - 1))
+    ).fetchall()
+    parts = []
+    more_results = False
+    for i, hit in enumerate(hits):
+        if i:
+            parts.append("<br>")
+        if i == PAGE_SIZE:
+            more_results = True
+        else:
+            if hit["table_name"] == "claims":
+                parts.append(f"{O.Claim(hit['id']):link}")
+            elif hit["table_name"] == "queries":
+                parts.append(f"{O.Query(hit['id']):link}")
+            elif hit["table_name"] == "verbs":
+                parts.append(f"{O.Verb(hit['id']):link}")
+            else:
+                parts.append("TODO: implement for", hit["table_name"])
+    return "".join(parts) + pagination(
+        f"/search?q={query}",
+        page_no=page_no,
+        more_results=more_results,
+    )
+
+
+@app.get("/claims/<claim_id>/edit")
 @fragment
-async def edit_fact_form(request, fact_id: int):
-    fact = O.Fact(fact_id)
+async def edit_claim_form(request, claim_id: int):
+    claim = O.Claim(claim_id)
     return f"""
         <form
-            hx-post="/facts/{fact_id}/edit"
-            hx-swap="outerHTML"
-            hx-encoding="multipart/form-data"
+            action="/claims/{claim_id}/edit"
+            method="POST"
         >
-            {fact.prop.data_type.input_html(fact.subj, fact.prop, value=fact.obj)}
+            {claim.verb.data_type.input_html(value=claim.object)}
             <button type="submit">»</button>
         </form>
         """
 
 
-@app.get("/facts/<fact_id>/change-valid-from")
+@app.delete("/claims/<claim_id>")
 @fragment
-async def change_valid_from_form(request, fact_id: int):
-    fact = O.Fact(fact_id)
-    value = f' value="{fact.valid_from:%Y-%m-%d}"' if fact.valid_from else ""
+async def delete_claim(request, claim_id: int):
+    claim = O.Claim(claim_id)
+    claim.delete()
     return f"""
-        <form
-            hx-post="/facts/{fact_id}/change-valid-from"
-            hx-swap="outerHTML"
-            hx-encoding="multipart/form-data"
-        >
-            <input name="date" type="date"{value}></input>
-            <button type="submit">»</button>
-        </form>
+        <meta http-equiv="refresh" content="0; url=/">
     """
 
 
-@app.post("/facts/<fact_id>/change-valid-from")
-@fragment
-async def change_valid_from(request, fact_id: int):
-    fact = O.Fact(fact_id)
-    form = D(request.form)
-    fact.set_validity(valid_from=form["date"])
-    return f"{fact:valid_from}"
-
-
-@app.get("/facts/<fact_id>/change-valid-until")
-@fragment
-async def change_valid_until_form(request, fact_id: int):
-    fact = O.Fact(fact_id)
-    value = f' value="{fact.valid_until:%Y-%m-%d}"' if fact.valid_until else ""
-    return f"""
-        <form
-            hx-post="/facts/{fact_id}/change-valid-until"
-            hx-swap="outerHTML"
-            hx-encoding="multipart/form-data"
-        >
-            <input name="date" type="date"{value}></input>
-            <button type="submit">»</button>
-        </form>
-    """
-
-
-@app.post("/facts/<fact_id>/change-valid-until")
-@fragment
-async def change_valid_until(request, fact_id: int):
-    fact = O.Fact(fact_id)
-    form = D(request.form)
-    fact.set_validity(valid_until=form["date"])
-    return f"{fact:valid_until}"
-
-
-@app.delete("/facts/<fact_id>")
-@fragment
-async def delete_fact(request, fact_id: int):
-    fact = O.Fact(fact_id)
-    fact.delete()
-    return ""
-
-
-@app.post("/facts/<fact_id>/edit")
-@fragment
-async def edit_fact(request, fact_id: int):
+@app.post("/claims/<claim_id>/edit")
+async def edit_claim(request, claim_id: int):
     form = D(request.form)
     if "value" in request.files:
         f = request.files["value"][0]
         form["value"] = f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
-    fact = O.Fact(fact_id)
+    claim = O.Claim(claim_id)
     value = form.get("value")
-    if fact.prop.data_type.name == "entity":
-        value = O.Entity(int(value))
+    if claim.verb.data_type.name.endswith("directed_link"):
+        # no longer allowed
+        raise RuntimeError("Can't edit links; delete it and make a new one")
     else:
-        value = O.Plain.from_form(fact.prop, form)
-        value.fact = fact
-    fact.set_value(value)
-    return f"{fact.obj}"
+        value = O.Plain.from_form(claim.verb, form)
+    claim.set_value(value)
+    return redirect(f"/claims/{claim_id}")
 
 
-@app.post("/facts/new/<entity_id>")
-@fragment
-async def new_fact(request, entity_id: int):
-    form = D(request.form)
-    if "value" in request.files:
-        f = request.files["value"][0]
-        form["value"] = f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
-    prop = O.Property(int(form["property"]))
-    value = form.get("value")
-    if prop.data_type.name == "entity":
-        value = O.Entity(int(value))
-    else:
-        value = O.Plain.from_form(prop, form)
-    fact = O.Fact.new(O.Entity(entity_id), prop, value)
-    if prop.data_type.name != "entity":
-        value.fact = fact
-    return f"""
-        <button
-            hx-get="/facts/new/{entity_id}"
-            hx-swap="outerHTML"
-            class="button-new"
-        >New fact</button>
-        <p>{fact:short}</p>
-    """
-
-
-@app.get("/properties")
+@app.get("/verbs")
 @page
-async def list_properties(request):
+async def list_verbs(request):
     page_no = int(request.args.get("page", 1))
     parts = [
-        """<button
-            hx-get="/properties/new"
-            hx-swap="outerHTML"
+        """<a href="/verbs/new"
             class="button-new"
-        >New property</button>"""
+            role="button"
+        >New verb</a>"""
     ]
     more_results = False
-    for i, prop in enumerate(O.Property.all(
+    for i, verb in enumerate(O.Verb.all(
         page_no=page_no-1,
         page_size=PAGE_SIZE + 1,
     )):
         if i == PAGE_SIZE:
             more_results = True
-        else:
-            parts.append(f"{prop:full}")
+        elif verb.id not in (ROOT, LABEL):
+            parts.append(f"{verb:full}")
     return "<br>".join(parts) + pagination(
-        "/properties",
+        "/verbs",
         page_no,
         more_results=more_results,
     )
 
 
-@app.get("/properties/new")
-@fragment
-async def new_property_form(request):
-    type_options = []
-    for category in O.Category.all():
-        type_options.append(f'<option value="{category.id}">{category}</option>')
+@app.get("/verbs/new")
+@page
+async def new_verb_form(request):
     return f"""
         <form
-            hx-post="/properties/new"
-            hx-swap="outerHTML"
-            hx-encoding="multipart/form-data"
+            action="/verbs/new"
+            method="POST"
         >
-            <select name="subject_category">
-                <option selected disabled>--Subject--</option>
-                {"".join(type_options)}
-            </select>
             <input name="label" placeholder="label"></input>
             <select
                 name="data_type"
-                hx-get="/properties/new/steps"
+                hx-get="/verbs/new/steps"
                 hx-target="#steps"
                 hx-swap="innerHTML"
             >
@@ -738,9 +510,9 @@ async def new_property_form(request):
     """
 
 
-@app.get("/properties/new/steps")
+@app.get("/verbs/new/steps")
 @fragment
-async def new_property_form_steps(request):
+async def new_verb_form_steps(request):
     args = D(request.args)
     type = TYPES[args["data_type"]]
     if response := type.next_step(args):
@@ -748,50 +520,15 @@ async def new_property_form_steps(request):
     return '<button type="submit">»</button>'
 
 
-@app.post("/properties/new")
-@fragment
-async def new_property(request):
+@app.post("/verbs/new")
+async def new_verb(request):
     form = D(request.form)
     data_type = TYPES[form["data_type"]]
-    prop = O.Property.new(
+    verb = O.Verb.new(
         form["label"],
         data_type=data_type,
-        reflected_property_name=(
-            None
-            if form.get("reflectivity", "none") == "none"
-            else O.SELF
-            if form["reflectivity"] == "self"
-            else form["inversion"]
-        ),
-        subject_category=O.Category(int(form["subject_category"])),
-        object_category=(
-            O.Category(int(form["object_category"]))
-            if "object_category" in form
-            else None
-        ),
-        extra_data=data_type.encode_extra_data(form),
     )
-    return f"""
-        <button
-            hx-get="/properties/new"
-            hx-swap="outerHTML"
-            class="button-new"
-        >New property</button>
-        {prop:full}
-    """
-
-
-@app.get("/facts/<fact_id>")
-@page
-async def view_fact(request, fact_id: int):
-    fact = O.Fact(fact_id)
-    return f"""
-        {fact:heading}
-        created: {fact.created_at}<br>
-        updated: {fact.updated_at or "(null)"}<br>
-        valid_from: {fact:valid_from}<br>
-        valid_until: {fact:valid_until}<br>
-    """
+    return redirect(f"/verbs/{verb.id}")
 
 
 @app.get("/queries")
@@ -896,17 +633,10 @@ async def edit_query_form(request, query_id: int):
     """
 
 
-SPECIAL_COL_NAMES = {
-    "short_fact": lambda value: f"{O.Fact(int(value)):short}",
-    "short_facts": lambda value: ", ".join(
-        f"{O.Fact(int(part)):short}" for part in value.split(",")
-    ),
-}
+SPECIAL_COL_NAMES = {}
 for singular, plural, model in (
-    ("entity", "entities", O.Entity),
-    ("fact", "facts", O.Fact),
-    ("category", "categories", O.Category),
-    ("property", "properties", O.Property),
+    ("claim", "claims", O.Claim),
+    ("verb", "verbs", O.Verb),
 ):
     SPECIAL_COL_NAMES[singular] = model
     SPECIAL_COL_NAMES[plural] = lambda value, model=model: ", ".join(
@@ -977,7 +707,7 @@ async def edit_query(request, query_id: int):
 
 @app.get("/queries/<query_id>")
 @page
-async def get_query(request, query_id: int):
+async def view_query(request, query_id: int):
     page_no = int(request.args.get("page", 1))
     query = O.Query(query_id)
     result = query.run(
@@ -989,24 +719,84 @@ async def get_query(request, query_id: int):
         result = result[:-1]
     else:
         more_results = False
-    return f"{query:heading}{display_query_result(result)}" + pagination(
+    return f"""
+        <article><header>
+        {query:heading}</header>{display_query_result(result)}
+    """ + pagination(
         f"/queries/{query_id}",
+        page_no,
+        more_results=more_results,
+    ) + "</article>"
+
+
+@app.get("/claims")
+@page
+async def list_labelled_claims(request):
+    page_no = int(request.args.get("page", 1))
+    parts = [
+    ]
+    previous_type = None
+    more_results = False
+    for i, claim in enumerate(O.Claim.all_labelled(
+        order_by="id DESC",
+        page_no=page_no-1,
+        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+    )):
+        if i:
+            parts.append("<br>")
+        if i == PAGE_SIZE:
+            more_results = True
+        else:
+            parts.append(f"{claim:link}")
+    return "".join(parts) + pagination(
+        "/claims",
         page_no,
         more_results=more_results,
     )
 
 
-@app.put("/entities/<entity_id>/avatar")
-@fragment
-async def put_avatar(request, entity_id: int):
-    entity = O.Entity(entity_id)
-    entity.upload_avatar(request.files["file"][0].body)
-    return f"{entity:heading}"
+@app.get("/claims/<claim_id>")
+@page
+async def view_claim(request, claim_id: int):
+    claim = O.Claim(claim_id)
+    incoming_mentions = list(claim.incoming_mentions())
+    return f"""
+        <article>
+            <header>{claim:heading}{claim:avatar}</header>
+            <div id="edit-area"></div>
+            <table class="claims"><tr><td>
+        <div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>
+        {"".join(f"<p>{c:sv}</p>" for c in claim.incoming_claims())}
+        </td><td>
+        <div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>
+        {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR))}
+        </td></tr></table>
+        {"<hr><h3>Mentions</h3>" + "".join(f"<p>{c:svo}</p>" for c in incoming_mentions) if incoming_mentions else ""}
+        </article>
+    """
 
 
-@app.get("/entities/<entity_id>/avatar")
-async def get_avatar(request, entity_id: int):
-    return await file(f"avatars/{entity_id}.jpg", mime_type="image/jpeg")
+@app.get("/verbs/<verb_id>")
+@page
+async def view_verb(request, verb_id: int):
+    page_no = int(request.args.get("page", 1))
+    verb = O.Verb(verb_id)
+    parts = [f"<article><heading>{verb:heading}</heading>"]
+    more_results = False
+    for i, claim in enumerate(verb.claims(
+        page_no=page_no-1,
+        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+    )):
+        if i == PAGE_SIZE:
+            more_results = True
+        else:
+            parts.append(f"<p>{claim:svo}</p>")
+    parts.append("</article>")
+    return "".join(parts) + pagination(
+        f"/verbs/{verb_id}",
+        page_no,
+        more_results=more_results,
+    )
 
 
 @app.get("/htmx.js")

@@ -2,18 +2,11 @@ html {
   font-size: 200%;
   --lightgrey: #f1f1f1;
 }
-.hovershow {
-  display: none;
-  text-decoration: none;
-}
-:hover>.hovershow {
-  display: inline;
-}
 a, .clickable {
   cursor: pointer;
 }
 
-.entity-link {
+.claim-link {
   display: inline-block;
   background-color: #ddeeff;
   margin: 3px;
@@ -21,7 +14,55 @@ a, .clickable {
   border-radius: 2px;
 }
 
-.vp {
+.handle {
+  text-decoration: none;
+  color: #888;
+  opacity: 0.7;
+  transform: translateY(-3px);
+  display: inline-block;
+}
+.handle:hover {
+  opacity: 1;
+}
+
+h2>.svo>.handle {
+  display: none;
+}
+
+.new-item-placeholder {
+  width: 100%;
+  text-align: center;
+  border: 1px solid #bbb;
+  border-radius: 2px;
+  background-color: #f8f8f8;
+  opacity: 0.5;
+  cursor: pointer;
+  margin-bottom: var(--pico-typography-spacing-vertical);
+}
+.new-item-placeholder:hover {
+  opacity: 1;
+}
+
+table.claims td {
+  vertical-align: top;
+  width: 50%;
+  border: none;
+}
+
+td:has(.sv) {
+  text-align: right;
+}
+
+.sv {
+  display: inline-block;
+  background-color: #ddffee;
+  margin: 3px;
+  border: 1px solid #afd;
+  border-radius: 2px;
+  text-align: right;
+}
+
+.vo {
   display: inline-block;
   background-color: #ffeedd;
   margin: 3px;
@@ -29,7 +70,15 @@ a, .clickable {
   border-radius: 2px;
 }
 
-.property {
+.svo {
+  display: inline-block;
+  background-color: #eeddff;
+  margin: 3px;
+  border: 1px solid #fda;
+  border-radius: 2px;
+}
+
+.verb {
   display: inline-block;
   background-color: #eeffdd;
   margin: 3px;
@@ -48,27 +97,12 @@ a, .clickable {
 h2 {
   margin-top: calc(var(--pico-typography-spacing-vertical) * 0.5) !important;
   margin-bottom: calc(var(--pico-typography-spacing-vertical) * 0.5) !important;
+  text-align: center;
 }
 
 small {
   font-size: 50%;
   color: #2889be;
-}
-
-small::before {
-  content: "(";
-}
-
-small::after {
-  content: ")";
-}
-
-.fact {
-  display: inline-block;
-  background-color: #ffc8dd;
-  margin: 1px;
-  border: 1px solid #faa;
-  border-radius: 2px;
 }
 
 .type-text, a.type-location {
@@ -78,10 +112,6 @@ small::after {
   color: inherit;
   vertical-align: top;
   max-width: 25em;
-}
-
-.rename-input {
-  display: block;
 }
 
 nav {
@@ -97,21 +127,6 @@ nav img{
   opacity: 0.5;
 }
 
-.validity {
-  background: red;
-  padding: 5px;
-  margin-right: 5px;
-  margin-left: 5px;
-  border-radius: 2px;
-  color: white;
-}
-
-.validity-editable {
-  border: 1px solid gray;
-  padding: 1px;
-  border-radius: 2px;
-}
-
 .type-picture {
   max-width: 300px;
   max-height: 200px;
@@ -119,9 +134,24 @@ nav img{
 .button-new {
   float: right;
 }
+.toolbutton[role="button"] {
+  padding: 10px;
+}
 
 #container {
   padding: 1em;
+  max-width: fit-content;
+  min-width: 1450px;
+  margin: auto;
+}
+
+#add-button {
+  background-color: green;
+  border-radius: 200px;
+  width: 75px;
+  height: 75px;
+  box-shadow: 0 0 3px gray;
+  margin-right: 15px;
 }
 
 article {
@@ -144,12 +174,12 @@ article button {
   margin-bottom: 15px;
 }
 
-.fact:has(.date-today) {
+.svo:has(.date-today) {
   animation: 0.5s infinite alternate pulsate;
   box-shadow: green 0px 0px 15px;
 }
 
-.fact:has(.date-yesterday), .fact:has(.date-tomorrow) {
+.svo:has(.date-yesterday), .fact:has(.date-tomorrow) {
   animation: 1s infinite alternate pulsate;
 }
 
@@ -170,6 +200,7 @@ hr.date-today {
 .ac-result {
   display: block;
   padding: 10px 0px 10px 20px;
+  text-align: left;
 }
 
 .ac-widget {
@@ -191,6 +222,10 @@ hr.date-today {
   margin-bottom: var(--pico-spacing);
 }
 
+header {
+  position: relative;
+}
+
 header .avatar {
   width: 145px;
   height: 145px;
@@ -198,11 +233,12 @@ header .avatar {
   border-radius: 100px;
   outline: 2px solid var(--lightgrey);
   position: absolute;
-  margin-top: -24px;
   object-fit: cover;
+  top: 20px;
+  left: 20px;
 }
 
-.entity-link .avatar {
+.claim-link .avatar {
   width: 30px;
   height: 30px;
   border-radius: 15px;
@@ -215,10 +251,6 @@ header .avatar {
 
 .avatar+h2 {
   padding-left: 155px;
-}
-
-input[type="file"] {
-  display: none;
 }
 
 form.avatar-form {
