@@ -90,7 +90,12 @@ def page(fn):
         ret = fn(*args, **kwargs)
         if isinstance(ret, CoroutineType):
             ret = await ret
-        return html(TEMPLATE(ret))
+        if isinstance(ret, str):
+            title = "Véronique"
+        else:
+            title, ret = ret
+            title = f"{title} — Véronique"
+        return html(TEMPLATE(title, ret))
     return wrapper
 
 
@@ -166,7 +171,7 @@ async def network(request):
         if edge["data"]["source"] in node_ids and edge["data"]["target"] in node_ids:
             elements.append(edge)
 
-    return f"""
+    return "Network", f"""
     <form id="networkform">
     <fieldset class="grid">
     <details class="dropdown">
@@ -297,7 +302,7 @@ async def autocomplete_claims_accept(request, claim_id: int):
 @app.get("/claims/new-root")
 @page
 async def new_root_claim_form(request):
-    return f"""
+    return "New root", f"""
     <article>
     <heading><h2>New root claim</h2></heading>
         <form action="/claims/new-root" method="POST">
@@ -477,7 +482,7 @@ async def list_verbs(request):
             more_results = True
         elif verb.id not in (ROOT, LABEL):
             parts.append(f"{verb:full}")
-    return "<br>".join(parts) + pagination(
+    return "Verbs", "<br>".join(parts) + pagination(
         "/verbs",
         page_no,
         more_results=more_results,
@@ -487,7 +492,7 @@ async def list_verbs(request):
 @app.get("/verbs/new")
 @page
 async def new_verb_form(request):
-    return f"""
+    return "New verb", f"""
         <form
             action="/verbs/new"
             method="POST"
@@ -554,7 +559,7 @@ async def list_queries(request):
             more_results = True
         else:
             parts.append(f"{query:full}")
-    return "<br>".join(parts) + pagination(
+    return "Queries", "<br>".join(parts) + pagination(
         "/queries",
         page_no,
         more_results=more_results,
@@ -584,7 +589,7 @@ def _queries_textarea(value=None):
 @app.get("/queries/new")
 @page
 async def new_query_form(request):
-    return f"""
+    return "New query", f"""
         <form
             hx-post="/queries/new"
             hx-encoding="multipart/form-data"
@@ -610,7 +615,7 @@ async def new_query_form(request):
 @page
 async def edit_query_form(request, query_id: int):
     query = O.Query(query_id)
-    return f"""
+    return f"Edit {query.label!r}", f"""
         <form
             hx-put="/queries/{query_id}"
             hx-swap="outerHTML"
@@ -719,7 +724,7 @@ async def view_query(request, query_id: int):
         result = result[:-1]
     else:
         more_results = False
-    return f"""
+    return query.label, f"""
         <article><header>
         {query:heading}</header>{display_query_result(result)}
     """ + pagination(
@@ -748,7 +753,7 @@ async def list_labelled_claims(request):
             more_results = True
         else:
             parts.append(f"{claim:link}")
-    return "".join(parts) + pagination(
+    return "Claims", "".join(parts) + pagination(
         "/claims",
         page_no,
         more_results=more_results,
@@ -760,7 +765,7 @@ async def list_labelled_claims(request):
 async def view_claim(request, claim_id: int):
     claim = O.Claim(claim_id)
     incoming_mentions = list(claim.incoming_mentions())
-    return f"""
+    return f"{claim:label}", f"""
         <article>
             <header>{claim:heading}{claim:avatar}</header>
             <div id="edit-area"></div>
@@ -792,7 +797,7 @@ async def view_verb(request, verb_id: int):
         else:
             parts.append(f"<p>{claim:svo}</p>")
     parts.append("</article>")
-    return "".join(parts) + pagination(
+    return verb.label, "".join(parts) + pagination(
         f"/verbs/{verb_id}",
         page_no,
         more_results=more_results,

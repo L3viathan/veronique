@@ -476,7 +476,10 @@ class Claim(Model):
         )
         validity = " invalid" if invalid else ""
         if fmt == "label":
-            return data[LABEL][0].object.value
+            if LABEL in data:
+                return data[LABEL][0].object.value
+            else:
+                return f"Claim #{self.id}"
         elif fmt == "link" or not fmt:
             if LABEL in data:
                 return f'<a class="claim-link{validity}" href="/claims/{self.id}">{data[LABEL][0].object.value}</a>'
