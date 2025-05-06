@@ -131,9 +131,6 @@ nav img{
   max-width: 300px;
   max-height: 200px;
 }
-.button-new {
-  float: right;
-}
 .toolbutton[role="button"] {
   padding: 10px;
 }
@@ -152,6 +149,12 @@ nav img{
   height: 75px;
   box-shadow: 0 0 3px gray;
   margin-right: 15px;
+  color: white;
+  text-align: center;
+}
+
+li:has(#add-button) {
+  height: 126px;
 }
 
 article {
@@ -299,6 +302,17 @@ h2:hover form.avatar-form label {
 
 .error {
   color: var(--pico-form-element-invalid-active-border-color);
+}
+
+details.dropdown.clean {
+  summary {
+    border: none !important;
+    width: auto;
+    height: auto;
+  }
+  summary::after {
+    background: none;
+  }
 }
 
 /* BEGIN: syntax highlighting */

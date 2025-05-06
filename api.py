@@ -467,12 +467,7 @@ async def edit_claim(request, claim_id: int):
 @page
 async def list_verbs(request):
     page_no = int(request.args.get("page", 1))
-    parts = [
-        """<a href="/verbs/new"
-            class="button-new"
-            role="button"
-        >New verb</a>"""
-    ]
+    parts = []
     more_results = False
     for i, verb in enumerate(O.Verb.all(
         page_no=page_no-1,
@@ -540,16 +535,7 @@ async def new_verb(request):
 @page
 async def list_queries(request):
     page_no = int(request.args.get("page", 1))
-    parts = [
-        """<button
-            hx-get="/queries/new"
-            hx-swap="outerHTML"
-            hx-target="#container"
-            hx-select="#container"
-            hx-push-url="true"
-            class="button-new"
-        >New query</button>"""
-    ]
+    parts = []
     more_results = False
     for i, query in enumerate(O.Query.all(
         page_no=page_no-1,
