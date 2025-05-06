@@ -178,12 +178,8 @@ article button {
 }
 
 .svo:has(.date-today) {
-  animation: 0.5s infinite alternate pulsate;
-  box-shadow: green 0px 0px 15px;
-}
-
-.svo:has(.date-yesterday), .fact:has(.date-tomorrow) {
-  animation: 1s infinite alternate pulsate;
+  box-shadow: green 0px 0px 10px;
+  border: 4px solid green;
 }
 
 hr.date-today {
