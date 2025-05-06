@@ -482,7 +482,7 @@ class Claim(Model):
                 return f"Claim #{self.id}"
         elif fmt == "link" or not fmt:
             if LABEL in data:
-                return f'<a class="claim-link{validity}" href="/claims/{self.id}">{data[LABEL][0].object.value}</a>'
+                return f'<a class="claim-link{validity}" href="/claims/{self.id}">{self:avatar}{data[LABEL][0].object.value}</a>'
             else:
                 return f'{self:svo}'
         elif fmt == "heading":
