@@ -28,7 +28,8 @@ def veronique(tmp_path_factory):
 @pytest.fixture
 def browser(veronique):
     driver = webdriver.Firefox()
-    driver.get(f"http://foo:bar@{veronique}")
+    driver.root_url = f"http://foo:bar@{veronique}"
+    driver.get(driver.root_url)
     driver.implicitly_wait(2)
     try:
         yield driver
