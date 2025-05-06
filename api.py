@@ -9,7 +9,7 @@ from types import CoroutineType
 from sanic import Sanic, HTTPResponse, html, file, redirect
 from nomnidate import NonOmniscientDate
 import objects as O
-from db import conn, LABEL, IS_A, ROOT, AVATAR
+from db import conn, LABEL, IS_A, ROOT, AVATAR, make_search_key
 from data_types import TYPES
 
 PAGE_SIZE = 20
@@ -396,7 +396,7 @@ async def search(request):
             LIMIT ?
             OFFSET ?
         """,
-        (query, PAGE_SIZE + 1, PAGE_SIZE * (page_no - 1))
+        (make_search_key(query), PAGE_SIZE + 1, PAGE_SIZE * (page_no - 1))
     ).fetchall()
     parts = []
     more_results = False

@@ -306,7 +306,7 @@ class Claim(Model):
             LIMIT {page_size}
             OFFSET {page_no * page_size}
             """,
-            (q,),
+            (make_search_key(q),),
         ).fetchall():
             yield cls(row["id"])
 
