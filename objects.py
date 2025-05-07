@@ -467,14 +467,32 @@ class Claim(Model):
             data.setdefault(cl.verb.id, []).append(cl)
         return data
 
+    def _get_remarks(self, data):
+        today = date.today()
+        remarks = []
+        css_classes = set()
+        if (
+            VALID_FROM in data
+            and date.fromisoformat(data[VALID_FROM][0].object.value) > today
+        ):
+            css_classes.add("invalid")
+            remarks.append(f"from {data[VALID_FROM][0].object.value}")
+        elif (
+            VALID_UNTIL in data
+            and date.fromisoformat(data[VALID_UNTIL][0].object.value) < today
+        ):
+            css_classes.add("invalid")
+            remarks.append(f"until {data[VALID_UNTIL][0].object.value}")
+
+        if remarks:
+            remarks = f''' data-tooltip="{', '.join(remarks)}"'''
+        else:
+            remarks = ""
+        return f" {' '.join(css_classes)}" if css_classes else "", remarks
+
     def __format__(self, fmt):
         data = self.get_data()
-        today = date.today()
-        invalid = (
-            VALID_FROM in data and date.fromisoformat(data[VALID_FROM][0].object.value) > today
-            or VALID_UNTIL in data and date.fromisoformat(data[VALID_UNTIL][0].object.value) < today
-        )
-        validity = " invalid" if invalid else ""
+        css_classes, remarks = self._get_remarks(data)
         if fmt == "label":
             if LABEL in data:
                 return data[LABEL][0].object.value
@@ -482,7 +500,7 @@ class Claim(Model):
                 return f"Claim #{self.id}"
         elif fmt == "link" or not fmt:
             if LABEL in data:
-                return f'<a class="claim-link{validity}" href="/claims/{self.id}">{self:avatar}{data[LABEL][0].object.value}</a>'
+                return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatar}{data[LABEL][0].object.value}</a>'
             else:
                 return f'{self:svo}'
         elif fmt == "heading":
@@ -519,13 +537,13 @@ class Claim(Model):
             subj_id = int(fmt[3:])
             # Handle undirected links properly (always display the _other_ claim)
             if self.subject.id == subj_id:
-                return f'<span class="vo{validity}">{self:handle}{self.verb:link} {self.object:link}</span>'
+                return f'<span{remarks} class="vo{css_classes}">{self:handle}{self.verb:link} {self.object:link}</span>'
             else:
-                return f'<span class="vo{validity}">{self:handle}{self.verb:link} {self.subject:link}</span>'
+                return f'<span{remarks} class="vo{css_classes}">{self:handle}{self.verb:link} {self.subject:link}</span>'
         elif fmt == "sv":
-            return f'<span class="sv{validity}">{self:handle}{self.subject:link} {self.verb:link}</span>'
+            return f'<span{remarks} class="sv{css_classes}">{self:handle}{self.subject:link} {self.verb:link}</span>'
         elif fmt == "svo":
-            return f'<span class="svo{validity}">{self:handle}{self.subject:link} {self.verb:link} {self.object:link}</span>'
+            return f'<span{remarks} class="svo{css_classes}">{self:handle}{self.subject:link} {self.verb:link} {self.object:link}</span>'
         elif fmt == "handle":
             return f'<a class="handle" href="/claims/{self.id}">↱</a>'
         elif fmt == "ac-result":
