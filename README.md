@@ -1,7 +1,7 @@
 # Véronique
 
-_A small database for storing entities, links between them and simple properties
-(e.g. text, color, numbers)._
+_A small database for storing entities, links between them and simple
+properties (e.g. text, color, numbers)._
 
 ![a screenshot showing a basic detail view of an example entry](screenshot.png)
 
@@ -33,66 +33,63 @@ Missing migrations are automatically applied when restarting the app.
 
 ## Concepts
 
-The database starts empty without any entity types, entities, properties, or
-facts. _Data types_ exist however, because they need supporting Python code.
+The datatype starts mostly empty, only a few internal verbs are added during
+the initial migration. There's also a fixed list of _data types_, since they
+need supporting Python code.
 
-### Entity types
+### Claim
 
-An entity type is a type of entity, duh. You could start with **human**,
-**place**, and **company**.
+A claim can be thought of as a simple sentence: It (normally) has a subject, a
+verb, and an object. For example, "John loves Mary", "Peter is 28 years old",
+or "Paul knows that [John loves Mary]".
 
-### Entities
+A subject is either another claim, or NULL. The latter is only possible when
+the verb is a special builtin one called `ROOT`. Root claims have no subject
+and no object and merely exist as markers for _something_; any kind of entity.
 
-An entity is an _instance_ of an entity type. If you have an entity type called
-**human**, "Steve from Accounting" could be an entity of type **human**.
+When you create a root claim, you also automatically create a second internal
+claim of type `LABEL`, such that the thing you're creating has a name.
 
-### Properties
+Now that we bootstrapped the world with root claims, we can talk about other
+types of claims: They (non-root claims) always have a subject claim (which can
+be, but doesn't have to be a root claim), a verb, and an object. The object can
+either be another claim (when the verb has the data type `directed_link` or
+`undirected_link`) or some atomic value (e.g. a number, a string, a date, ...).
 
-A property is a named link between an entity (of a specific type) and either
-another entity (of another specific type) or a plain value (more on that
-later). When creating a new property, you first have to choose the subject type
-(e.g. **human**), the label (e.g. "reports to") and the property type.
+### Verb
 
-If you select "entity" for the latter, this property will allow links between
-two entities. You now have to make two more choices: What object type (as in:
-grammatical object) the property has, and the type of _reflectivity_. We'll get
-back to that concept later.
+A verb has a similar function as it does in human language. You might also call
+it a property or a predicate. A verb always has a label (what it's called, e.g.
+`"loves"`), and a data type (see below). There's also a few built-in verbs that
+get special treatment:
 
-Otherwise (if you select anything else as the property type), you end up with a
-property that allows attaching plain (meaning: not links _between_ entities)
-values of various _data types_ to an entity.
+- `ROOT` and `LABEL` (as described above)
+- `IS_A`: They have the data type `directed_link` and describe an is-a
+  relation. You could for example create a root fact called `"human"` and link
+  all people you create to it. There's special UI treatment for this relation
+  (it's displayed in the heading of the claim detail view). A claim can have
+  several `IS_A` links.
+- `VALID_FROM` and `VALID_UNTIL`: They have the data type `date` and describe
+  that a fact is only valid before or after a certain date. Invalid facts are
+  visible as such in the frontend.
+- `AVATAR`: A special field of type `picture` that will be used as the avatar
+  for facts in their detail view and almost all other references to it.
 
-### Data types
+### Data type
 
-There is a fixed list of data types, which can only get extended by writing
-Python code. These support the aforementioned plain property types. Examples
-for data types would be "string", "color", or "date", and each of them displays
-differently later. They also dictate how values can be edited (basically which
-HTML `<input>` type they map to), and how values are (de-)serialized from and
-to the database.
+A data type describes what kind of object a claim of a certain verb can take.
+Notable data types are:
 
-### Facts
-
-Facts are triples of (entity, property, value), at least conceptually. If
-"Steve from accounting" is an entity, and "birthday" is a property of type
-(human-&gt;date), then you can add a fact to Steve that says that _his_
-birthday is on the 23rd of April 1984. If the property of a fact is a link, it
-could claim that Steve reports to Katy.
-
-### Reflectivity
-
-When creating a link (a property of type entity), you have to choose between
-three types of reflectivity: unidirectional, self-reflected, or reflected.
-A _unidirectional_ property has no implications for the target of a link.  
-A _self-reflected_ property means that when you create a link from A to B, a
-corresponding link from B to A will also be created. This could for example be
-used for a property called "is married to".  
-Finally, a _reflected_ property will prompt for a second property name; the one
-of the counterpart of this property. For example, you could create a reflected
-property called "is parent of", and give the counterpart the label "is child
-of".
-
-When deleting a fact of a non-unidirectional property, the matching fact of the
-object is also deleted. When _editing_ (i.e. re-linking) such a fact, the old
-reflected fact will be deleted and a new one created. These two facts are
-essentially treated as a single fact.
+- `directed_link`: This represents a regular link or transitive verb, e.g.
+  `"loves"`, `"is child of"`, etc.
+- `undirected_link`: These represent relationships that are by their nature
+  undirected. You could use this for `"friend of"`, `"partner of"`, `"works
+  with"`, or similar verbs, if you assume/model that this is never one-sided.
+- `string`, `number`, `text`, `boolean`: As you might expect, these are fairly
+  straightforward. Booleans get a checkbox as an input, string and text differ
+  by the size of their input controls (regular input vs. textarea).
+- `date`: Dates get special treatment in Véronique: You should enter them as
+  `%Y-%m-%d` ISO timestamps, _but_ you are allowed to replace any digit with a
+  question mark. This allows you to represent dates such as "some time in
+  1973" or "26th of July, but I don't know which year", which can be common
+  when entering data without full knowledge of the truth.
