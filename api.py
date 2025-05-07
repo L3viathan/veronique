@@ -128,9 +128,10 @@ async def index(request):
         recent_events.append(f"<p>{claim:link}</p>")
     if page_no == 1 and not past_today:
         recent_events.append('<hr class="date-today">')
+    heading = {1: "This month", 0: "Last month", 2: "Next month"}.get(page_no, f"{reference_date:%B}")
     return f"""
         <article><header>
-        <h2>This month</h2>
+        <h2>{heading}</h2>
         </header>
         {"".join(recent_events)}
     """ + pagination(
