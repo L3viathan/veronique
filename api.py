@@ -114,11 +114,12 @@ async def index(request):
     for claim in sorted(
         O.Claim.all_of_same_month(reference_date),
         key=lambda c: (
-            (reference_date - NonOmniscientDate(c.object.value)).days or 0
+            # unspecified dates are always before everything else
+            (reference_date - NonOmniscientDate(c.object.value)).days or 99
         ),
         reverse=True,
     ):
-        difference = (reference_date - NonOmniscientDate(claim.object.value)).days
+        difference = (reference_date - NonOmniscientDate(claim.object.value)).days or 99
         if difference == 0:
             past_today = True
         elif not past_today and (difference or 0) < 0 and page_no == 1:
