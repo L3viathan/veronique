@@ -225,7 +225,7 @@ header {
   position: relative;
 }
 
-header .avatar {
+header>.avatar {
   width: 145px;
   height: 145px;
   border: 2px solid white;
