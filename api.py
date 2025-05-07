@@ -624,8 +624,8 @@ async def edit_query_form(request, query_id: int):
 
 SPECIAL_COL_NAMES = {}
 for singular, plural, model in (
-    ("claim", "claims", O.Claim),
-    ("verb", "verbs", O.Verb),
+    ("c", "cs", O.Claim),
+    ("v", "vs", O.Verb),
 ):
     SPECIAL_COL_NAMES[singular] = model
     SPECIAL_COL_NAMES[plural] = lambda value, model=model: ", ".join(
@@ -646,8 +646,9 @@ def display_query_result(result):
             parts.append("<tr>")
             for col in header:
                 value = row[col]
-                if col in SPECIAL_COL_NAMES:
-                    value = SPECIAL_COL_NAMES[col](value)
+                if col.endswith(tuple(SPECIAL_COL_NAMES)):
+                    _, __, ending = col.rpartition("_")
+                    value = SPECIAL_COL_NAMES[ending](value)
                 parts.append(f"<td>{value}</td>")
             parts.append("</tr>")
         parts.append("</tbody></table>")
