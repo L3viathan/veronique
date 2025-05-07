@@ -499,6 +499,13 @@ def add_claims(cur):
     """)
     rebuild_search_index(cur)
 
+
+@migration(9)
+def drop_legacy_tables(cur):
+    cur.execute("DROP TABLE entities")
+    cur.execute("DROP TABLE properties")
+    cur.execute("DROP TABLE categories")
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 
