@@ -4,7 +4,6 @@ import json
 import base64
 import sqlite3
 from datetime import date
-from itertools import chain
 from types import CoroutineType
 from sanic import Sanic, HTTPResponse, html, file, redirect
 from nomnidate import NonOmniscientDate
@@ -267,7 +266,6 @@ async def network(request):
 @app.get("/claims/autocomplete")
 @fragment
 async def autocomplete_claims(request):
-    parts = []
     query = D(request.args).get("ac-query", "")
     if not query:
         return ""
@@ -304,7 +302,7 @@ async def autocomplete_claims_accept(request, claim_id: int):
 @app.get("/claims/new-root")
 @page
 async def new_root_claim_form(request):
-    return "New root", f"""
+    return "New root", """
     <article>
     <heading><h2>New root claim</h2></heading>
         <form action="/claims/new-root" method="POST">
@@ -326,7 +324,6 @@ async def new_root_claim(request):
 @app.get("/claims/new/<claim_id>/<direction:incoming|outgoing>")
 @fragment
 async def new_claim_form(request, claim_id: int, direction: str):
-    claim = O.Claim(claim_id)
     verbs = O.Verb.all(page_size=9999, data_type="directed_link" if direction == "incoming" else None)
     return f"""
         <form
@@ -336,7 +333,7 @@ async def new_claim_form(request, claim_id: int, direction: str):
         >
             <select
                 name="verb"
-                hx-get="/claims/new/{claim_id}/verb"
+                hx-get="/claims/new/verb"
                 hx-target="#valueinput"
                 hx-swap="innerHTML"
             >
@@ -354,11 +351,10 @@ async def new_claim_form(request, claim_id: int, direction: str):
     """
 
 
-@app.get("/claims/new/<claim_id>/verb")
+@app.get("/claims/new/verb")
 @fragment
-async def new_claim_form_verb_input(request, claim_id: int):
+async def new_claim_form_verb_input(request):
     verb = O.Verb(int(D(request.args)["verb"]))
-    claim = O.Claim(claim_id)
     return f"""
         {verb.data_type.input_html()}
         <button type="submit">»</button>
@@ -379,9 +375,9 @@ async def new_claim(request, claim_id: int, direction: str):
     else:
         value = O.Plain.from_form(verb, form)
     if direction == "incoming":
-        new_claim = O.Claim.new(value, verb, claim)
+        O.Claim.new(value, verb, claim)
     else:
-        new_claim = O.Claim.new(claim, verb, value)
+        O.Claim.new(claim, verb, value)
     return redirect(f"/claims/{claim_id}")
 
 
@@ -443,7 +439,7 @@ async def edit_claim_form(request, claim_id: int):
 async def delete_claim(request, claim_id: int):
     claim = O.Claim(claim_id)
     claim.delete()
-    return f"""
+    return """
         <meta http-equiv="refresh" content="0; url=/">
     """
 
@@ -728,7 +724,6 @@ async def list_labelled_claims(request):
     page_no = int(request.args.get("page", 1))
     parts = [
     ]
-    previous_type = None
     more_results = False
     for i, claim in enumerate(O.Claim.all_labelled(
         order_by="id DESC",

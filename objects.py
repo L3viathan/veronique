@@ -1,5 +1,5 @@
 import re
-from datetime import date, datetime
+from datetime import date
 
 from data_types import TYPES
 from db import (
@@ -313,7 +313,7 @@ class Claim(Model):
     def incoming_claims(self):
         cur = conn.cursor()
         for row in cur.execute(
-            f"""
+            """
             SELECT
                 c.id
             FROM claims c
@@ -329,7 +329,7 @@ class Claim(Model):
     def incoming_mentions(self):
         cur = conn.cursor()
         for row in cur.execute(
-            f"""
+            """
             SELECT
                 c.id
             FROM claims c
@@ -344,7 +344,7 @@ class Claim(Model):
     def outgoing_claims(self):
         cur = conn.cursor()
         for row in cur.execute(
-            f"""
+            """
             SELECT
                 c.id
             FROM claims c
@@ -666,7 +666,7 @@ class Query(Model):
     def update(self, sql, label):
         cur = conn.cursor()
         cur.execute(
-            f"""
+            """
             UPDATE queries
             SET label=?, sql=?
             WHERE id=?

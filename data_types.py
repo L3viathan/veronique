@@ -3,7 +3,6 @@ import datetime
 import unicodedata
 from urllib.parse import quote_plus
 
-import objects as O
 from nomnidate import NonOmniscientDate
 
 TYPES = {}
@@ -55,7 +54,7 @@ class DataType:
 
 class directed_link(DataType):
     def input_html(self, value=None):
-        return f"""
+        return """
             <div class="ac-widget">
                 <input
                     name="ac-query"
