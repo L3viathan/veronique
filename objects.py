@@ -412,6 +412,11 @@ class Claim(Model):
                     value.encode(), self.id,
                 ),
             )
+            if self.verb.id == LABEL:
+                cur.execute(
+                    "UPDATE search_index SET value=? WHERE table_name=? AND id=?",
+                    (make_search_key(value.encode()), 'claims', self.subject.id),
+                )
         conn.commit()
         self.populate()
 
