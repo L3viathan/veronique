@@ -45,17 +45,27 @@ h2>.svo>.handle {
     background-clip: text;
     background-color: green;
     &:nth-child(1) {
-      background-image: linear-gradient(135deg, #ff670f 0%, #ff670f 21%, #ffffff 56%, #0eea57 88%);
-      animation-duration: 11s;
+      background-image: linear-gradient(0deg, #ff670f 0%, #ff670f 21%, #ffffff 56%, #0eea57 88%);
+      animation-duration: 13s;
       animation-name: foo;
     }
     &:nth-child(2) {
-      background-image: linear-gradient(90deg,rgba(2, 0, 36, 1) 0%, rgba(9, 9, 121, 1) 35%, rgba(0, 212, 255, 1) 100%);
-      animation-duration: 7s;
+      background-image: linear-gradient(72deg,rgba(2, 0, 36, 1) 0%, rgba(9, 9, 121, 1) 35%, rgba(0, 212, 255, 1) 100%);
+      animation-duration: 11s;
       animation-name: foo;
     }
     &:nth-child(3) {
-      background-color: linear-gradient(90deg,rgba(131, 58, 180, 1) 0%, rgba(253, 29, 29, 1) 50%, rgba(252, 176, 69, 1) 100%);
+      background-color: linear-gradient(144deg,rgba(131, 58, 180, 1) 0%, rgba(253, 29, 29, 1) 50%, rgba(252, 176, 69, 1) 100%);
+      animation-duration: 7s;
+      animation-name: foo;
+    }
+    &:nth-child(4) {
+      background-color: linear-gradient(216deg,rgba(16, 40, 176, 1) 0%, rgba(219, 0, 62, 1) 50%, rgba(252, 218, 69, 1) 100%);
+      animation-duration: 5s;
+      animation-name: foo;
+    }
+    &:nth-child(5) {
+      background-color: linear-gradient(288deg,rgba(0, 242, 255, 1) 0%, rgba(255, 199, 79, 1) 100%);
       animation-duration: 3s;
       animation-name: foo;
     }
@@ -233,15 +243,6 @@ article button {
 hr.date-today {
   border-top: 4px solid green;
   box-shadow: green 0px 0px 10px;
-}
-
-@keyframes pulsate {
-  from {
-    transform: scale(1);
-  }
-  to {
-    transform: scale(1.05);
-  }
 }
 
 .ac-result {
