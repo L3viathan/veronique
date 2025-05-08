@@ -29,6 +29,54 @@ h2>.svo>.handle {
   display: none;
 }
 
+#triangle {
+  font-size:135pt;
+  display: grid;
+  position: absolute;
+  top: 0;
+  span {
+    grid-column: 1;
+    grid-row: 1;
+    animation-duration: 3s;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    animation-timing-function: linear;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    background-color: green;
+    &:nth-child(1) {
+      background-image: linear-gradient(135deg, #ff670f 0%, #ff670f 21%, #ffffff 56%, #0eea57 88%);
+      animation-duration: 11s;
+      animation-name: foo;
+    }
+    &:nth-child(2) {
+      background-image: linear-gradient(90deg,rgba(2, 0, 36, 1) 0%, rgba(9, 9, 121, 1) 35%, rgba(0, 212, 255, 1) 100%);
+      animation-duration: 7s;
+      animation-name: foo;
+    }
+    &:nth-child(3) {
+      background-color: linear-gradient(90deg,rgba(131, 58, 180, 1) 0%, rgba(253, 29, 29, 1) 50%, rgba(252, 176, 69, 1) 100%);
+      animation-duration: 3s;
+      animation-name: foo;
+    }
+  }
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+@keyframes foo {
+  0% {
+    opacity: 0.8;
+    }
+    50% {
+      opacity: 0.3;
+    }
+    100% {
+      opacity: 0.8;
+    }
+}
+
 .new-item-placeholder {
   width: 100%;
   text-align: center;
