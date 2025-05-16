@@ -468,8 +468,10 @@ class Claim(Model):
 
     def get_data(self):
         data = {}
-        for cl in Claim.all(subject_id=self.id, verb_ids=DATA_LABELS):
-            data.setdefault(cl.verb.id, []).append(cl)
+        for cl in Claim.all(subject_id=self.id):
+            if cl.verb.id in DATA_LABELS:
+                data.setdefault(cl.verb.id, []).append(cl)
+            data["has_claims"] = True
         return data
 
     def _get_remarks(self, data):
@@ -550,7 +552,7 @@ class Claim(Model):
         elif fmt == "svo":
             return f'<span{remarks} class="svo{css_classes}">{self:handle}{self.subject:link} {self.verb:link} {self.object:link}</span>'
         elif fmt == "handle":
-            return f'<a class="handle" href="/claims/{self.id}">↱</a>'
+            return f'<a class="handle{" more" if "has_claims" in data else ""}" href="/claims/{self.id}">↱</a>'
         elif fmt == "ac-result":
             return f"""<span
                 class="clickable ac-result"

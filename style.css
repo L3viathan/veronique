@@ -23,6 +23,9 @@ a, .clickable {
   &:hover {
     opacity: 1;
   }
+  &.more {
+    color: black;
+  }
 }
 
 
