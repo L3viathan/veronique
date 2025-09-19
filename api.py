@@ -312,11 +312,24 @@ async def autocomplete_claims_accept(request, claim_id: int):
 @app.get("/claims/new-root")
 @page
 async def new_root_claim_form(request):
-    return "New root", """
+    categories = O.Claim.all_categories()
+    return "New root", f"""
     <article>
     <heading><h2>New root claim</h2></heading>
         <form action="/claims/new-root" method="POST">
             <input name="name" placeholder="name"></input>
+            <select
+                name="category"
+            >
+                <option value="">(None)</option>
+                {"".join(
+                    f'''<option
+                            value="{cat.id}"
+                            {'selected="selected"' if i == 0 else ""}
+                        >{cat:label}</option>'''
+                    for i, cat in enumerate(categories)
+                )}
+            </select>
             <button type="submit">»</button>
         </form>
     </article>
@@ -328,6 +341,9 @@ async def new_root_claim(request):
     form = D(request.form)
     name = form["name"]
     claim = O.Claim.new_root(name)
+    if form.get("category"):
+        cat = O.Claim(int(form["category"]))
+        O.Claim.new(claim, O.Verb(IS_A), cat)
     return redirect(f"/claims/{claim.id}")
 
 
