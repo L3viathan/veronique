@@ -21,7 +21,7 @@ class DataType:
     def display_html(self, value, **_):
         return f"placeholder, not implemented for data type {type(self).__name__}."
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         return f"placeholder, not implemented for data type {type(self).__name__}."
 
     def next_step(self, args):
@@ -53,13 +53,13 @@ class DataType:
 
 
 class directed_link(DataType):
-    def input_html(self, value=None):
-        return """
+    def input_html(self, value=None, claim_id=None, direction=None, verb_id=None, **_):
+        return f"""
             <div class="ac-widget">
                 <input
                     name="ac-query"
                     placeholder="Start typing..."
-                    hx-get="/claims/autocomplete"
+                    hx-get="/claims/autocomplete?connect={claim_id}:{direction}:{verb_id}"
                     hx-target="next .ac-results"
                     hx-swap="innerHTML"
                     hx-trigger="input changed delay:200ms, search"
@@ -76,7 +76,7 @@ class string(DataType):
     def display_html(self, value, **_):
         return f'<span class="type-string">"{value}"</span>'
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -89,7 +89,7 @@ class number(DataType):
     def display_html(self, value, **_):
         return f'<span class="type-number">{value}</span>'
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         if value:
             value = f' value="{value.value}"'
         else:
@@ -107,7 +107,7 @@ class color(DataType):
             {value}
         """
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         if value:
             value = f' value="{value.value}"'
         else:
@@ -130,7 +130,7 @@ class date(DataType):
             class_ = ""
         return f"""<span class="{class_}">🗓️{value} <em>({td})</em></span>"""
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         if value:
             value = f' value="{value.value}"'
         else:
@@ -150,7 +150,7 @@ class boolean(DataType):
         else:
             return """<span style="color: red">✘</span>"""
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         checked = " checked" if value and value.value else ""
         return f"""<input type="checkbox" name="value"{checked}></input>"""
 
@@ -171,7 +171,7 @@ class location(DataType):
             class="type-location"
         >{value.replace(newline, "<br>")}</a>"""
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         if value:
             value = value.value
         else:
@@ -186,7 +186,7 @@ class text(DataType):
         newline = "\n"
         return f"""<span class="type-text">{value.replace(newline, "<br>")}</span>"""
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         if value:
             value = value.value
         else:
@@ -200,7 +200,7 @@ class email(DataType):
     def display_html(self, value, **_):
         return f'<span class="type-email"><a href="mailto:{value}">{value}</a></span>'
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -213,7 +213,7 @@ class website(DataType):
     def display_html(self, value, **_):
         return f'<span class="type-website"><a href="{value}">{value}</a></span>'
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -230,7 +230,7 @@ class phonenumber(DataType):
             <a href="tel:{value}">{value}</a>
         </span>"""
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -243,7 +243,7 @@ class picture(DataType):
     def display_html(self, value, **_):
         return f'<img class="type-picture" src="{value}">'
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         return """<input name="value" type="file"></input>"""
 
 
@@ -251,7 +251,7 @@ class social(DataType):
     def display_html(self, value, **_):
         return f'<span class="type-social">{value}</span>'
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'
@@ -285,7 +285,7 @@ class mtgcolors(DataType):
             if int(form[f"mana-{color}"]) != 0
         }
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         if value:
             value = value.value
         else:
@@ -328,7 +328,7 @@ class alpha2(DataType):
         raise ValueError("Needs to be two-letter ASCII")
 
 
-    def input_html(self, value=None):
+    def input_html(self, value=None, **_):
         if value:
             quot = '"'
             value = f' value="{value.value.replace(quot, "&quot;")}"'

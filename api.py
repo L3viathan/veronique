@@ -276,7 +276,9 @@ async def network(request):
 @app.get("/claims/autocomplete")
 @fragment
 async def autocomplete_claims(request):
-    query = D(request.args).get("ac-query", "")
+    args = D(request.args)
+    query = args.get("ac-query", "")
+    connect = args["connect"]
     if not query:
         return ""
     claims = O.Claim.search(
@@ -286,7 +288,7 @@ async def autocomplete_claims(request):
     return "".join(
         f"{claim:ac-result}"
         for claim in claims
-    )
+    ) + f'<a class="clickable" href="/claims/new-root?connect={connect}&name={query}"><em>Create</em> {query} <em> claim...</em></a>'
 
 
 @app.get("/claims/autocomplete/accept/<claim_id>")
@@ -297,7 +299,7 @@ async def autocomplete_claims_accept(request, claim_id: int):
         <input
             name="ac-query"
             placeholder="Start typing..."
-            hx-get="/claims/autocomplete"
+            hx-get="/claims/autocomplete?claim={claim_id}"
             hx-target="next .ac-results"
             hx-swap="innerHTML"
             hx-trigger="input changed delay:200ms, search"
@@ -313,11 +315,23 @@ async def autocomplete_claims_accept(request, claim_id: int):
 @page
 async def new_root_claim_form(request):
     categories = O.Claim.all_categories()
+    args = D(request.args)
+    if connect := args.get("connect"):
+        conn_claim_id, conn_dir, conn_verb_id = connect.split(":")
+        conn_verb = O.Verb(int(conn_verb_id))
+        conn_claim = O.Claim(int(conn_claim_id))
+        connect_info = f"""
+        <p>After creation, an {conn_dir} {conn_verb:link} link will be made to {conn_claim:link}</p>.
+        <input type="hidden" name="connect" value="{connect}">
+        """
+    else:
+        connect_info = ""
+    name = args.get("name", "")
     return "New root", f"""
     <article>
     <heading><h2>New root claim</h2></heading>
         <form action="/claims/new-root" method="POST">
-            <input name="name" placeholder="name"></input>
+            <input name="name" placeholder="name" value="{name}"></input>
             <select
                 name="category"
             >
@@ -330,6 +344,7 @@ async def new_root_claim_form(request):
                     for i, cat in enumerate(categories)
                 )}
             </select>
+            {connect_info}
             <button type="submit">»</button>
         </form>
     </article>
@@ -344,6 +359,16 @@ async def new_root_claim(request):
     if form.get("category"):
         cat = O.Claim(int(form["category"]))
         O.Claim.new(claim, O.Verb(IS_A), cat)
+    if connect := form.get("connect"):
+        conn_claim_id, conn_dir, conn_verb_id = connect.split(":")
+        conn_verb = O.Verb(int(conn_verb_id))
+        conn_claim = O.Claim(int(conn_claim_id))
+        if conn_dir == "incoming":
+            O.Claim.new(claim, conn_verb, conn_claim)
+        else:
+            O.Claim.new(conn_claim, conn_verb, claim)
+        # We came from the conn_claim, so we want to go back there.
+        return redirect(f"/claims/{conn_claim.id}")
     return redirect(f"/claims/{claim.id}")
 
 
@@ -359,7 +384,7 @@ async def new_claim_form(request, claim_id: int, direction: str):
         >
             <select
                 name="verb"
-                hx-get="/claims/new/verb"
+                hx-get="/claims/new/verb?claim_id={claim_id}&direction={direction}"
                 hx-target="#valueinput"
                 hx-swap="innerHTML"
             >
@@ -380,9 +405,10 @@ async def new_claim_form(request, claim_id: int, direction: str):
 @app.get("/claims/new/verb")
 @fragment
 async def new_claim_form_verb_input(request):
-    verb = O.Verb(int(D(request.args)["verb"]))
+    args = D(request.args)
+    verb = O.Verb(int(args["verb"]))
     return f"""
-        {verb.data_type.input_html()}
+        {verb.data_type.input_html(claim_id=args.get("claim_id"), direction=args.get("direction"), verb_id=verb.id)}
         <button type="submit">»</button>
         """
 
