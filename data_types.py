@@ -1,6 +1,7 @@
 import json
 import datetime
 import unicodedata
+from datetime import date as dt_date, timedelta
 from urllib.parse import quote_plus
 
 from nomnidate import NonOmniscientDate
@@ -335,3 +336,63 @@ class alpha2(DataType):
         else:
             value = ""
         return f"""<input name="value"{value}></input>"""
+
+
+class age(DataType):
+    def display_html(self, value, **_):
+        earliest, latest = value
+        return f"{self.possible_ages(value)} years old <small>({earliest}–{latest})</small>"
+
+    def encode(self, value):
+        return "--".join(dt.isoformat() for dt in value)
+
+    def decode(self, encoded):
+        if encoded:
+            earliest, latest = encoded.split("--")
+            return dt_date.fromisoformat(earliest), dt_date.fromisoformat(latest)
+
+    def extract_value(self, form):
+        # value can be a plain number, or a range of numbers separated by dash,
+        # optionally all prefixed by a date (defaulting to "today"
+        value = form["value"]
+        reference_date, _, value = value.rpartition(":")
+        if reference_date:
+            reference_date = dt_date.fromisoformat(reference_date)
+        else:
+            reference_date = dt_date.today()
+        min_age, _, max_age = value.partition("-")
+        if not max_age:
+            max_age = min_age
+
+        latest = [reference_date.replace(year=reference_date.year-int(min_age))]
+        tomorrow = reference_date + timedelta(days=1)
+        earliest = [tomorrow.replace(year=tomorrow.year-(int(max_age) + 1))]
+
+        if "previous" in form:
+            prev_earliest, prev_latest = form["previous"].split("--")
+            latest.append(dt_date.fromisoformat(prev_latest))
+            earliest.append(dt_date.fromisoformat(prev_earliest))
+
+        return max(earliest), min(latest)
+
+    @staticmethod
+    def age_from_date(dt):
+        today = dt_date.today()
+        return today.year - dt.year - ((today.month, today.day) < (dt.month, dt.day))
+
+    @staticmethod
+    def possible_ages(dates):
+        return "-".join(
+            {str(a) for a in sorted(age.age_from_date(dt) for dt in dates)}
+        )
+
+    def input_html(self, value=None, **_):
+        if value:
+            # value is now a tuple of earliest and latest possible date
+            earliest, latest = value.value
+            return f"""
+            <input name="value" value="{self.possible_ages(value.value)}"></input>
+            <input type="hidden" name="previous" value="{earliest:%Y-%m-%d}--{latest:%Y-%m-%d}">
+            """
+        else:
+            return '<input name="value">'
