@@ -383,7 +383,7 @@ class age(DataType):
     @staticmethod
     def possible_ages(dates):
         return "-".join(
-            sorted({str(a) for a in age.age_from_date(dt) for dt in dates})
+            sorted({str(a) for a in (age.age_from_date(dt) for dt in dates)})
         )
 
     def input_html(self, value=None, **_):
