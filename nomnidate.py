@@ -104,3 +104,31 @@ class NonOmniscientDate:
             )
         else:
             return NonOmniscientDatedelta()
+
+    def __sub__(self, other):
+        delta = other - self
+        if delta.years is not None:
+            delta.years = -delta.years
+        if delta.days is not None:
+            delta.days = -delta.days
+        return delta
+
+    def definitely_after(self, date):
+        delta = self - date
+        if delta.years is None or delta.years < 0:
+            return False
+        if delta.years > 0:
+            return True
+        if delta.days is None or delta.days < 0:
+            return False
+        return True
+
+    def definitely_before(self, date):
+        delta = date - self
+        if delta.years is None or delta.years < 0:
+            return False
+        if delta.years > 0:
+            return True
+        if delta.days is None or delta.days < 0:
+            return False
+        return True

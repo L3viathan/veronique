@@ -2,6 +2,7 @@ import re
 from datetime import date
 
 from data_types import TYPES
+from nomnidate import NonOmniscientDate
 from db import (
     conn,
     make_search_key,
@@ -480,13 +481,13 @@ class Claim(Model):
         css_classes = set()
         if (
             VALID_FROM in data
-            and date.fromisoformat(data[VALID_FROM][0].object.value) > today
+            and NonOmniscientDate(data[VALID_FROM][0].object.value).definitely_after(today)
         ):
             css_classes.add("invalid")
             remarks.append(f"from {data[VALID_FROM][0].object.value}")
         elif (
             VALID_UNTIL in data
-            and date.fromisoformat(data[VALID_UNTIL][0].object.value) < today
+            and NonOmniscientDate(data[VALID_FROM][0].object.value).definitely_before(today)
         ):
             css_classes.add("invalid")
             remarks.append(f"until {data[VALID_UNTIL][0].object.value}")
