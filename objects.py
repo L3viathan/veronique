@@ -487,7 +487,7 @@ class Claim(Model):
             remarks.append(f"from {data[VALID_FROM][0].object.value}")
         elif (
             VALID_UNTIL in data
-            and NonOmniscientDate(data[VALID_FROM][0].object.value).definitely_before(today)
+            and NonOmniscientDate(data[VALID_UNTIL][0].object.value).definitely_before(today)
         ):
             css_classes.add("invalid")
             remarks.append(f"until {data[VALID_UNTIL][0].object.value}")
