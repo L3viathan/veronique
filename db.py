@@ -531,6 +531,19 @@ def add_users(cur):
     )
 
 
+@migration(11)
+def add_permissions(cur):
+    cur.execute("""
+        CREATE TABLE permissions
+        (
+            user_id INTEGER NOT NULL,
+            permission VARCHAR(16) NOT NULL,
+            object INTEGER NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 

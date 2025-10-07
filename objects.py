@@ -3,6 +3,7 @@ from datetime import date
 
 from data_types import TYPES
 from nomnidate import NonOmniscientDate
+from security import hash_password
 from db import (
     conn,
     make_search_key,
@@ -684,6 +685,55 @@ class Query(Model):
         conn.commit()
         self.sql = sql
         self.label = label
+
+    def __str__(self):
+        return f"{self}"
+
+
+class User(Model):
+    table_name = "users"
+    fields = ("name", "hash", "is_admin", "salt")
+
+    def populate(self):
+        cur = conn.cursor()
+        row = cur.execute(
+            """
+                SELECT
+                    id, name, hash, is_admin, salt
+                FROM users
+                WHERE id = ?
+            """,
+            (self.id,),
+        ).fetchone()
+        if not row:
+            raise ValueError("No User with this ID found")
+        self.name = row["name"]
+        self.hash = row["hash"]
+        self.salt = row["salt"]
+        self.is_admin = row["is_admin"]
+
+    @classmethod
+    def new(cls, name, *, password, readable_verbs):
+        cur = conn.cursor()
+        hash, salt = hash_password(password)
+        cur.execute(
+            "INSERT INTO users (name, hash, salt, is_admin) VALUES (?, ?, ?, ?)",
+            (name, hash, salt, 0),
+        )
+        u_id = cur.lastrowid
+        for readable_verb in readable_verbs:
+            cur.execute(
+                "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                (u_id, "read-verb", readable_verb),
+            )
+        conn.commit()
+        return cls(u_id)
+
+
+    def __format__(self, fmt):
+        if fmt == "link":
+            return f'<a href="/users/{self.id}">{self.name}</a>'
+        return self.name
 
     def __str__(self):
         return f"{self}"

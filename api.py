@@ -3,6 +3,7 @@ import functools
 import json
 import base64
 import sqlite3
+from secrets import token_urlsafe
 from datetime import date
 from types import CoroutineType
 from sanic import Sanic, HTTPResponse, html, file, redirect
@@ -329,7 +330,7 @@ async def new_root_claim_form(request):
     name = args.get("name", "")
     return "New root", f"""
     <article>
-    <heading><h2>New root claim</h2></heading>
+    <header><h2>New root claim</h2></header>
         <form action="/claims/new-root" method="POST">
             <input name="name" placeholder="name" value="{name}"></input>
             <select
@@ -838,6 +839,85 @@ async def view_verb(request, verb_id: int):
         page_no,
         more_results=more_results,
     )
+
+
+@app.get("/users")
+@page
+async def list_users(request):
+    page_no = int(request.args.get("page", 1))
+    parts = []
+    more_results = False
+    for i, user in enumerate(O.User.all(
+        page_no=page_no-1,
+        page_size=PAGE_SIZE + 1,
+    )):
+        if i == PAGE_SIZE:
+            more_results = True
+        else:
+            parts.append(f"{user:link}")
+    return "Users", "<br>".join(parts) + pagination(
+        "/users",
+        page_no,
+        more_results=more_results,
+    )
+
+
+@app.get("/users/new")
+@page
+async def new_user_form(request):
+    verb_options = []
+    for verb in O.Verb.all(page_size=9999):
+        if verb.id < 0:
+            continue
+        verb_options.append(
+            f'<option value="{verb.id}">{verb.label}</option>'
+        )
+    password = token_urlsafe(16)
+    return "New user", f"""
+        <form
+            action="/users/new"
+            method="POST"
+        >
+            <input name="name" placeholder="name"></input>
+            <h3>Readable verbs</h3>
+            <select name="verbs-readable" multiple size="10">
+            {"\n".join(verb_options)}
+            </select>
+
+            <fieldset role="group">
+            <input id="password" disabled value="{password}">
+            <input type="hidden" name="password" value="{password}">
+            <input type="button" value="copy" onclick="navigator.clipboard.writeText('{password}')">
+            </fieldset>
+
+            <input type="submit" value="Create">
+        </form>
+    """
+
+
+@app.post("/users/new")
+async def new_user(request):
+    form = D(request.form)
+    user = O.User.new(
+        form["name"],
+        password=form["password"],
+        readable_verbs=[int(v) for v in request.form["verbs-readable"]],
+    )
+    return redirect(f"/users/{user.id}")
+
+
+@app.get("/users/<user_id>")
+@page
+async def view_user(request, user_id: int):
+    user = O.User(user_id)
+    result = f"""
+        <article><header>{user:heading}</header>
+        <p>
+        {user.is_admin=}
+        </p>
+        </article>
+    """
+    return user.name, result
 
 
 @app.get("/htmx.js")
