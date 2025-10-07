@@ -713,6 +713,14 @@ class User(Model):
         self.is_admin = row["is_admin"]
 
     @classmethod
+    def by_name(cls, name):
+        cur = conn.cursor()
+        row = cur.execute("SELECT id FROM users WHERE name = ?", (name,)).fetchone()
+        if not row:
+            raise ValueError("No User with this ID found")
+        return cls(row["id"])
+
+    @classmethod
     def new(cls, name, *, password, readable_verbs):
         cur = conn.cursor()
         hash, salt = hash_password(password)

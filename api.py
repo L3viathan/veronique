@@ -1,6 +1,7 @@
 import os
 import functools
 import json
+import re
 import base64
 import sqlite3
 from secrets import token_urlsafe
@@ -9,41 +10,54 @@ from types import CoroutineType
 from sanic import Sanic, HTTPResponse, html, file, redirect
 from nomnidate import NonOmniscientDate
 import objects as O
+import security
 from db import conn, LABEL, IS_A, ROOT, AVATAR, make_search_key
 from data_types import TYPES
 
 PAGE_SIZE = 20
-CORRECT_AUTH = os.environ["VERONIQUE_CREDS"]
 
 app = Sanic("Veronique")
 
 @app.on_request
 async def auth(request):
+    unauthorized = HTTPResponse(
+        body="401 Unauthorized",
+        status=401,
+        headers={"WWW-Authenticate": 'Basic realm="Veronique access"'},
+    )
     cookie = request.cookies.get("auth")
-    if cookie == CORRECT_AUTH:
-        return
-    try:
+    if cookie:
+        auth = cookie
+    elif "Authorization" in request.headers:
         auth = request.headers["Authorization"]
-        _, _, encoded = auth.partition(" ")
-        if base64.b64decode(encoded).decode() == CORRECT_AUTH:
+        _, _, auth = auth.partition(" ")
+        auth = base64.b64decode(auth).decode()
+    else:
+        return unauthorized
+
+    username, _, password = auth.partition(":")
+    if not re.match("^[a-z]+$", username):
+        return unauthorized
+    try:
+        user = O.User.by_name(username)
+    except ValueError:
+        return unauthorized
+
+    if security.is_correct(password, user.hash, user.salt):
+        if not cookie:
             response = redirect("/")
             response.add_cookie(
                 "auth",
-                CORRECT_AUTH,
+                auth,
                 secure=True,
                 httponly=True,
                 samesite="Strict",
                 max_age=60*60*24*365,  # roughly one year
             )
             return response
-        else:
-            raise ValueError
-    except (KeyError, AssertionError, ValueError):
-        return HTTPResponse(
-            body="401 Unauthorized",
-            status=401,
-            headers={"WWW-Authenticate": 'Basic realm="Veronique access"'},
-        )
+        print("authorized as", user)
+        return
+    return unauthorized
 
 
 def D(multival_dict):
