@@ -4,6 +4,7 @@ import base64
 import sys
 import sqlite3
 import unicodedata
+from security import hash_password, is_correct
 
 conn = sqlite3.connect(os.environ.get("VERONIQUE_DB", "veronique.db"))
 conn.row_factory = sqlite3.Row
@@ -505,6 +506,30 @@ def drop_legacy_tables(cur):
     cur.execute("DROP TABLE entities")
     cur.execute("DROP TABLE properties")
     cur.execute("DROP TABLE categories")
+
+
+@migration(10)
+def add_users(cur):
+    with open("veronique_initial_pw") as f:
+        initial_pw = f.read().strip()
+    cur.execute("""
+        CREATE TABLE users (
+            id INTEGER PRIMARY KEY,
+            name VARCHAR(32) NOT NULL,
+            hash VARCHAR(64) NOT NULL,
+            is_admin INT NOT NULL DEFAULT 0,
+            salt VARCHAR(32) NOT NULL
+        )
+    """)
+    hash, salt = hash_password(initial_pw)
+    os.remove("veronique_initial_pw")
+    cur.execute(
+        """
+        INSERT INTO users (id, name, is_admin, hash, salt) VALUES (0, 'admin', 1, ?, ?)
+        """,
+        (hash, salt),
+    )
+
 
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
