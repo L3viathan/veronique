@@ -388,6 +388,7 @@ class Claim(Model):
             """,
             (self.id, self.id),
         ).fetchall():
+            # FIXME TODO: any time a claim is yielded we need to check permissions. Because the _object_ might be a claim whose verb we can't see.
             yield Claim(row["id"])
 
     @classmethod
