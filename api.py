@@ -58,6 +58,8 @@ async def auth(request):
 
 @app.on_response
 async def refresh_session(request, response):
+    if not hasattr(request.ctx, "payload"):
+        return
     if (datetime.now() - datetime.fromisoformat(request.ctx.payload["t"])) > timedelta(days=7):
         request.ctx.payload["t"] = f"{datetime.now():%Y-%m-%dT%H:%M}"
         response.add_cookie(
@@ -68,6 +70,22 @@ async def refresh_session(request, response):
             samesite="Strict",
             max_age=60*60*24*365,  # roughly one year
         )
+
+
+def admin_only(fn):
+    @functools.wraps(fn)
+    async def wrapper(request, *args, **kwargs):
+        if not request.ctx.user.is_admin:
+            print("forbidden:", request.ctx.user)
+            return HTTPResponse(
+                body="403 Forbidden",
+                status=403,
+            )
+        ret = fn(request, *args, **kwargs)
+        if isinstance(ret, CoroutineType):
+            ret = await ret
+        return ret
+    return wrapper
 
 
 def D(multival_dict):
@@ -177,6 +195,7 @@ async def index(request):
 
 
 @app.get("/network")
+@admin_only
 @page
 async def network(request):
     all_categories = list(O.Claim.all_categories(page_size=9999))
@@ -299,6 +318,7 @@ async def network(request):
 
 
 @app.get("/claims/autocomplete")
+@admin_only
 @fragment
 async def autocomplete_claims(request):
     args = D(request.args)
@@ -317,6 +337,7 @@ async def autocomplete_claims(request):
 
 
 @app.get("/claims/autocomplete/accept/<claim_id>")
+@admin_only
 @fragment
 async def autocomplete_claims_accept(request, claim_id: int):
     claim = O.Claim(claim_id)
@@ -337,6 +358,7 @@ async def autocomplete_claims_accept(request, claim_id: int):
 
 
 @app.get("/claims/new-root")
+@admin_only
 @page
 async def new_root_claim_form(request):
     categories = O.Claim.all_categories()
@@ -377,6 +399,7 @@ async def new_root_claim_form(request):
 
 
 @app.post("/claims/new-root")
+@admin_only
 async def new_root_claim(request):
     form = D(request.form)
     name = form["name"]
@@ -398,6 +421,7 @@ async def new_root_claim(request):
 
 
 @app.get("/claims/new/<claim_id>/<direction:incoming|outgoing>")
+@admin_only
 @fragment
 async def new_claim_form(request, claim_id: int, direction: str):
     verbs = O.Verb.all(page_size=9999, data_type="directed_link" if direction == "incoming" else None)
@@ -428,6 +452,7 @@ async def new_claim_form(request, claim_id: int, direction: str):
 
 
 @app.get("/claims/new/verb")
+@admin_only
 @fragment
 async def new_claim_form_verb_input(request):
     args = D(request.args)
@@ -439,6 +464,7 @@ async def new_claim_form_verb_input(request):
 
 
 @app.post("/claims/new/<claim_id>/<direction:incoming|outgoing>")
+@admin_only
 async def new_claim(request, claim_id: int, direction: str):
     claim = O.Claim(claim_id)
     form = D(request.form)
@@ -497,6 +523,7 @@ async def search(request):
 
 
 @app.get("/claims/<claim_id>/edit")
+@admin_only
 @fragment
 async def edit_claim_form(request, claim_id: int):
     claim = O.Claim(claim_id)
@@ -512,6 +539,7 @@ async def edit_claim_form(request, claim_id: int):
 
 
 @app.delete("/claims/<claim_id>")
+@admin_only
 @fragment
 async def delete_claim(request, claim_id: int):
     claim = O.Claim(claim_id)
@@ -522,6 +550,7 @@ async def delete_claim(request, claim_id: int):
 
 
 @app.post("/claims/<claim_id>/edit")
+@admin_only
 async def edit_claim(request, claim_id: int):
     form = D(request.form)
     if "value" in request.files:
@@ -560,6 +589,7 @@ async def list_verbs(request):
 
 
 @app.get("/verbs/new")
+@admin_only
 @page
 async def new_verb_form(request):
     return "New verb", f"""
@@ -586,6 +616,7 @@ async def new_verb_form(request):
 
 
 @app.get("/verbs/new/steps")
+@admin_only
 @fragment
 async def new_verb_form_steps(request):
     args = D(request.args)
@@ -596,6 +627,7 @@ async def new_verb_form_steps(request):
 
 
 @app.post("/verbs/new")
+@admin_only
 async def new_verb(request):
     form = D(request.form)
     data_type = TYPES[form["data_type"]]
@@ -607,6 +639,7 @@ async def new_verb(request):
 
 
 @app.get("/queries")
+@admin_only
 @page
 async def list_queries(request):
     page_no = int(request.args.get("page", 1))
@@ -648,6 +681,7 @@ def _queries_textarea(value=None):
 
 
 @app.get("/queries/new")
+@admin_only
 @page
 async def new_query_form(request):
     return "New query", f"""
@@ -673,6 +707,7 @@ async def new_query_form(request):
 
 
 @app.get("/queries/<query_id>/edit")
+@admin_only
 @page
 async def edit_query_form(request, query_id: int):
     query = O.Query(query_id)
@@ -734,6 +769,7 @@ def display_query_result(result):
 
 
 @app.post("/queries/preview")
+@admin_only
 @fragment
 async def preview_query(request):
     form = D(request.form)
@@ -749,6 +785,7 @@ async def preview_query(request):
 
 
 @app.post("/queries/new")
+@admin_only
 @fragment
 async def new_query(request):
     form = D(request.form)
@@ -762,6 +799,7 @@ async def new_query(request):
 
 
 @app.put("/queries/<query_id>")
+@admin_only
 @fragment
 async def edit_query(request, query_id: int):
     query = O.Query(query_id)
@@ -773,6 +811,7 @@ async def edit_query(request, query_id: int):
 
 
 @app.get("/queries/<query_id>")
+@admin_only
 @page
 async def view_query(request, query_id: int):
     page_no = int(request.args.get("page", 1))
@@ -866,6 +905,7 @@ async def view_verb(request, verb_id: int):
 
 
 @app.get("/users")
+@admin_only
 @page
 async def list_users(request):
     page_no = int(request.args.get("page", 1))
@@ -887,6 +927,7 @@ async def list_users(request):
 
 
 @app.get("/users/new")
+@admin_only
 @page
 async def new_user_form(request):
     verb_options = []
@@ -920,6 +961,7 @@ async def new_user_form(request):
 
 
 @app.post("/users/new")
+@admin_only
 async def new_user(request):
     form = D(request.form)
     user = O.User.new(
@@ -931,6 +973,7 @@ async def new_user(request):
 
 
 @app.get("/users/<user_id>")
+@admin_only
 @page
 async def view_user(request, user_id: int):
     user = O.User(user_id)
