@@ -12,20 +12,22 @@ This is meant as a personal, intentionally non-scalable tool. As such, it uses
 SQLite, and there's no proper packaging yet (mostly because it's not needed).
 The app is protected by basic auth, but beyond that there's no protection
 against e.g. XSS. This is a feature, you can put HTML into text fields for
-example. If you need multiple users, SSO, MFA, or any other similar features,
-use a different tool.
+example. If you need SSO, MFA, or any other similar features, use a different
+tool.
 
 ## Development
 
 - Clone the repo
 - Install `sanic` (to a venv)
-- Run `VERONIQUE_CREDS='foo:bar' sanic api --dev`
+- Place a file called `veronique_initial_pw` containing a password in the
+  working directory. This will be the password of the `admin` user.
+- Run `sanic api --dev`
 
 ## Deployment
 
-Running in production mostly means replacing the `VERONIQUE_CREDS` with some
-random values, and removing the `--dev` flag. Maybe set up a systemd service
-for it and point a reverse proxy at it or something. I personally [use
+Running in production mostly means removing the `--dev` flag. Maybe set up a
+systemd service for it and point a reverse proxy at it or something. I
+personally [use
 ansible](https://github.com/L3viathan/ansibly/blob/master/roles/mainserver/tasks/veronique.yml)
 for deploying new versions.
 
@@ -93,3 +95,10 @@ Notable data types are:
   question mark. This allows you to represent dates such as "some time in
   1973" or "26th of July, but I don't know which year", which can be common
   when entering data without full knowledge of the truth.
+
+### Users
+
+Véronique now has basic support for additional users. Non-admin users only have
+read access, and only to a selected list of verbs. That list always includes
+all internal verbs, and can optionally include others. The user can then only
+see claims of that verb type, e.g. only birth dates.
