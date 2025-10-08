@@ -792,6 +792,31 @@ class User(Model):
         conn.commit()
         return cls(u_id)
 
+    def update(self, *, name, password, readable_verbs):
+        cur = conn.cursor()
+        to_set, values = [], []
+        if name != self.name:
+            to_set.append("name=?")
+            values.append(name)
+        if password:
+            hash, salt = hash_password(password)
+            to_set.append("hash=?")
+            values.append(hash)
+            to_set.append("salt=?")
+            values.append(salt)
+        values.append(self.id)
+        if to_set:
+            cur.execute(f"UPDATE users SET {', '.join(to_set)} WHERE id=?", tuple(values))
+
+        if any(vid >= 0 for vid in set(readable_verbs) ^ self.readable_verbs):
+            cur.execute("DELETE FROM permissions WHERE user_id = ?", (self.id,))
+            for readable_verb in readable_verbs:
+                cur.execute(
+                    "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                    (self.id, "read-verb", readable_verb),
+                )
+        conn.commit()
+
 
     def __format__(self, fmt):
         if fmt == "link":

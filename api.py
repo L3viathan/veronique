@@ -20,7 +20,7 @@ app = Sanic("Veronique")
 
 @app.on_request
 async def auth(request):
-    if request.name in ("Veronique.login", "Veronique.do_login") or request.name.endswith(("_css", "_js", "_svg")):
+    if request.name and (request.name in ("Veronique.login", "Veronique.do_login") or request.name.endswith(("_css", "_js", "_svg"))):
         # allow unauthenticated access to login page
         security.user.set(None)
         security.payload.set(None)
@@ -37,7 +37,7 @@ async def auth(request):
 
 @app.on_response
 async def refresh_session(request, response):
-    if not (payload := security.payload.get()):
+    if not (payload := security.payload.get(None)):
         return
     if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=7):
         payload["t"] = f"{datetime.now():%Y-%m-%dT%H:%M}"
@@ -193,6 +193,7 @@ async def do_login(request):
             max_age=60*60*24*365,  # roughly one year
         )
         return response
+    return redirect("/login")
 
 
 @app.get("/")
@@ -998,6 +999,7 @@ async def new_user_form(request):
         verb_options.append(
             f'<option value="{verb.id}">{verb.label}</option>'
         )
+    verb_options = "\n".join(verb_options)
     password = token_urlsafe(16)
     return "New user", f"""
         <form
@@ -1007,7 +1009,7 @@ async def new_user_form(request):
             <input name="name" placeholder="name"></input>
             <h3>Readable verbs</h3>
             <select name="verbs-readable" multiple size="10">
-            {"\n".join(verb_options)}
+            {verb_options}
             </select>
 
             <fieldset role="group">
@@ -1019,6 +1021,52 @@ async def new_user_form(request):
             <input type="submit" value="Create">
         </form>
     """
+
+
+@app.get("/users/<user_id>/edit")
+@admin_only
+@page
+async def edit_user_form(request, user_id):
+    verb_options = []
+    user = O.User(user_id)
+    for verb in O.Verb.all(page_size=9999):
+        if verb.id < 0:
+            continue
+        verb_options.append(
+            f'<option {"selected" if verb.id in user.readable_verbs else ""} value="{verb.id}">{verb.label}</option>'
+        )
+    verb_options = "\n".join(verb_options)
+    return f"Edit user {user.name}", f"""
+        <form
+            action="/users/{user_id}/edit"
+            method="POST"
+        >
+            <input name="name" placeholder="name" value="{user.name}">
+            <h3>Readable verbs</h3>
+            <select name="verbs-readable" multiple size="10">
+            {verb_options}
+            </select>
+
+            <label>New password
+            <input name="password" value="" placeholder="(leave empty to keep as-is)">
+            </label>
+
+            <input type="submit" value="Save">
+        </form>
+    """
+
+
+@app.post("/users/<user_id>/edit")
+@admin_only
+async def edit_user(request, user_id):
+    form = D(request.form)
+    user = O.User(user_id)
+    user.update(
+        name=form["name"],
+        password=form.get("password"),
+        readable_verbs=[int(v) for v in request.form["verbs-readable"]],
+    )
+    return redirect(f"/users/{user.id}")
 
 
 @app.post("/users/new")
@@ -1039,9 +1087,18 @@ async def new_user(request):
 async def view_user(request, user_id: int):
     user = O.User(user_id)
     result = f"""
-        <article><header>{user:heading}</header>
+        <article><header>
+        <a
+            href="/users/{user_id}/edit"
+            role="button"
+            class="outline contrast toolbutton"
+        >✎ Edit</a>
+        <h3>{user:heading}</h3>
+        </header>
         <p>
-        {user.is_admin=}
+        Admin: {user.is_admin}
+        <br>
+        Readable verbs: {", ".join(str(O.Verb(v)) for v in user.readable_verbs if v >= 0)}
         </p>
         </article>
     """
