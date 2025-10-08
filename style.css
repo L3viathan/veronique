@@ -221,7 +221,7 @@ li:has(#add-button) {
 
 article {
   overflow: hidden;
-  button, a[role=button] {
+  button, a.toolbutton[role=button] {
     float: right;
   }
 }
