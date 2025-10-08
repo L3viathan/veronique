@@ -3,7 +3,8 @@ from datetime import date
 
 from data_types import TYPES
 from nomnidate import NonOmniscientDate
-from security import hash_password, user
+from security import hash_password
+from context import context
 from db import (
     conn,
     make_search_key,
@@ -536,7 +537,7 @@ class Claim(Model):
         return f" {' '.join(css_classes)}" if css_classes else "", remarks
 
     def __format__(self, fmt):
-        if not user.get().is_admin and self.verb.id not in user.get().readable_verbs:
+        if not context.user.is_admin and self.verb.id not in context.user.readable_verbs:
             return "(unknown claim)"
         data = self.get_data()
         css_classes, remarks = self._get_remarks(data)

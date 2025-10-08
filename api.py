@@ -11,6 +11,7 @@ from sanic import Sanic, HTTPResponse, html, file, redirect
 from nomnidate import NonOmniscientDate
 import objects as O
 import security
+from context import context
 from db import conn, LABEL, IS_A, ROOT, AVATAR, make_search_key
 from data_types import TYPES
 
@@ -22,22 +23,22 @@ app = Sanic("Veronique")
 async def auth(request):
     if request.name and (request.name in ("Veronique.login", "Veronique.do_login") or request.name.endswith(("_css", "_js", "_svg"))):
         # allow unauthenticated access to login page
-        security.user.set(None)
-        security.payload.set(None)
+        context.user = None
+        context.payload = None
         return
     unauthorized = redirect("/login")
     if payload := security.unsign(request.cookies.get("session")):
         if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=30):
             return unauthorized
-        security.user.set(O.User(payload["u"]))
-        security.payload.set(payload)
+        context.user = O.User(payload["u"])
+        context.payload = payload
         return
     return unauthorized
 
 
 @app.on_response
 async def refresh_session(request, response):
-    if not (payload := security.payload.get(None)):
+    if not (payload := context.payload):
         return
     if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=7):
         payload["t"] = f"{datetime.now():%Y-%m-%dT%H:%M}"
@@ -54,7 +55,7 @@ async def refresh_session(request, response):
 def admin_only(fn):
     @functools.wraps(fn)
     async def wrapper(request, *args, **kwargs):
-        if not security.user.get().is_admin:
+        if not context.user.is_admin:
             return HTTPResponse(
                 body="403 Forbidden",
                 status=403,
@@ -128,10 +129,10 @@ def page(fn):
             ("queries", True),
             ("users", True),
         ]:
-            if restricted and not security.user.get().is_admin:
+            if restricted and not context.user.is_admin:
                 continue
             gotos.append(f'<li><a href="/{page_name}">{page_name.title()}</a></li>')
-        if security.user.get().is_admin:
+        if context.user.is_admin:
             news = """
             <li>
                 <details class="dropdown clean">
@@ -209,7 +210,7 @@ async def index(request):
             month=((reference_date.month + (page_no - 1)) % 12) or 12,
         )
     for claim in sorted(
-        O.Claim.all_of_same_month(reference_date, verb_ids=security.user.get().readable_verbs),
+        O.Claim.all_of_same_month(reference_date, verb_ids=context.user.readable_verbs),
         key=lambda c: (
             # unspecified dates are always before everything else
             coalesce((reference_date - NonOmniscientDate(c.object.value)).days, 99)
@@ -558,10 +559,10 @@ async def search(request):
             if hit["table_name"] == "claims":
                 parts.append(f"{O.Claim(hit['id']):link}")
             elif hit["table_name"] == "queries":
-                if security.user.get().is_admin:
+                if context.user.is_admin:
                     parts.append(f"{O.Query(hit['id']):link}")
             elif hit["table_name"] == "verbs":
-                if security.user.get().is_admin or hit["id"] in security.user.get().readable_verbs:
+                if context.user.is_admin or hit["id"] in context.user.readable_verbs:
                     parts.append(f"{O.Verb(hit['id']):link}")
             else:
                 parts.append(f"TODO: implement for {hit['table_name']}")
@@ -626,7 +627,7 @@ async def list_verbs(request):
     for i, verb in enumerate(O.Verb.all(
         page_no=page_no-1,
         page_size=PAGE_SIZE + 1,
-        verb_ids=security.user.get().readable_verbs,
+        verb_ids=context.user.readable_verbs,
     )):
         if i == PAGE_SIZE:
             more_results = True
@@ -897,7 +898,7 @@ async def list_labelled_claims(request):
         order_by="id DESC",
         page_no=page_no-1,
         page_size=PAGE_SIZE + 1,  # so we know if there would be more results
-        verb_ids=security.user.get().readable_verbs,
+        verb_ids=context.user.readable_verbs,
     )):
         if i:
             parts.append("<br>")
@@ -916,22 +917,22 @@ async def list_labelled_claims(request):
 @page
 async def view_claim(request, claim_id: int):
     claim = O.Claim(claim_id)
-    if not security.user.get().is_admin and claim.verb.id >= 0 and claim.verb.id not in security.user.get().readable_verbs:
+    if not context.user.is_admin and claim.verb.id >= 0 and claim.verb.id not in context.user.readable_verbs:
         return HTTPResponse(
             body="403 Forbidden",
             status=403,
         )
-    incoming_mentions = list(claim.incoming_mentions(verb_ids=security.user.get().readable_verbs))
+    incoming_mentions = list(claim.incoming_mentions(verb_ids=context.user.readable_verbs))
     return f"{claim:label}", f"""
         <article>
             <header>{claim:heading}{claim:avatar}</header>
             <div id="edit-area"></div>
             <table class="claims"><tr><td>
         <div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>
-        {"".join(f"<p>{c:sv}</p>" for c in claim.incoming_claims(verb_ids=security.user.get().readable_verbs))}
+        {"".join(f"<p>{c:sv}</p>" for c in claim.incoming_claims(verb_ids=context.user.readable_verbs))}
         </td><td>
         <div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>
-        {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims(verb_ids=security.user.get().readable_verbs) if c.verb.id not in (LABEL, IS_A, AVATAR))}
+        {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims(verb_ids=context.user.readable_verbs) if c.verb.id not in (LABEL, IS_A, AVATAR))}
         </td></tr></table>
         {"<hr><h3>Mentions</h3>" + "".join(f"<p>{c:svo}</p>" for c in incoming_mentions) if incoming_mentions else ""}
         </article>
@@ -942,7 +943,7 @@ async def view_claim(request, claim_id: int):
 @page
 async def view_verb(request, verb_id: int):
     page_no = int(request.args.get("page", 1))
-    if not security.user.get().is_admin and verb_id not in security.user.get().readable_verbs:
+    if not context.user.is_admin and verb_id not in context.user.readable_verbs:
         return HTTPResponse(
             body="403 Forbidden",
             status=403,
