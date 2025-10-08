@@ -20,39 +20,16 @@ app = Sanic("Veronique")
 
 @app.on_request
 async def auth(request):
-    unauthorized = HTTPResponse(
-        body="401 Unauthorized",
-        status=401,
-        headers={"WWW-Authenticate": 'Basic realm="Veronique access"'},
-    )
+    if request.name in ("Veronique.login", "Veronique.do_login") or request.name.endswith(("_css", "_js", "_svg")):
+        # allow unauthenticated access to login page
+        return
+    unauthorized = redirect("/login")
     if payload := security.unsign(request.cookies.get("session")):
         if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=30):
             return unauthorized
         request.ctx.user = O.User(payload["u"])
         request.ctx.payload = payload
         return
-    elif "Authorization" in request.headers:
-        auth = request.headers["Authorization"]
-        _, _, auth = auth.partition(" ")
-        auth = base64.b64decode(auth).decode()
-        username, _, password = auth.partition(":")
-        if not re.match("^[a-z]+$", username):
-            return unauthorized
-        try:
-            user = O.User.by_name(username)
-        except ValueError:
-            return unauthorized
-        if security.is_correct(password, user.hash, user.salt):
-            response = redirect("/")
-            response.add_cookie(
-                "session",
-                security.sign({"u": user.id, "t": f"{datetime.now():%Y-%m-%dT%H:%M}"}),
-                secure=True,
-                httponly=True,
-                samesite="Strict",
-                max_age=60*60*24*365,  # roughly one year
-            )
-            return response
     return unauthorized
 
 
@@ -115,6 +92,10 @@ with open("template.html") as f:
     TEMPLATE = f.read().format
 
 
+with open("login.html") as f:
+    LOGIN = f.read()
+
+
 def fragment(fn):
     @functools.wraps(fn)
     async def wrapper(*args, **kwargs):
@@ -136,7 +117,36 @@ def page(fn):
         else:
             title, ret = ret
             title = f"{title} — Véronique"
-        return html(TEMPLATE(title, ret))
+
+        gotos = []
+        for page_name, restricted in [
+            ("claims", False),
+            ("verbs", False),
+            ("network", True),
+            ("queries", True),
+            ("users", True),
+        ]:
+            if restricted and not request.ctx.user.is_admin:
+                continue
+            gotos.append(f'<li><a href="/{page_name}">{page_name.title()}</a></li>')
+        if request.ctx.user.is_admin:
+            news = """
+            <li>
+                <details class="dropdown clean">
+                    <summary id="add-button">+
+                    </summary>
+                    <ul>
+                        <li><a href="/claims/new-root">Root claim</a></li>
+                        <li><a href="/verbs/new">Verb</a></li>
+                        <li><a href="/queries/new">Query</a></li>
+                        <li><a href="/users/new">User</a></li>
+                    </ul>
+                </details>
+            </li>
+            """
+        else:
+            news=""
+        return html(TEMPLATE(title=title, content=ret, gotos="".join(gotos), news=news))
     return wrapper
 
 
@@ -145,6 +155,42 @@ def coalesce(*values):
         if val is not None:
             return val
     return values[-1]
+
+
+@app.get("/logout")
+async def logout(request):
+    response = redirect("/")
+    response.delete_cookie("session")
+    return response
+
+
+@app.get("/login")
+async def login(request):
+    return html(LOGIN)
+
+
+@app.post("/login")
+async def do_login(request):
+    form = D(request.form)
+    username = form["username"]
+    password = form["password"]
+    if not re.match("^[a-z]+$", username):
+        return redirect("/login")
+    try:
+        user = O.User.by_name(username)
+    except ValueError:
+        return redirect("/login")
+    if security.is_correct(password, user.hash, user.salt):
+        response = redirect("/")
+        response.add_cookie(
+            "session",
+            security.sign({"u": user.id, "t": f"{datetime.now():%Y-%m-%dT%H:%M}"}),
+            secure=True,
+            httponly=True,
+            samesite="Strict",
+            max_age=60*60*24*365,  # roughly one year
+        )
+        return response
 
 
 @app.get("/")

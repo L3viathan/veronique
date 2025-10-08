@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html data-theme="light">
+<head>
+    <script src="/htmx.js"></script>
+    <title>Login — Véronique</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/pico.min.css">
+    <meta name="htmx-config" content='{"scrollIntoViewOnBoost": false}'>
+</head>
+<body>
+    <main id="container">
+        <form action="/login" method="POST">
+            <fieldset>
+                <label>
+                    Username
+                    <input
+                    name="username"
+                    placeholder="username"
+                    />
+                </label>
+                <label>
+                    Password
+                    <input
+                    type="password"
+                    name="password"
+                    placeholder="password"
+                    />
+                </label>
+            </fieldset>
+
+            <input
+            type="submit"
+            value="Login"
+            />
+        </form>
+    </main>
+</body>
+</html>

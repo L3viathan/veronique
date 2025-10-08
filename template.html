@@ -2,7 +2,7 @@
 <html data-theme="light">
 <head>
     <script src="/htmx.js"></script>
-    <title>{}</title>
+    <title>{title}</title>
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/mana-cost.css">
     <link rel="stylesheet" href="/pico.min.css">
@@ -36,26 +36,11 @@
         <ul><li>
             <a href="/" id="triangle"><span>▼</span><span>▼</span><span>▼</span><span>▼</span><span>▼</span><span>▼</span></a>
         </li></ul>
-        <ul><li>
-        <details class="dropdown clean">
-        <summary id="add-button">+
-        </summary>
-        <ul>
-            <li><a href="/claims/new-root">Root claim</a></li>
-            <li><a href="/verbs/new">Verb</a></li>
-            <li><a href="/queries/new">Query</a></li>
-            <li><a href="/users/new">User</a></li>
-        </ul>
-        </details>
-        </li><li>
+        <ul>{news}<li>
         <details class="dropdown">
         <summary>Go to...</summary>
         <ul>
-            <li><a href="/claims">Claims</a></li>
-            <li><a href="/verbs">Verbs</a></li>
-            <li><a href="/network">Network</a></li>
-            <li><a href="/queries">Queries</a></li>
-            <li><a href="/users">Users</a></li>
+            {gotos}
         </ul>
         </details>
             <li><input
@@ -68,9 +53,10 @@
                 hx-target="#container"
                 hx-push-url="true"
             ></li>
+            <li><a role="button" href="/logout">🚪</a>
         </ul>
     </nav>
     </header>
-    <main id="container">{}</main>
+    <main id="container">{content}</main>
 </body>
 </html>
