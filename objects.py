@@ -158,12 +158,17 @@ class Verb(Model):
         order_by="id ASC",
         page_no=0,
         page_size=20,
+        verb_ids=None,
     ):
         conditions = ["1=1"]
         values = []
         if data_type is not None:
             conditions.append("data_type LIKE ?")
             values.append(data_type)
+        if verb_ids is not None:
+            conditions.append(
+                f"id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
+            )
 
         cur = conn.cursor()
         for row in cur.execute(
@@ -278,19 +283,31 @@ class Claim(Model):
             yield cls(row["id"])
 
     @classmethod
-    def all_of_same_month(cls, reference_date=None):
+    def all_of_same_month(cls, reference_date=None, verb_ids=None):
         cur = conn.cursor()
         if reference_date is None:
             reference_date = date.today()
+        conditions = [
+            "v.id != ?",
+            "v.id != ?",
+            "v.data_type = 'date'",
+            "c.value LIKE '%-' || ? || '-%'",
+        ]
+        if verb_ids is not None:
+            conditions.append(
+                f"verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
+            )
+
+        query = f"""
+            SELECT c.id
+            FROM claims c
+            LEFT JOIN verbs v ON c.verb_id = v.id
+            WHERE {' AND '.join(conditions)}
+        """
         return [
             cls(row[0])
             for row in cur.execute(
-                """
-                SELECT c.id
-                FROM claims c
-                LEFT JOIN verbs v ON c.verb_id = v.id
-                WHERE v.id != ? AND v.id != ? AND v.data_type = 'date' AND c.value LIKE '%-' || ? || '-%'
-                """,
+                query,
                 (VALID_FROM, VALID_UNTIL, reference_date.strftime("%m"),),
             )
         ]
@@ -312,10 +329,14 @@ class Claim(Model):
         ).fetchall():
             yield cls(row["id"])
 
-    def incoming_claims(self):
+    def incoming_claims(self, verb_ids=None):
         cur = conn.cursor()
+        if verb_ids is not None:
+            cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
+        else:
+            cond = ""
         for row in cur.execute(
-            """
+            f"""
             SELECT
                 c.id
             FROM claims c
@@ -323,45 +344,60 @@ class Claim(Model):
             ON c.verb_id = v.id
             WHERE c.object_id = ?
             AND v.data_type <> 'undirected_link'
+            {cond}
             """,
             (self.id,),
         ).fetchall():
             yield Claim(row["id"])
 
-    def incoming_mentions(self):
+    def incoming_mentions(self, verb_ids=None):
         cur = conn.cursor()
+        if verb_ids is not None:
+            cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
+        else:
+            cond = ""
         for row in cur.execute(
-            """
+            f"""
             SELECT
                 c.id
             FROM claims c
             LEFT JOIN verbs v
             ON c.verb_id = v.id
-            WHERE c.value LIKE '%<@' || ? || '>%'
+            WHERE c.value LIKE '%<@' || ? || '>%' {cond}
             """,
             (self.id,),
         ).fetchall():
             yield Claim(row["id"])
 
-    def outgoing_claims(self):
+    def outgoing_claims(self, verb_ids=None):
         cur = conn.cursor()
+        if verb_ids is not None:
+            cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
+        else:
+            cond = ""
         for row in cur.execute(
-            """
+            f"""
             SELECT
                 c.id
             FROM claims c
             LEFT JOIN verbs v
             ON c.verb_id = v.id
-            WHERE c.subject_id = ?
-            OR (v.data_type = 'undirected_link' AND c.object_id = ?)
+            WHERE (c.subject_id = ?
+            OR (v.data_type = 'undirected_link' AND c.object_id = ?))
+            {cond}
             """,
             (self.id, self.id),
         ).fetchall():
             yield Claim(row["id"])
 
     @classmethod
-    def all_labelled(cls, *, order_by="id ASC", page_no=0, page_size=20):
+    def all_labelled(cls, *, order_by="id ASC", page_no=0, page_size=20, verb_ids=None):
         cur = conn.cursor()
+
+        if verb_ids is None:
+            cond = ""
+        else:
+            cond = f"AND c.verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
         for row in cur.execute(
             f"""
             SELECT
@@ -369,7 +405,7 @@ class Claim(Model):
             FROM claims c
             LEFT JOIN claims l
             ON l.subject_id = c.id
-            WHERE l.verb_id = {LABEL}
+            WHERE l.verb_id = {LABEL} {cond}
             ORDER BY {order_by}
             LIMIT {page_size}
             OFFSET {page_no * page_size}
@@ -692,7 +728,7 @@ class Query(Model):
 
 class User(Model):
     table_name = "users"
-    fields = ("name", "hash", "is_admin", "salt")
+    fields = ("name", "hash", "is_admin", "salt", "readable_verbs")
 
     def populate(self):
         cur = conn.cursor()
@@ -711,6 +747,23 @@ class User(Model):
         self.hash = row["hash"]
         self.salt = row["salt"]
         self.is_admin = row["is_admin"]
+        if not self.is_admin:
+            self.readable_verbs = set()
+            for row in cur.execute(
+                """
+                    SELECT
+                        permission, object
+                    FROM permissions
+                    WHERE user_id = ?
+                """,
+                (self.id,),
+            ).fetchall():
+                if row["permission"] == "read-verb":
+                    self.readable_verbs.add(row["object"])
+            # internal verbs can always be seen
+            self.readable_verbs.update(DATA_LABELS)
+        else:
+            self.readable_verbs = None  # all of them
 
     @classmethod
     def by_name(cls, name):
