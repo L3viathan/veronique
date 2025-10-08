@@ -5,7 +5,7 @@ import re
 import base64
 import sqlite3
 from secrets import token_urlsafe
-from datetime import date
+from datetime import date, datetime, timedelta
 from types import CoroutineType
 from sanic import Sanic, HTTPResponse, html, file, redirect
 from nomnidate import NonOmniscientDate
@@ -25,39 +25,49 @@ async def auth(request):
         status=401,
         headers={"WWW-Authenticate": 'Basic realm="Veronique access"'},
     )
-    cookie = request.cookies.get("auth")
-    if cookie:
-        auth = cookie
+    if payload := security.unsign(request.cookies.get("session")):
+        if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=30):
+            return unauthorized
+        request.ctx.user = O.User(payload["u"])
+        request.ctx.payload = payload
+        return
     elif "Authorization" in request.headers:
         auth = request.headers["Authorization"]
         _, _, auth = auth.partition(" ")
         auth = base64.b64decode(auth).decode()
-    else:
-        return unauthorized
-
-    username, _, password = auth.partition(":")
-    if not re.match("^[a-z]+$", username):
-        return unauthorized
-    try:
-        user = O.User.by_name(username)
-    except ValueError:
-        return unauthorized
-
-    if security.is_correct(password, user.hash, user.salt):
-        if not cookie:
+        username, _, password = auth.partition(":")
+        if not re.match("^[a-z]+$", username):
+            return unauthorized
+        try:
+            user = O.User.by_name(username)
+        except ValueError:
+            return unauthorized
+        if security.is_correct(password, user.hash, user.salt):
             response = redirect("/")
             response.add_cookie(
-                "auth",
-                auth,
+                "session",
+                security.sign({"u": user.id, "t": f"{datetime.now():%Y-%m-%dT%H:%M}"}),
                 secure=True,
                 httponly=True,
                 samesite="Strict",
                 max_age=60*60*24*365,  # roughly one year
             )
             return response
-        print("authorized as", user)
-        return
     return unauthorized
+
+
+@app.on_response
+async def refresh_session(request, response):
+    if (datetime.now() - datetime.fromisoformat(request.ctx.payload["t"])) > timedelta(days=7):
+        request.ctx.payload["t"] = f"{datetime.now():%Y-%m-%dT%H:%M}"
+        response.add_cookie(
+            "session",
+            security.sign(request.ctx.payload),
+            secure=True,
+            httponly=True,
+            samesite="Strict",
+            max_age=60*60*24*365,  # roughly one year
+        )
 
 
 def D(multival_dict):
