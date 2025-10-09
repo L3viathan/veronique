@@ -38,6 +38,8 @@ class lazy:
 
 class Model:
     def __new__(cls, id):
+        if not isinstance(id, int):
+            raise ValueError("IDs need to be ints")
         if id in cls._cache:
             return cls._cache[id]
         obj = super(Model, cls).__new__(cls)
@@ -817,6 +819,7 @@ class User(Model):
                     (self.id, "read-verb", readable_verb),
                 )
         conn.commit()
+        self.populate()
 
 
     def __format__(self, fmt):

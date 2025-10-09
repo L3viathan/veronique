@@ -1028,7 +1028,7 @@ async def new_user_form(request):
 @app.get("/users/<user_id>/edit")
 @admin_only
 @page
-async def edit_user_form(request, user_id):
+async def edit_user_form(request, user_id: int):
     verb_options = []
     user = O.User(user_id)
     for verb in O.Verb.all(page_size=9999):
@@ -1060,7 +1060,7 @@ async def edit_user_form(request, user_id):
 
 @app.post("/users/<user_id>/edit")
 @admin_only
-async def edit_user(request, user_id):
+async def edit_user(request, user_id: int):
     form = D(request.form)
     user = O.User(user_id)
     user.update(
