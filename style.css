@@ -349,6 +349,9 @@ details.dropdown.clean {
     background: none;
   }
 }
+nav details.dropdown {
+  display: inline-block !important;
+}
 
 /* BEGIN: syntax highlighting */
 /* Please see the article */

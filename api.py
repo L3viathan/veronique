@@ -149,7 +149,8 @@ def page(fn):
             """
         else:
             news=""
-        return html(TEMPLATE(title=title, content=ret, gotos="".join(gotos), news=news))
+        user=f'<li><details class="dropdown"><summary>{context.user.name}</summary><ul dir="rtl"><li><a href="/logout">🚪 Logout</a></li></ul></details></li>'
+        return html(TEMPLATE(title=title, content=ret, gotos="".join(gotos), news=news, user=user))
     return wrapper
 
 

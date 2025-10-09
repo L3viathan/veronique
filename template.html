@@ -36,24 +36,27 @@
         <ul><li>
             <a href="/" id="triangle"><span>▼</span><span>▼</span><span>▼</span><span>▼</span><span>▼</span><span>▼</span></a>
         </li></ul>
-        <ul>{news}<li>
-        <details class="dropdown">
-        <summary>Go to...</summary>
         <ul>
-            {gotos}
-        </ul>
-        </details>
-            <li><input
-                id="q"
-                name="q"
-                type="search"
-                hx-get="/search"
-                hx-trigger="input changed delay:200ms, search"
-                hx-select="#container"
-                hx-target="#container"
-                hx-push-url="true"
-            ></li>
-            <li><a role="button" href="/logout">🚪</a>
+            {news}
+            <li>
+                <details class="dropdown">
+                <summary>Go to...</summary>
+                <ul dir="rtl">
+                    {gotos}
+                </ul>
+                </details>
+                    <li><input
+                        id="q"
+                        name="q"
+                        type="search"
+                        hx-get="/search"
+                        hx-trigger="input changed delay:200ms, search"
+                        hx-select="#container"
+                        hx-target="#container"
+                        hx-push-url="true"
+                    >
+            </li>
+            {user}
         </ul>
     </nav>
     </header>
