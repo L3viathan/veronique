@@ -973,7 +973,11 @@ async def view_verb(request, verb_id: int):
 @page
 async def list_users(request):
     page_no = int(request.args.get("page", 1))
-    parts = []
+    parts = [
+        "<article><header><h3>Users</h3></header><table>",
+        '<thead><tr><th scope="col">ID</th><th scope="col">Name</th></tr></thead>',
+        "<tbody>",
+    ]
     more_results = False
     for i, user in enumerate(O.User.all(
         page_no=page_no-1,
@@ -982,8 +986,10 @@ async def list_users(request):
         if i == PAGE_SIZE:
             more_results = True
         else:
-            parts.append(f"{user:link}")
-    return "Users", "<br>".join(parts) + pagination(
+            parts.append(f"<tr><td>{user.id}</td>")
+            parts.append(f"<td>{user:link}</td></tr>")
+    parts.append("</tbody></table></article>")
+    return "Users", "".join(parts) + pagination(
         "/users",
         page_no,
         more_results=more_results,
@@ -1097,11 +1103,10 @@ async def view_user(request, user_id: int):
         >✎ Edit</a>
         <h3>{user:heading}</h3>
         </header>
-        <p>
-        Admin: {user.is_admin}
-        <br>
-        Readable verbs: {", ".join(str(O.Verb(v)) for v in user.readable_verbs if v >= 0)}
-        </p>
+        <table>
+        <tr><th scope="row">Admin</th><td>{TYPES["boolean"].display_html(user.is_admin)}</td></tr>
+        <tr><th scope="row">Readable verbs</th><td>{", ".join(str(O.Verb(v)) for v in (user.readable_verbs or []) if v >= 0)}</td></tr>
+        </table>
         </article>
     """
     return user.name, result
