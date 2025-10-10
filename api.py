@@ -133,8 +133,9 @@ def page(fn):
             ("users", True),
         ]:
             if restricted and not context.user.is_admin:
-                continue
-            gotos.append(f'<li><a href="/{page_name}">{page_name.title()}</a></li>')
+                gotos.append(f'<li><a href="#" disabled>{page_name.title()}</a></li>')
+            else:
+                gotos.append(f'<li><a href="/{page_name}">{page_name.title()}</a></li>')
         if context.user.is_admin:
             news = """
             <li>
@@ -151,8 +152,8 @@ def page(fn):
             </li>
             """
         else:
-            news=""
-        user=f'<li><details class="dropdown"><summary>{context.user.name}</summary><ul dir="rtl"><li><a href="/logout">🚪 Logout</a></li></ul></details></li>'
+            news = ""
+        user=f'<li><details class="dropdown"><summary>{context.user.name}</summary><ul dir="rtl"><li><a href="/logout">Logout</a></li></ul></details></li>'
         return html(TEMPLATE(title=title, content=ret, gotos="".join(gotos), news=news, user=user))
     return wrapper
 
