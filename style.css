@@ -221,7 +221,7 @@ li:has(#add-button) {
 
 article {
   overflow: hidden;
-  button {
+  button, a.toolbutton[role=button] {
     float: right;
   }
 }
@@ -348,6 +348,9 @@ details.dropdown.clean {
   summary::after {
     background: none;
   }
+}
+nav details.dropdown {
+  display: inline-block !important;
 }
 
 /* BEGIN: syntax highlighting */

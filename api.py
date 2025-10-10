@@ -1,48 +1,88 @@
-import os
 import functools
 import json
+import re
 import base64
 import sqlite3
-from datetime import date
+from secrets import token_urlsafe
+from datetime import date, datetime, timedelta
 from types import CoroutineType
 from sanic import Sanic, HTTPResponse, html, file, redirect
 from nomnidate import NonOmniscientDate
 import objects as O
+import security
+from context import context
 from db import conn, LABEL, IS_A, ROOT, AVATAR, make_search_key
 from data_types import TYPES
 
 PAGE_SIZE = 20
-CORRECT_AUTH = os.environ["VERONIQUE_CREDS"]
 
 app = Sanic("Veronique")
 
+with open("template.html") as f:
+    TEMPLATE = f.read().format
+
+with open("login.html") as f:
+    LOGIN = f.read()
+
+
 @app.on_request
 async def auth(request):
-    cookie = request.cookies.get("auth")
-    if cookie == CORRECT_AUTH:
+    """Ensure that each request is either authenticated or going to an explicitly allowed resource."""
+    if request.name and (
+        request.name in ("Veronique.login", "Veronique.do_login")
+        or request.name.endswith(("_css", "_js", "_svg"))
+    ):
+        # allow unauthenticated access to login page
+        context.user = None
+        context.payload = None
         return
-    try:
-        auth = request.headers["Authorization"]
-        _, _, encoded = auth.partition(" ")
-        if base64.b64decode(encoded).decode() == CORRECT_AUTH:
-            response = redirect("/")
-            response.add_cookie(
-                "auth",
-                CORRECT_AUTH,
-                secure=True,
-                httponly=True,
-                samesite="Strict",
-                max_age=60*60*24*365,  # roughly one year
-            )
-            return response
-        else:
-            raise ValueError
-    except (KeyError, AssertionError, ValueError):
-        return HTTPResponse(
-            body="401 Unauthorized",
-            status=401,
-            headers={"WWW-Authenticate": 'Basic realm="Veronique access"'},
+    unauthorized = redirect("/login")
+    if payload := security.unsign(request.cookies.get("session")):
+        if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=30):
+            return unauthorized
+        user = O.User(payload["u"])
+        if user.generation > payload.get("g", 0):
+            # this is to support proper logouts, see logout()
+            return unauthorized
+        context.user = user
+        context.payload = payload
+        return
+    return unauthorized
+
+
+@app.on_response
+async def refresh_session(request, response):
+    """If authenticated requests have overly old payloads, refresh them."""
+    if not (payload := context.payload):
+        return
+    if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=7):
+        response.add_cookie(
+            "session",
+            security.sign(context.user.payload),
+            secure=True,
+            httponly=True,
+            samesite="Strict",
+            # roughly one month (afterwards it will anyways be invalid):
+            max_age=60 * 60 * 24 * 31,
         )
+
+
+def admin_only(fn):
+    """Mark an endpoint to be only accessible by admins. Must be above @page."""
+
+    @functools.wraps(fn)
+    async def wrapper(request, *args, **kwargs):
+        if not context.user.is_admin:
+            return HTTPResponse(
+                body="403 Forbidden",
+                status=403,
+            )
+        ret = fn(request, *args, **kwargs)
+        if isinstance(ret, CoroutineType):
+            ret = await ret
+        return ret
+
+    return wrapper
 
 
 def D(multival_dict):
@@ -69,40 +109,131 @@ def pagination(url, page_no, *, more_results=True, allow_negative=False):
     """
 
 
-with open("template.html") as f:
-    TEMPLATE = f.read().format
-
-
 def fragment(fn):
+    """Mark an endpoint as returning HTML, but not a full page."""
+
     @functools.wraps(fn)
     async def wrapper(*args, **kwargs):
         ret = fn(*args, **kwargs)
         if isinstance(ret, CoroutineType):
             ret = await ret
         return html(ret)
+
     return wrapper
 
 
 def page(fn):
+    """Mark an endpoint as returning a full standalone page."""
+
     @functools.wraps(fn)
-    async def wrapper(*args, **kwargs):
-        ret = fn(*args, **kwargs)
+    async def wrapper(request, *args, **kwargs):
+        ret = fn(request, *args, **kwargs)
         if isinstance(ret, CoroutineType):
             ret = await ret
         if isinstance(ret, str):
             title = "Véronique"
+        elif isinstance(ret, HTTPResponse):
+            return ret
         else:
             title, ret = ret
             title = f"{title} — Véronique"
-        return html(TEMPLATE(title, ret))
+
+        gotos = []
+        for page_name, restricted in [
+            ("claims", False),
+            ("verbs", False),
+            ("network", True),
+            ("queries", True),
+            ("users", True),
+        ]:
+            if restricted and not context.user.is_admin:
+                gotos.append(f'<li><a href="#" disabled>{page_name.title()}</a></li>')
+            else:
+                gotos.append(f'<li><a href="/{page_name}">{page_name.title()}</a></li>')
+        if context.user.is_admin:
+            news = """
+            <li>
+                <details class="dropdown clean">
+                    <summary id="add-button">+
+                    </summary>
+                    <ul>
+                        <li><a href="/claims/new-root">Root claim</a></li>
+                        <li><a href="/verbs/new">Verb</a></li>
+                        <li><a href="/queries/new">Query</a></li>
+                        <li><a href="/users/new">User</a></li>
+                    </ul>
+                </details>
+            </li>
+            """
+        else:
+            news = ""
+        user = f"""
+        <li>
+            <details class="dropdown">
+                <summary>{context.user.name}</summary>
+                <ul dir="rtl"><li><a href="/logout">Logout</a></li></ul>
+            </details>
+        </li>
+        """
+        return html(
+            TEMPLATE(
+                title=title, content=ret, gotos="".join(gotos), news=news, user=user
+            )
+        )
+
     return wrapper
 
 
 def coalesce(*values):
+    """Like SQL's COALESCE() (where NULL = None)."""
     for val in values:
         if val is not None:
             return val
     return values[-1]
+
+
+@app.get("/logout")
+async def logout(request):
+    # In order to support global logout despite having no server-side sessions,
+    # users have a "generation", which needs to be the same as the generation
+    # of the token payload. On logout, we increment that generation, such that
+    # all previously issued tokens are invalidated.
+    context.user.increment_generation()
+    response = redirect("/")
+    response.delete_cookie("session")
+    return response
+
+
+@app.get("/login")
+async def login(request):
+    return html(LOGIN)
+
+
+@app.post("/login")
+async def do_login(request):
+    form = D(request.form)
+    username = form["username"]
+    password = form["password"]
+    if not re.match("^[a-z]+$", username):
+        # this could probably be removed, but.. yeah let's not.
+        return redirect("/login")
+    try:
+        user = O.User.by_name(username)
+    except ValueError:
+        return redirect("/login")
+    if security.is_correct(password, user.hash, user.salt):
+        response = redirect("/")
+        response.add_cookie(
+            "session",
+            security.sign(user.payload),
+            secure=True,
+            httponly=True,
+            samesite="Strict",
+            # roughly one month (afterwards it will anyways be invalid):
+            max_age=60 * 60 * 24 * 31,
+        )
+        return response
+    return redirect("/login")
 
 
 @app.get("/")
@@ -137,21 +268,26 @@ async def index(request):
         recent_events.append(f"<p>{claim:link}</p>")
     if page_no == 1 and not past_today:
         recent_events.append('<hr class="date-today">')
-    heading = {1: "This month", 0: "Last month", 2: "Next month"}.get(page_no, f"{reference_date:%B}")
+    heading = {1: "This month", 0: "Last month", 2: "Next month"}.get(
+        page_no, f"{reference_date:%B}"
+    )
     return f"""
         <article><header>
         <h2>{heading}</h2>
         </header>
         {"".join(recent_events)}
-    """ + pagination(
-        "/",
-        page_no,
-        more_results=True,
-        allow_negative=True,
-    ) + "</article>"
+        {pagination("/",
+            page_no,
+            more_results=True,
+            allow_negative=True,
+        )}
+        </article>
+    """
 
 
+# TODO: make this accessible to regular users (after adding required restrictions)
 @app.get("/network")
+@admin_only
 @page
 async def network(request):
     all_categories = list(O.Claim.all_categories(page_size=9999))
@@ -169,7 +305,8 @@ async def network(request):
     claims = (
         c
         for c in O.Claim.all_labelled(page_size=9999)
-        if categories is None or ({cat.object for cat in c.get_data().get(IS_A, set())} & categories)
+        if categories is None
+        or ({cat.object for cat in c.get_data().get(IS_A, set())} & categories)
     )
     node_ids = set()
     elements, all_edges = [], []
@@ -189,8 +326,8 @@ async def network(request):
       <summary>Select Categories...</summary>
       <ul>
       {
-          "".join(
-              f'''<li><input
+            "".join(
+                f'''<li><input
                   type="checkbox"
                   id="cat{cat.id}"
                   name="categories"
@@ -204,17 +341,17 @@ async def network(request):
               />
               <label for="cat{cat.id}">{cat:label}</label></li>
               '''
-              for cat in all_categories
-          )
-      }
+                for cat in all_categories
+            )
+        }
       </ul>
     </details>
     <details class="dropdown">
     <summary>Select Verbs...</summary>
       <ul>
       {
-          "".join(
-              f'''<li><input
+            "".join(
+                f'''<li><input
                   type="checkbox"
                   id="verb{verb.id}"
                   name="verbs"
@@ -228,10 +365,10 @@ async def network(request):
               />
               <label for="verb{verb.id}">{verb.label}</label></li>
               '''
-              for verb in all_verbs
-              if verb.id not in (IS_A, ROOT)
-          )
-      }
+                for verb in all_verbs
+                if verb.id not in (IS_A, ROOT)
+            )
+        }
       </ul>
     </details>
     </fieldset>
@@ -274,6 +411,7 @@ async def network(request):
 
 
 @app.get("/claims/autocomplete")
+@admin_only
 @fragment
 async def autocomplete_claims(request):
     args = D(request.args)
@@ -285,13 +423,16 @@ async def autocomplete_claims(request):
         q=query,
         page_size=5,
     )
-    return "".join(
-        f"{claim:ac-result}"
-        for claim in claims
-    ) + f'<a class="clickable" href="/claims/new-root?connect={connect}&name={query}"><em>Create</em> {query} <em> claim...</em></a>'
+    return f"""
+    {"".join(f"{claim:ac-result}" for claim in claims)}
+    <a class="clickable" href="/claims/new-root?connect={connect}&name={query}">
+        <em>Create</em> {query} <em> claim...</em>
+    </a>
+    """
 
 
 @app.get("/claims/autocomplete/accept/<claim_id>")
+@admin_only
 @fragment
 async def autocomplete_claims_accept(request, claim_id: int):
     claim = O.Claim(claim_id)
@@ -312,6 +453,7 @@ async def autocomplete_claims_accept(request, claim_id: int):
 
 
 @app.get("/claims/new-root")
+@admin_only
 @page
 async def new_root_claim_form(request):
     categories = O.Claim.all_categories()
@@ -329,20 +471,22 @@ async def new_root_claim_form(request):
     name = args.get("name", "")
     return "New root", f"""
     <article>
-    <heading><h2>New root claim</h2></heading>
+    <header><h2>New root claim</h2></header>
         <form action="/claims/new-root" method="POST">
             <input name="name" placeholder="name" value="{name}"></input>
             <select
                 name="category"
             >
                 <option value="">(None)</option>
-                {"".join(
-                    f'''<option
+                {
+            "".join(
+                f'''<option
                             value="{cat.id}"
                             {'selected="selected"' if i == 0 else ""}
                         >{cat:label}</option>'''
-                    for i, cat in enumerate(categories)
-                )}
+                for i, cat in enumerate(categories)
+            )
+        }
             </select>
             {connect_info}
             <button type="submit">»</button>
@@ -352,6 +496,7 @@ async def new_root_claim_form(request):
 
 
 @app.post("/claims/new-root")
+@admin_only
 async def new_root_claim(request):
     form = D(request.form)
     name = form["name"]
@@ -373,9 +518,12 @@ async def new_root_claim(request):
 
 
 @app.get("/claims/new/<claim_id>/<direction:incoming|outgoing>")
+@admin_only
 @fragment
 async def new_claim_form(request, claim_id: int, direction: str):
-    verbs = O.Verb.all(page_size=9999, data_type="directed_link" if direction == "incoming" else None)
+    verbs = O.Verb.all(
+        page_size=9999, data_type="directed_link" if direction == "incoming" else None
+    )
     return f"""
         <form
             action="/claims/new/{claim_id}/{direction}"
@@ -389,13 +537,15 @@ async def new_claim_form(request, claim_id: int, direction: str):
                 hx-swap="innerHTML"
             >
                 <option selected disabled>--Verb--</option>
-                {"".join(
-                    f'''<option
-                            value="{verb.id}"
-                        >{verb.label} ({verb.data_type})</option>'''
-                    for verb in verbs
-                    if verb.id != ROOT
-                )}
+                {
+                    "".join(
+                        f'''<option
+                                        value="{verb.id}"
+                                    >{verb.label} ({verb.data_type})</option>'''
+                        for verb in verbs
+                        if verb.id != ROOT
+                    )
+                }
             </select>
             <span id="valueinput"></span>
         </form>
@@ -403,6 +553,7 @@ async def new_claim_form(request, claim_id: int, direction: str):
 
 
 @app.get("/claims/new/verb")
+@admin_only
 @fragment
 async def new_claim_form_verb_input(request):
     args = D(request.args)
@@ -414,6 +565,7 @@ async def new_claim_form_verb_input(request):
 
 
 @app.post("/claims/new/<claim_id>/<direction:incoming|outgoing>")
+@admin_only
 async def new_claim(request, claim_id: int, direction: str):
     claim = O.Claim(claim_id)
     form = D(request.form)
@@ -446,7 +598,7 @@ async def search(request):
             LIMIT ?
             OFFSET ?
         """,
-        (make_search_key(query), PAGE_SIZE + 1, PAGE_SIZE * (page_no - 1))
+        (make_search_key(query), PAGE_SIZE + 1, PAGE_SIZE * (page_no - 1)),
     ).fetchall()
     parts = []
     more_results = False
@@ -459,11 +611,13 @@ async def search(request):
             if hit["table_name"] == "claims":
                 parts.append(f"{O.Claim(hit['id']):link}")
             elif hit["table_name"] == "queries":
-                parts.append(f"{O.Query(hit['id']):link}")
+                if context.user.is_admin:
+                    parts.append(f"{O.Query(hit['id']):link}")
             elif hit["table_name"] == "verbs":
-                parts.append(f"{O.Verb(hit['id']):link}")
+                if context.user.is_admin or hit["id"] in context.user.readable_verbs:
+                    parts.append(f"{O.Verb(hit['id']):link}")
             else:
-                parts.append("TODO: implement for", hit["table_name"])
+                parts.append(f"TODO: implement for {hit['table_name']}")
     return "".join(parts) + pagination(
         f"/search?q={query}",
         page_no=page_no,
@@ -472,6 +626,7 @@ async def search(request):
 
 
 @app.get("/claims/<claim_id>/edit")
+@admin_only
 @fragment
 async def edit_claim_form(request, claim_id: int):
     claim = O.Claim(claim_id)
@@ -487,6 +642,7 @@ async def edit_claim_form(request, claim_id: int):
 
 
 @app.delete("/claims/<claim_id>")
+@admin_only
 @fragment
 async def delete_claim(request, claim_id: int):
     claim = O.Claim(claim_id)
@@ -497,6 +653,7 @@ async def delete_claim(request, claim_id: int):
 
 
 @app.post("/claims/<claim_id>/edit")
+@admin_only
 async def edit_claim(request, claim_id: int):
     form = D(request.form)
     if "value" in request.files:
@@ -519,10 +676,12 @@ async def list_verbs(request):
     page_no = int(request.args.get("page", 1))
     parts = []
     more_results = False
-    for i, verb in enumerate(O.Verb.all(
-        page_no=page_no-1,
-        page_size=PAGE_SIZE + 1,
-    )):
+    for i, verb in enumerate(
+        O.Verb.all(
+            page_no=page_no - 1,
+            page_size=PAGE_SIZE + 1,
+        )
+    ):
         if i == PAGE_SIZE:
             more_results = True
         elif verb.id not in (ROOT, LABEL):
@@ -535,6 +694,7 @@ async def list_verbs(request):
 
 
 @app.get("/verbs/new")
+@admin_only
 @page
 async def new_verb_form(request):
     return "New verb", f"""
@@ -550,10 +710,12 @@ async def new_verb_form(request):
                 hx-swap="innerHTML"
             >
                 <option selected disabled>--Type--</option>
-                {"".join(
-                    f'''<option value="{data_type}">{data_type}</option>'''
-                    for data_type in TYPES
-                )}
+                {
+            "".join(
+                f'''<option value="{data_type}">{data_type}</option>'''
+                for data_type in TYPES
+            )
+        }
             </select>
             <span id="steps"></span>
         </form>
@@ -561,6 +723,7 @@ async def new_verb_form(request):
 
 
 @app.get("/verbs/new/steps")
+@admin_only
 @fragment
 async def new_verb_form_steps(request):
     args = D(request.args)
@@ -571,6 +734,7 @@ async def new_verb_form_steps(request):
 
 
 @app.post("/verbs/new")
+@admin_only
 async def new_verb(request):
     form = D(request.form)
     data_type = TYPES[form["data_type"]]
@@ -582,15 +746,18 @@ async def new_verb(request):
 
 
 @app.get("/queries")
+@admin_only
 @page
 async def list_queries(request):
     page_no = int(request.args.get("page", 1))
     parts = []
     more_results = False
-    for i, query in enumerate(O.Query.all(
-        page_no=page_no-1,
-        page_size=PAGE_SIZE + 1,
-    )):
+    for i, query in enumerate(
+        O.Query.all(
+            page_no=page_no - 1,
+            page_size=PAGE_SIZE + 1,
+        )
+    ):
         if i == PAGE_SIZE:
             more_results = True
         else:
@@ -623,6 +790,7 @@ def _queries_textarea(value=None):
 
 
 @app.get("/queries/new")
+@admin_only
 @page
 async def new_query_form(request):
     return "New query", f"""
@@ -648,6 +816,7 @@ async def new_query_form(request):
 
 
 @app.get("/queries/<query_id>/edit")
+@admin_only
 @page
 async def edit_query_form(request, query_id: int):
     query = O.Query(query_id)
@@ -681,8 +850,7 @@ for singular, plural, model in (
 ):
     SPECIAL_COL_NAMES[singular] = model
     SPECIAL_COL_NAMES[plural] = lambda value, model=model: ", ".join(
-        str(model(int(part)))
-        for part in value.split(",")
+        str(model(int(part))) for part in value.split(",")
     )
 
 
@@ -698,7 +866,7 @@ def display_query_result(result):
             parts.append("<tr>")
             for col in header:
                 value = row[col]
-                if col.endswith(tuple(SPECIAL_COL_NAMES)):
+                if value is not None and col.endswith(tuple(SPECIAL_COL_NAMES)):
                     _, __, ending = col.rpartition("_")
                     value = SPECIAL_COL_NAMES[ending](value)
                 parts.append(f"<td>{value}</td>")
@@ -709,6 +877,7 @@ def display_query_result(result):
 
 
 @app.post("/queries/preview")
+@admin_only
 @fragment
 async def preview_query(request):
     form = D(request.form)
@@ -724,6 +893,7 @@ async def preview_query(request):
 
 
 @app.post("/queries/new")
+@admin_only
 @fragment
 async def new_query(request):
     form = D(request.form)
@@ -737,6 +907,7 @@ async def new_query(request):
 
 
 @app.put("/queries/<query_id>")
+@admin_only
 @fragment
 async def edit_query(request, query_id: int):
     query = O.Query(query_id)
@@ -748,12 +919,13 @@ async def edit_query(request, query_id: int):
 
 
 @app.get("/queries/<query_id>")
+@admin_only
 @page
 async def view_query(request, query_id: int):
     page_no = int(request.args.get("page", 1))
     query = O.Query(query_id)
     result = query.run(
-        page_no=page_no-1,
+        page_no=page_no - 1,
         page_size=PAGE_SIZE + 1,  # so we know if there would be more results
     )
     if len(result) > PAGE_SIZE:
@@ -764,25 +936,30 @@ async def view_query(request, query_id: int):
     return query.label, f"""
         <article><header>
         {query:heading}</header>{display_query_result(result)}
-    """ + pagination(
-        f"/queries/{query_id}",
-        page_no,
-        more_results=more_results,
-    ) + "</article>"
+        {
+            pagination(
+                f"/queries/{query_id}",
+                page_no,
+                more_results=more_results,
+            )
+        }
+        </article>
+    """
 
 
 @app.get("/claims")
 @page
 async def list_labelled_claims(request):
     page_no = int(request.args.get("page", 1))
-    parts = [
-    ]
+    parts = []
     more_results = False
-    for i, claim in enumerate(O.Claim.all_labelled(
-        order_by="id DESC",
-        page_no=page_no-1,
-        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
-    )):
+    for i, claim in enumerate(
+        O.Claim.all_labelled(
+            order_by="id DESC",
+            page_no=page_no - 1,
+            page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+        )
+    ):
         if i:
             parts.append("<br>")
         if i == PAGE_SIZE:
@@ -800,16 +977,32 @@ async def list_labelled_claims(request):
 @page
 async def view_claim(request, claim_id: int):
     claim = O.Claim(claim_id)
+    if (
+        not context.user.is_admin
+        and claim.verb.id not in context.user.readable_verbs
+    ):
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
     incoming_mentions = list(claim.incoming_mentions())
     return f"{claim:label}", f"""
         <article>
             <header>{claim:heading}{claim:avatar}</header>
             <div id="edit-area"></div>
             <table class="claims"><tr><td>
-        <div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>
+        {
+            '<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>'
+            if context.user.is_admin
+            else ""
+        }
         {"".join(f"<p>{c:sv}</p>" for c in claim.incoming_claims())}
         </td><td>
-        <div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>
+        {
+            '<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>'
+            if context.user.is_admin
+            else ""
+        }
         {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR))}
         </td></tr></table>
         {"<hr><h3>Mentions</h3>" + "".join(f"<p>{c:svo}</p>" for c in incoming_mentions) if incoming_mentions else ""}
@@ -821,13 +1014,20 @@ async def view_claim(request, claim_id: int):
 @page
 async def view_verb(request, verb_id: int):
     page_no = int(request.args.get("page", 1))
+    if not context.user.is_admin and verb_id not in context.user.readable_verbs:
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
     verb = O.Verb(verb_id)
     parts = [f"<article><heading>{verb:heading}</heading>"]
     more_results = False
-    for i, claim in enumerate(verb.claims(
-        page_no=page_no-1,
-        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
-    )):
+    for i, claim in enumerate(
+        verb.claims(
+            page_no=page_no - 1,
+            page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+        )
+    ):
         if i == PAGE_SIZE:
             more_results = True
         else:
@@ -838,6 +1038,150 @@ async def view_verb(request, verb_id: int):
         page_no,
         more_results=more_results,
     )
+
+
+@app.get("/users")
+@admin_only
+@page
+async def list_users(request):
+    page_no = int(request.args.get("page", 1))
+    parts = [
+        "<article><header><h3>Users</h3></header><table>",
+        '<thead><tr><th scope="col">ID</th><th scope="col">Name</th></tr></thead>',
+        "<tbody>",
+    ]
+    more_results = False
+    for i, user in enumerate(
+        O.User.all(
+            page_no=page_no - 1,
+            page_size=PAGE_SIZE + 1,
+        )
+    ):
+        if i == PAGE_SIZE:
+            more_results = True
+        else:
+            parts.append(f"<tr><td>{user.id}</td>")
+            parts.append(f"<td>{user:link}</td></tr>")
+    parts.append("</tbody></table></article>")
+    return "Users", "".join(parts) + pagination(
+        "/users",
+        page_no,
+        more_results=more_results,
+    )
+
+
+@app.get("/users/new")
+@admin_only
+@page
+async def new_user_form(request):
+    verb_options = []
+    for verb in O.Verb.all(page_size=9999):
+        if verb.id < 0:
+            continue
+        verb_options.append(f'<option value="{verb.id}">{verb.label}</option>')
+    verb_options = "\n".join(verb_options)
+    password = token_urlsafe(16)
+    return "New user", f"""
+        <form
+            action="/users/new"
+            method="POST"
+        >
+            <input name="name" placeholder="name"></input>
+            <h3>Readable verbs</h3>
+            <select name="verbs-readable" multiple size="10">
+            {verb_options}
+            </select>
+
+            <fieldset role="group">
+            <input id="password" disabled value="{password}">
+            <input type="hidden" name="password" value="{password}">
+            <input type="button" value="copy" onclick="navigator.clipboard.writeText('{password}')">
+            </fieldset>
+
+            <input type="submit" value="Create">
+        </form>
+    """
+
+
+@app.get("/users/<user_id>/edit")
+@admin_only
+@page
+async def edit_user_form(request, user_id: int):
+    verb_options = []
+    user = O.User(user_id)
+    for verb in O.Verb.all(page_size=9999):
+        if verb.id < 0:
+            continue
+        verb_options.append(
+            f'<option {"selected" if verb.id in user.readable_verbs else ""} value="{verb.id}">{verb.label}</option>'
+        )
+    verb_options = "\n".join(verb_options)
+    return f"Edit user {user.name}", f"""
+        <form
+            action="/users/{user_id}/edit"
+            method="POST"
+        >
+            <input name="name" placeholder="name" value="{user.name}">
+            <h3>Readable verbs</h3>
+            <select name="verbs-readable" multiple size="10">
+            {verb_options}
+            </select>
+
+            <label>New password
+            <input type="password" name="password" value="" placeholder="(leave empty to keep as-is)">
+            </label>
+
+            <input type="submit" value="Save">
+        </form>
+    """
+
+
+@app.post("/users/<user_id>/edit")
+@admin_only
+async def edit_user(request, user_id: int):
+    form = D(request.form)
+    user = O.User(user_id)
+    user.update(
+        name=form["name"],
+        password=form.get("password"),
+        readable_verbs=[int(v) for v in request.form["verbs-readable"]] if "verbs-readable" in request.form else [],
+    )
+    return redirect(f"/users/{user.id}")
+
+
+@app.post("/users/new")
+@admin_only
+async def new_user(request):
+    form = D(request.form)
+    user = O.User.new(
+        form["name"],
+        password=form["password"],
+        readable_verbs=[int(v) for v in request.form["verbs-readable"]] if "verbs-readable" in request.form else [],
+    )
+    return redirect(f"/users/{user.id}")
+
+
+@app.get("/users/<user_id>")
+@admin_only
+@page
+async def view_user(request, user_id: int):
+    user = O.User(user_id)
+    result = f"""
+        <article><header>
+        <a
+            href="/users/{user_id}/edit"
+            role="button"
+            class="outline contrast toolbutton"
+        >✎ Edit</a>
+        <h3>{user:heading}</h3>
+        </header>
+        <table>
+        <tr><th scope="row">Admin</th><td>{TYPES["boolean"].display_html(user.is_admin)}</td></tr>
+        <tr><th scope="row">Readable verbs</th><td>{", ".join(str(O.Verb(v)) for v in (user.readable_verbs or []) if v >= 0)}</td></tr>
+        </table>
+        </article>
+    """
+    return user.name, result
 
 
 @app.get("/htmx.js")

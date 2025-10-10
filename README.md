@@ -12,20 +12,22 @@ This is meant as a personal, intentionally non-scalable tool. As such, it uses
 SQLite, and there's no proper packaging yet (mostly because it's not needed).
 The app is protected by basic auth, but beyond that there's no protection
 against e.g. XSS. This is a feature, you can put HTML into text fields for
-example. If you need multiple users, SSO, MFA, or any other similar features,
-use a different tool.
+example. If you need SSO, MFA, or any other similar features, use a different
+tool.
 
 ## Development
 
 - Clone the repo
 - Install `sanic` (to a venv)
-- Run `VERONIQUE_CREDS='foo:bar' sanic api --dev`
+- Place a file called `veronique_initial_pw` containing a password in the
+  working directory. This will be the password of the `admin` user.
+- Run `sanic api --dev`
 
 ## Deployment
 
-Running in production mostly means replacing the `VERONIQUE_CREDS` with some
-random values, and removing the `--dev` flag. Maybe set up a systemd service
-for it and point a reverse proxy at it or something. I personally [use
+Running in production mostly means removing the `--dev` flag. Maybe set up a
+systemd service for it and point a reverse proxy at it or something. I
+personally [use
 ansible](https://github.com/L3viathan/ansibly/blob/master/roles/mainserver/tasks/veronique.yml)
 for deploying new versions.
 
@@ -93,3 +95,31 @@ Notable data types are:
   question mark. This allows you to represent dates such as "some time in
   1973" or "26th of July, but I don't know which year", which can be common
   when entering data without full knowledge of the truth.
+
+### Users
+
+Véronique now has basic support for additional users. Non-admin users only have
+read access, and only to a selected list of verbs. That list always includes
+all internal verbs, and can optionally include others. The user can then only
+see claims of that verb type, e.g. only birth dates.
+
+Regular users can't use queries or the network page:
+
+- The network page could be changed to allow regular users, we would just have
+  to filter the verbs for readable verbs of that user.
+- Queries could be made readable by regular users, but that should probably be
+  a dedicated permission per query, as they can expose arbitrary information.
+
+## Future plans
+
+- [ ] allowing users to _write_ claims of some verb types (i.e., adding a
+  `write-verb` permission). As opposed to how it's handled for reading,
+  internal verbs should have to be explicitly allow-listed here. We would
+  probably also have to add an "owner" field to each claim, unless we're fine
+  with users being able to _add_ claims, but not being able to delete or edit
+  them. Queries can never be made writable by regular users, as that involves
+  arbitrary database access.
+- [ ] a new (internal) verb called "comment", with special UI support. This
+  could be used to carefully allow editing of a Veronique instance by regular
+  users (by allowing them to exclusively create comments, which can then be
+  resolved by an admin).

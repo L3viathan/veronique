@@ -4,6 +4,7 @@ import base64
 import sys
 import sqlite3
 import unicodedata
+from security import hash_password
 
 conn = sqlite3.connect(os.environ.get("VERONIQUE_DB", "veronique.db"))
 conn.row_factory = sqlite3.Row
@@ -39,19 +40,14 @@ def migration(number):
                 cur.execute("ROLLBACK")
                 sys.exit(1)
             cur.close()
+
     return deco
 
 
 @migration(0)
 def initial(cur):
-    cur.execute("""
-        CREATE TABLE state (version INTEGER)
-        """
-    )
-    cur.execute("""
-        INSERT INTO state (version) VALUES (0)
-        """
-    )
+    cur.execute("CREATE TABLE state (version INTEGER)")
+    cur.execute("INSERT INTO state (version) VALUES (0)")
     cur.execute("""
         CREATE TABLE entity_types
         (
@@ -172,15 +168,20 @@ def add_search_key(cur):
     rows = cur.fetchall()
     cur.executemany(
         "UPDATE entities SET search_key=? WHERE id=?",
-        ((make_search_key(name), id) for id, name in rows)
+        ((make_search_key(name), id) for id, name in rows),
     )
+
 
 @migration(5)
 def rename_entity_type_to_category(cur):
     cur.execute("ALTER TABLE entity_types RENAME TO categories")
     cur.execute("ALTER TABLE entities RENAME COLUMN entity_type_id TO category_id")
-    cur.execute("ALTER TABLE properties RENAME COLUMN subject_type_id TO subject_category_id")
-    cur.execute("ALTER TABLE properties RENAME COLUMN object_type_id TO object_category_id")
+    cur.execute(
+        "ALTER TABLE properties RENAME COLUMN subject_type_id TO subject_category_id"
+    )
+    cur.execute(
+        "ALTER TABLE properties RENAME COLUMN object_type_id TO object_category_id"
+    )
 
 
 @migration(6)
@@ -299,6 +300,7 @@ def remove_constraints(cur):
         ALTER TABLE facts_tmp RENAME TO facts
     """)
 
+
 @migration(7)
 def add_queries_table(cur):
     cur.execute("""
@@ -312,7 +314,9 @@ def add_queries_table(cur):
 
 def rebuild_search_index(cur):
     cur.execute("DELETE FROM search_index")
-    for row in cur.execute("SELECT subject_id, value FROM claims WHERE verb_id = ?", (LABEL,)).fetchall():
+    for row in cur.execute(
+        "SELECT subject_id, value FROM claims WHERE verb_id = ?", (LABEL,)
+    ).fetchall():
         cur.execute(
             "INSERT INTO search_index (table_name, id, value) VALUES ('claims', ?, ?)",
             (row["subject_id"], make_search_key(row["value"])),
@@ -390,7 +394,8 @@ def add_claims(cur):
             data_type = "directed_link"
         else:
             data_type = prop["data_type"]
-        cur.execute("""
+        cur.execute(
+            """
                 INSERT INTO verbs (
                     label,
                     data_type,
@@ -449,7 +454,7 @@ def add_claims(cur):
                 (
                     new_id,
                     AVATAR,
-                    f"data:image/jpeg;base64,{base64.b64encode(body).decode()}"
+                    f"data:image/jpeg;base64,{base64.b64encode(body).decode()}",
                 ),
             )
 
@@ -466,7 +471,13 @@ def add_claims(cur):
                 continue
             cur.execute(
                 "INSERT INTO claims (subject_id, verb_id, object_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-                (entity_map[fact["subject_id"]], prop_map[fact["property_id"]], entity_map[fact["object_id"]], fact["created_at"], fact["updated_at"]),
+                (
+                    entity_map[fact["subject_id"]],
+                    prop_map[fact["property_id"]],
+                    entity_map[fact["object_id"]],
+                    fact["created_at"],
+                    fact["updated_at"],
+                ),
             )
             imported_facts.add(fact["id"])
         else:
@@ -475,7 +486,13 @@ def add_claims(cur):
                 value = value.replace(f"<@{ref_id}>", f"<@{entity_map[ref_id]}>")
             cur.execute(
                 "INSERT INTO claims (subject_id, verb_id, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-                (entity_map[fact["subject_id"]], prop_map[fact["property_id"]], value, fact["created_at"], fact["updated_at"]),
+                (
+                    entity_map[fact["subject_id"]],
+                    prop_map[fact["property_id"]],
+                    value,
+                    fact["created_at"],
+                    fact["updated_at"],
+                ),
             )
             imported_facts.add(fact["id"])
         new_id = cur.lastrowid
@@ -505,6 +522,53 @@ def drop_legacy_tables(cur):
     cur.execute("DROP TABLE entities")
     cur.execute("DROP TABLE properties")
     cur.execute("DROP TABLE categories")
+
+
+@migration(10)
+def add_users(cur):
+    with open("veronique_initial_pw") as f:
+        initial_pw = f.read().strip()
+    cur.execute("""
+        CREATE TABLE users (
+            id INTEGER PRIMARY KEY,
+            name VARCHAR(32) NOT NULL,
+            hash VARCHAR(64) NOT NULL,
+            is_admin INT NOT NULL DEFAULT 0,
+            salt VARCHAR(32) NOT NULL
+        )
+    """)
+    hash, salt = hash_password(initial_pw)
+    os.remove("veronique_initial_pw")
+    cur.execute(
+        """
+        INSERT INTO users (id, name, is_admin, hash, salt) VALUES (0, 'admin', 1, ?, ?)
+        """,
+        (hash, salt),
+    )
+
+
+@migration(11)
+def add_permissions(cur):
+    cur.execute("""
+        CREATE TABLE permissions
+        (
+            user_id INTEGER NOT NULL,
+            permission VARCHAR(16) NOT NULL,
+            object INTEGER NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+
+@migration(12)
+def add_user_generation(cur):
+    cur.execute(
+        """
+        ALTER TABLE users
+        ADD generation INTEGER DEFAULT 0
+        """
+    )
+
 
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")

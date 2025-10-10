@@ -8,6 +8,7 @@ from nomnidate import NonOmniscientDate
 
 TYPES = {}
 
+
 def float_int(val):
     val = float(val)
     if val.is_integer():
@@ -69,6 +70,7 @@ class directed_link(DataType):
                 </div>
             </div>
         """
+
 
 TYPES["undirected_link"] = directed_link()
 
@@ -166,9 +168,9 @@ class location(DataType):
     def display_html(self, value, **_):
         newline = "\n"
         return f"""<a
-            href="https://www.openstreetmap.org/search?query={quote_plus(
-                value.replace(newline, ", ")
-            )}"
+            href="https://www.openstreetmap.org/search?query={
+            quote_plus(value.replace(newline, ", "))
+        }"
             class="type-location"
         >{value.replace(newline, "<br>")}</a>"""
 
@@ -311,23 +313,15 @@ class alpha2(DataType):
     def display_html(self, value, **_):
         country = value.upper()
         flag = "".join(
-            unicodedata.lookup(
-                f"REGIONAL INDICATOR SYMBOL LETTER {c}"
-            )
-            for c in country
+            unicodedata.lookup(f"REGIONAL INDICATOR SYMBOL LETTER {c}") for c in country
         )
         return f'<span class="type-alpha2">{flag} {country}</span>'
 
     def encode(self, string):
         val = string.upper()
-        if (
-            len(val) == 2
-            and 65 <= ord(val[0]) <= 90
-            and 65 <= ord(val[1]) <= 90
-        ):
+        if len(val) == 2 and 65 <= ord(val[0]) <= 90 and 65 <= ord(val[1]) <= 90:
             return val
         raise ValueError("Needs to be two-letter ASCII")
-
 
     def input_html(self, value=None, **_):
         if value:
@@ -364,9 +358,9 @@ class age(DataType):
         if not max_age:
             max_age = min_age
 
-        latest = [reference_date.replace(year=reference_date.year-int(min_age))]
+        latest = [reference_date.replace(year=reference_date.year - int(min_age))]
         tomorrow = reference_date + timedelta(days=1)
-        earliest = [tomorrow.replace(year=tomorrow.year-(int(max_age) + 1))]
+        earliest = [tomorrow.replace(year=tomorrow.year - (int(max_age) + 1))]
 
         if "previous" in form:
             prev_earliest, prev_latest = form["previous"].split("--")

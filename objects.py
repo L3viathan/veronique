@@ -1,8 +1,10 @@
 import re
-from datetime import date
+from datetime import date, datetime
 
 from data_types import TYPES
 from nomnidate import NonOmniscientDate
+from security import hash_password
+from context import context
 from db import (
     conn,
     make_search_key,
@@ -18,6 +20,8 @@ from db import (
 TEXT_REF = re.compile(r"<@(\d+)>")
 SELF = object()
 UNSET = object()
+
+
 class lazy:
     def __init__(self, name):
         self.value = UNSET
@@ -36,6 +40,8 @@ class lazy:
 
 class Model:
     def __new__(cls, id):
+        if not isinstance(id, int):
+            raise ValueError("IDs need to be ints")
         if id in cls._cache:
             return cls._cache[id]
         obj = super(Model, cls).__new__(cls)
@@ -163,6 +169,10 @@ class Verb(Model):
         if data_type is not None:
             conditions.append("data_type LIKE ?")
             values.append(data_type)
+        if (verb_ids := context.user.readable_verbs) is not None:
+            conditions.append(
+                f"id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
+            )
 
         cur = conn.cursor()
         for row in cur.execute(
@@ -248,7 +258,15 @@ class Claim(Model):
             self.object = None
 
     @classmethod
-    def all(cls, *, subject_id=None, verb_ids=None, object_id=None, order_by="id ASC", page_no=0, page_size=20):
+    def all(
+        cls,
+        *,
+        subject_id=None,
+        object_id=None,
+        order_by="id ASC",
+        page_no=0,
+        page_size=20,
+    ):
         cur = conn.cursor()
         conditions = ["1=1"]
         bindings = []
@@ -258,7 +276,7 @@ class Claim(Model):
         if object_id is not None:
             conditions.append("object_id = ?")
             bindings.append(object_id)
-        if verb_ids is not None:
+        if (verb_ids := context.user.readable_verbs) is not None:
             conditions.append(
                 f"verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
             )
@@ -272,7 +290,7 @@ class Claim(Model):
             LIMIT {page_size}
             OFFSET {page_no * page_size}
             """,
-            tuple(bindings)
+            tuple(bindings),
         ).fetchall():
             yield cls(row["id"])
 
@@ -281,16 +299,32 @@ class Claim(Model):
         cur = conn.cursor()
         if reference_date is None:
             reference_date = date.today()
+        conditions = [
+            "v.id != ?",
+            "v.id != ?",
+            "v.data_type = 'date'",
+            "c.value LIKE '%-' || ? || '-%'",
+        ]
+        if (verb_ids := context.user.readable_verbs) is not None:
+            conditions.append(
+                f"verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
+            )
+
+        query = f"""
+            SELECT c.id
+            FROM claims c
+            LEFT JOIN verbs v ON c.verb_id = v.id
+            WHERE {" AND ".join(conditions)}
+        """
         return [
             cls(row[0])
             for row in cur.execute(
-                """
-                SELECT c.id
-                FROM claims c
-                LEFT JOIN verbs v ON c.verb_id = v.id
-                WHERE v.id != ? AND v.id != ? AND v.data_type = 'date' AND c.value LIKE '%-' || ? || '-%'
-                """,
-                (VALID_FROM, VALID_UNTIL, reference_date.strftime("%m"),),
+                query,
+                (
+                    VALID_FROM,
+                    VALID_UNTIL,
+                    reference_date.strftime("%m"),
+                ),
             )
         ]
 
@@ -313,8 +347,12 @@ class Claim(Model):
 
     def incoming_claims(self):
         cur = conn.cursor()
+        if (verb_ids := context.user.readable_verbs) is not None:
+            cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
+        else:
+            cond = ""
         for row in cur.execute(
-            """
+            f"""
             SELECT
                 c.id
             FROM claims c
@@ -322,6 +360,7 @@ class Claim(Model):
             ON c.verb_id = v.id
             WHERE c.object_id = ?
             AND v.data_type <> 'undirected_link'
+            {cond}
             """,
             (self.id,),
         ).fetchall():
@@ -329,14 +368,18 @@ class Claim(Model):
 
     def incoming_mentions(self):
         cur = conn.cursor()
+        if (verb_ids := context.user.readable_verbs) is not None:
+            cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
+        else:
+            cond = ""
         for row in cur.execute(
-            """
+            f"""
             SELECT
                 c.id
             FROM claims c
             LEFT JOIN verbs v
             ON c.verb_id = v.id
-            WHERE c.value LIKE '%<@' || ? || '>%'
+            WHERE c.value LIKE '%<@' || ? || '>%' {cond}
             """,
             (self.id,),
         ).fetchall():
@@ -344,15 +387,20 @@ class Claim(Model):
 
     def outgoing_claims(self):
         cur = conn.cursor()
+        if (verb_ids := context.user.readable_verbs) is not None:
+            cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
+        else:
+            cond = ""
         for row in cur.execute(
-            """
+            f"""
             SELECT
                 c.id
             FROM claims c
             LEFT JOIN verbs v
             ON c.verb_id = v.id
-            WHERE c.subject_id = ?
-            OR (v.data_type = 'undirected_link' AND c.object_id = ?)
+            WHERE (c.subject_id = ?
+            OR (v.data_type = 'undirected_link' AND c.object_id = ?))
+            {cond}
             """,
             (self.id, self.id),
         ).fetchall():
@@ -361,6 +409,11 @@ class Claim(Model):
     @classmethod
     def all_labelled(cls, *, order_by="id ASC", page_no=0, page_size=20):
         cur = conn.cursor()
+
+        if (verb_ids := context.user.readable_verbs) is None:
+            cond = ""
+        else:
+            cond = f"AND c.verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
         for row in cur.execute(
             f"""
             SELECT
@@ -368,7 +421,7 @@ class Claim(Model):
             FROM claims c
             LEFT JOIN claims l
             ON l.subject_id = c.id
-            WHERE l.verb_id = {LABEL}
+            WHERE l.verb_id = {LABEL} {cond}
             ORDER BY {order_by}
             LIMIT {page_size}
             OFFSET {page_no * page_size}
@@ -404,19 +457,21 @@ class Claim(Model):
         if self.verb.data_type.name.endswith("directed_link"):
             raise RuntimeError("Can't edit link; delete it and create it again")
         else:
-            cur.execute("""
+            cur.execute(
+                """
                 UPDATE claims
                 SET value = ?, updated_at = datetime('now')
                 WHERE id = ?
                 """,
                 (
-                    value.encode(), self.id,
+                    value.encode(),
+                    self.id,
                 ),
             )
             if self.verb.id == LABEL:
                 cur.execute(
                     "UPDATE search_index SET value=? WHERE table_name=? AND id=?",
-                    (make_search_key(value.encode()), 'claims', self.subject.id),
+                    (make_search_key(value.encode()), "claims", self.subject.id),
                 )
         conn.commit()
         self.populate()
@@ -433,20 +488,17 @@ class Claim(Model):
                     VALUES
                         (?, ?, ?)
                 """,
-                (
-                    subject.id, verb.id, value_or_object.id
-                ),
+                (subject.id, verb.id, value_or_object.id),
             )
         else:
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO claims
                     (subject_id, verb_id, value)
                 VALUES
                     (?, ?, ?)
                 """,
-                (
-                    subject.id, verb.id, value_or_object.encode()
-                ),
+                (subject.id, verb.id, value_or_object.encode()),
             )
         conn.commit()
         return Claim(cur.lastrowid)
@@ -493,12 +545,17 @@ class Claim(Model):
             remarks.append(f"until {data[VALID_UNTIL][0].object.value}")
 
         if remarks:
-            remarks = f''' data-tooltip="{', '.join(remarks)}"'''
+            remarks = f' data-tooltip="{", ".join(remarks)}"'
         else:
             remarks = ""
         return f" {' '.join(css_classes)}" if css_classes else "", remarks
 
     def __format__(self, fmt):
+        if (
+            not context.user.is_admin
+            and self.verb.id not in context.user.readable_verbs
+        ):
+            return "(unknown claim)"
         data = self.get_data()
         css_classes, remarks = self._get_remarks(data)
         if fmt == "label":
@@ -510,28 +567,29 @@ class Claim(Model):
             if LABEL in data:
                 return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatar}{data[LABEL][0].object.value}</a>'
             else:
-                return f'{self:svo}'
+                return f"{self:svo}"
         elif fmt == "heading":
             if IS_A in data:
-                cat = f"""<br><small>&lt;{", ".join(f'<span>{c:handle}{c.object:link}</span>' for c in data[IS_A])}&gt;</small>"""
+                cat = f"""<br><small>&lt;{", ".join(f"<span>{c:handle}{c.object:link}</span>" for c in data[IS_A])}&gt;</small>"""
             else:
                 cat = ""
             buttons = []
-            if isinstance(self.object, Plain):
-                buttons.append(f"""<a
-                    hx-target="#edit-area"
-                    hx-get="/claims/{self.id}/edit"
-                    role="button"
-                    class="outline contrast toolbutton"
-                >✎ Edit</a>""")
-            if not list(self.outgoing_claims()) and not list(self.incoming_claims()):
-                buttons.append(f"""<a
-                    hx-target="#edit-area"
-                    hx-delete="/claims/{self.id}"
-                    hx-confirm="Are you sure you want to delete this claim?"
-                    role="button"
-                    class="outline contrast toolbutton"
-                >\N{WASTEBASKET}\ufe0e Delete</a>""")
+            if context.user.is_admin:
+                if isinstance(self.object, Plain):
+                    buttons.append(f"""<a
+                        hx-target="#edit-area"
+                        hx-get="/claims/{self.id}/edit"
+                        role="button"
+                        class="outline contrast"
+                    >✎ Edit</a>""")
+                if not list(self.outgoing_claims()) and not list(self.incoming_claims()):
+                    buttons.append(f"""<a
+                        hx-target="#edit-area"
+                        hx-delete="/claims/{self.id}"
+                        hx-confirm="Are you sure you want to delete this claim?"
+                        role="button"
+                        class="outline contrast"
+                    >\N{WASTEBASKET}\ufe0e Delete</a>""")
             if LABEL in data:
                 if self.verb.id == ROOT:
                     label = data[LABEL][0]
@@ -588,20 +646,25 @@ class Claim(Model):
                 continue
             if link.verb.id in (IS_A, ROOT):
                 continue
-            edges.append({
-                "group": "edges",
-                "data": {
-                    "source": str(self.id),
-                    "target": str(link.object.id),
-                    "label": link.verb.label,
-                },
-            })
+            edges.append(
+                {
+                    "group": "edges",
+                    "data": {
+                        "source": str(self.id),
+                        "target": str(link.object.id),
+                        "label": link.verb.label,
+                    },
+                }
+            )
         return node, edges
 
 
 class Query(Model):
     table_name = "queries"
-    fields = ("label", "sql",)
+    fields = (
+        "label",
+        "sql",
+    )
 
     def populate(self):
         cur = conn.cursor()
@@ -687,6 +750,125 @@ class Query(Model):
 
     def __str__(self):
         return f"{self}"
+
+
+class User(Model):
+    table_name = "users"
+    fields = ("name", "hash", "is_admin", "salt", "readable_verbs", "generation")
+
+    def populate(self):
+        cur = conn.cursor()
+        row = cur.execute(
+            """
+                SELECT
+                    id, name, hash, is_admin, salt, generation
+                FROM users
+                WHERE id = ?
+            """,
+            (self.id,),
+        ).fetchone()
+        if not row:
+            raise ValueError("No User with this ID found")
+        self.name = row["name"]
+        self.hash = row["hash"]
+        self.salt = row["salt"]
+        self.is_admin = row["is_admin"]
+        self.generation = row["generation"]
+        if not self.is_admin:
+            self.readable_verbs = set()
+            for row in cur.execute(
+                """
+                    SELECT
+                        permission, object
+                    FROM permissions
+                    WHERE user_id = ?
+                """,
+                (self.id,),
+            ).fetchall():
+                if row["permission"] == "read-verb":
+                    self.readable_verbs.add(row["object"])
+            # internal verbs can always be seen
+            self.readable_verbs.update(DATA_LABELS)
+        else:
+            self.readable_verbs = None  # all of them
+
+    @classmethod
+    def by_name(cls, name):
+        cur = conn.cursor()
+        row = cur.execute("SELECT id FROM users WHERE name = ?", (name,)).fetchone()
+        if not row:
+            raise ValueError("No User with this ID found")
+        return cls(row["id"])
+
+    @classmethod
+    def new(cls, name, *, password, readable_verbs):
+        cur = conn.cursor()
+        hash, salt = hash_password(password)
+        cur.execute(
+            "INSERT INTO users (name, hash, salt, is_admin) VALUES (?, ?, ?, ?)",
+            (name, hash, salt, 0),
+        )
+        u_id = cur.lastrowid
+        for readable_verb in readable_verbs:
+            cur.execute(
+                "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                (u_id, "read-verb", readable_verb),
+            )
+        conn.commit()
+        return cls(u_id)
+
+    def update(self, *, name, password, readable_verbs):
+        cur = conn.cursor()
+        to_set, values = [], []
+        if name != self.name:
+            to_set.append("name=?")
+            values.append(name)
+        if password:
+            hash, salt = hash_password(password)
+            to_set.append("hash=?")
+            values.append(hash)
+            to_set.append("salt=?")
+            values.append(salt)
+        values.append(self.id)
+        if to_set:
+            cur.execute(
+                f"UPDATE users SET {', '.join(to_set)} WHERE id=?", tuple(values)
+            )
+
+        if any(vid >= 0 for vid in set(readable_verbs) ^ self.readable_verbs):
+            cur.execute("DELETE FROM permissions WHERE user_id = ?", (self.id,))
+            for readable_verb in readable_verbs:
+                cur.execute(
+                    "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                    (self.id, "read-verb", readable_verb),
+                )
+        conn.commit()
+        self.populate()
+
+    def __format__(self, fmt):
+        if fmt == "link":
+            return f'<a href="/users/{self.id}">{self.name}</a>'
+        return self.name
+
+    def __str__(self):
+        return f"{self}"
+
+    @property
+    def payload(self):
+        return {
+            "u": self.id,
+            "t": f"{datetime.now():%Y-%m-%dT%H:%M}",
+            "g": self.generation,
+        }
+
+    def increment_generation(self):
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users SET generation = generation + 1 WHERE id = ?",
+            (self.id,),
+        )
+        conn.commit()
+        self.populate()
 
 
 class Plain:
