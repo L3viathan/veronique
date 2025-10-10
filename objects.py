@@ -161,14 +161,13 @@ class Verb(Model):
         order_by="id ASC",
         page_no=0,
         page_size=20,
-        verb_ids=None,
     ):
         conditions = ["1=1"]
         values = []
         if data_type is not None:
             conditions.append("data_type LIKE ?")
             values.append(data_type)
-        if verb_ids is not None:
+        if (verb_ids := context.user.readable_verbs) is not None:
             conditions.append(
                 f"id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
             )
@@ -257,7 +256,7 @@ class Claim(Model):
             self.object = None
 
     @classmethod
-    def all(cls, *, subject_id=None, verb_ids=None, object_id=None, order_by="id ASC", page_no=0, page_size=20):
+    def all(cls, *, subject_id=None, object_id=None, order_by="id ASC", page_no=0, page_size=20):
         cur = conn.cursor()
         conditions = ["1=1"]
         bindings = []
@@ -267,7 +266,7 @@ class Claim(Model):
         if object_id is not None:
             conditions.append("object_id = ?")
             bindings.append(object_id)
-        if verb_ids is not None:
+        if (verb_ids := context.user.readable_verbs) is not None:
             conditions.append(
                 f"verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
             )
@@ -286,7 +285,7 @@ class Claim(Model):
             yield cls(row["id"])
 
     @classmethod
-    def all_of_same_month(cls, reference_date=None, verb_ids=None):
+    def all_of_same_month(cls, reference_date=None):
         cur = conn.cursor()
         if reference_date is None:
             reference_date = date.today()
@@ -296,7 +295,7 @@ class Claim(Model):
             "v.data_type = 'date'",
             "c.value LIKE '%-' || ? || '-%'",
         ]
-        if verb_ids is not None:
+        if (verb_ids := context.user.readable_verbs) is not None:
             conditions.append(
                 f"verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
             )
@@ -332,9 +331,9 @@ class Claim(Model):
         ).fetchall():
             yield cls(row["id"])
 
-    def incoming_claims(self, verb_ids=None):
+    def incoming_claims(self):
         cur = conn.cursor()
-        if verb_ids is not None:
+        if (verb_ids := context.user.readable_verbs) is not None:
             cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
         else:
             cond = ""
@@ -353,9 +352,9 @@ class Claim(Model):
         ).fetchall():
             yield Claim(row["id"])
 
-    def incoming_mentions(self, verb_ids=None):
+    def incoming_mentions(self):
         cur = conn.cursor()
-        if verb_ids is not None:
+        if (verb_ids := context.user.readable_verbs) is not None:
             cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
         else:
             cond = ""
@@ -372,9 +371,9 @@ class Claim(Model):
         ).fetchall():
             yield Claim(row["id"])
 
-    def outgoing_claims(self, verb_ids=None):
+    def outgoing_claims(self):
         cur = conn.cursor()
-        if verb_ids is not None:
+        if (verb_ids := context.user.readable_verbs) is not None:
             cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
         else:
             cond = ""
@@ -394,10 +393,10 @@ class Claim(Model):
             yield Claim(row["id"])
 
     @classmethod
-    def all_labelled(cls, *, order_by="id ASC", page_no=0, page_size=20, verb_ids=None):
+    def all_labelled(cls, *, order_by="id ASC", page_no=0, page_size=20):
         cur = conn.cursor()
 
-        if verb_ids is None:
+        if (verb_ids := context.user.readable_verbs) is None:
             cond = ""
         else:
             cond = f"AND c.verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"

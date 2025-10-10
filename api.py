@@ -19,8 +19,16 @@ PAGE_SIZE = 20
 
 app = Sanic("Veronique")
 
+with open("template.html") as f:
+    TEMPLATE = f.read().format
+
+with open("login.html") as f:
+    LOGIN = f.read()
+
+
 @app.on_request
 async def auth(request):
+    """Ensure that each request is either authenticated or going to an explicitly allowed resource."""
     if request.name and (request.name in ("Veronique.login", "Veronique.do_login") or request.name.endswith(("_css", "_js", "_svg"))):
         # allow unauthenticated access to login page
         context.user = None
@@ -42,6 +50,7 @@ async def auth(request):
 
 @app.on_response
 async def refresh_session(request, response):
+    """If authenticated requests have overly old payloads, refresh them."""
     if not (payload := context.payload):
         return
     if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=7):
@@ -56,6 +65,7 @@ async def refresh_session(request, response):
 
 
 def admin_only(fn):
+    """Mark an endpoint to be only accessible by admins. Must be above @page."""
     @functools.wraps(fn)
     async def wrapper(request, *args, **kwargs):
         if not context.user.is_admin:
@@ -94,15 +104,8 @@ def pagination(url, page_no, *, more_results=True, allow_negative=False):
     """
 
 
-with open("template.html") as f:
-    TEMPLATE = f.read().format
-
-
-with open("login.html") as f:
-    LOGIN = f.read()
-
-
 def fragment(fn):
+    """Mark an endpoint as returning HTML, but not a full page."""
     @functools.wraps(fn)
     async def wrapper(*args, **kwargs):
         ret = fn(*args, **kwargs)
@@ -113,6 +116,7 @@ def fragment(fn):
 
 
 def page(fn):
+    """Mark an endpoint as returning a full standalone page."""
     @functools.wraps(fn)
     async def wrapper(request, *args, **kwargs):
         ret = fn(request, *args, **kwargs)
@@ -120,6 +124,8 @@ def page(fn):
             ret = await ret
         if isinstance(ret, str):
             title = "Véronique"
+        elif isinstance(ret, HTTPResponse):
+            return ret
         else:
             title, ret = ret
             title = f"{title} — Véronique"
@@ -159,6 +165,7 @@ def page(fn):
 
 
 def coalesce(*values):
+    """Like SQL's COALESCE() (where NULL = None)."""
     for val in values:
         if val is not None:
             return val
@@ -188,6 +195,7 @@ async def do_login(request):
     username = form["username"]
     password = form["password"]
     if not re.match("^[a-z]+$", username):
+        # this could probably be removed, but.. yeah let's not.
         return redirect("/login")
     try:
         user = O.User.by_name(username)
@@ -220,7 +228,7 @@ async def index(request):
             month=((reference_date.month + (page_no - 1)) % 12) or 12,
         )
     for claim in sorted(
-        O.Claim.all_of_same_month(reference_date, verb_ids=context.user.readable_verbs),
+        O.Claim.all_of_same_month(reference_date),
         key=lambda c: (
             # unspecified dates are always before everything else
             coalesce((reference_date - NonOmniscientDate(c.object.value)).days, 99)
@@ -253,6 +261,7 @@ async def index(request):
     ) + "</article>"
 
 
+# TODO: make this accessible to regular users (after adding required restrictions)
 @app.get("/network")
 @admin_only
 @page
@@ -637,7 +646,6 @@ async def list_verbs(request):
     for i, verb in enumerate(O.Verb.all(
         page_no=page_no-1,
         page_size=PAGE_SIZE + 1,
-        verb_ids=context.user.readable_verbs,
     )):
         if i == PAGE_SIZE:
             more_results = True
@@ -908,7 +916,6 @@ async def list_labelled_claims(request):
         order_by="id DESC",
         page_no=page_no-1,
         page_size=PAGE_SIZE + 1,  # so we know if there would be more results
-        verb_ids=context.user.readable_verbs,
     )):
         if i:
             parts.append("<br>")
@@ -932,17 +939,17 @@ async def view_claim(request, claim_id: int):
             body="403 Forbidden",
             status=403,
         )
-    incoming_mentions = list(claim.incoming_mentions(verb_ids=context.user.readable_verbs))
+    incoming_mentions = list(claim.incoming_mentions())
     return f"{claim:label}", f"""
         <article>
             <header>{claim:heading}{claim:avatar}</header>
             <div id="edit-area"></div>
             <table class="claims"><tr><td>
         <div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>
-        {"".join(f"<p>{c:sv}</p>" for c in claim.incoming_claims(verb_ids=context.user.readable_verbs))}
+        {"".join(f"<p>{c:sv}</p>" for c in claim.incoming_claims())}
         </td><td>
         <div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>
-        {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims(verb_ids=context.user.readable_verbs) if c.verb.id not in (LABEL, IS_A, AVATAR))}
+        {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR))}
         </td></tr></table>
         {"<hr><h3>Mentions</h3>" + "".join(f"<p>{c:svo}</p>" for c in incoming_mentions) if incoming_mentions else ""}
         </article>
