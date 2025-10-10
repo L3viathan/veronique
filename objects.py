@@ -20,6 +20,8 @@ from db import (
 TEXT_REF = re.compile(r"<@(\d+)>")
 SELF = object()
 UNSET = object()
+
+
 class lazy:
     def __init__(self, name):
         self.value = UNSET
@@ -256,7 +258,15 @@ class Claim(Model):
             self.object = None
 
     @classmethod
-    def all(cls, *, subject_id=None, object_id=None, order_by="id ASC", page_no=0, page_size=20):
+    def all(
+        cls,
+        *,
+        subject_id=None,
+        object_id=None,
+        order_by="id ASC",
+        page_no=0,
+        page_size=20,
+    ):
         cur = conn.cursor()
         conditions = ["1=1"]
         bindings = []
@@ -280,7 +290,7 @@ class Claim(Model):
             LIMIT {page_size}
             OFFSET {page_no * page_size}
             """,
-            tuple(bindings)
+            tuple(bindings),
         ).fetchall():
             yield cls(row["id"])
 
@@ -304,13 +314,17 @@ class Claim(Model):
             SELECT c.id
             FROM claims c
             LEFT JOIN verbs v ON c.verb_id = v.id
-            WHERE {' AND '.join(conditions)}
+            WHERE {" AND ".join(conditions)}
         """
         return [
             cls(row[0])
             for row in cur.execute(
                 query,
-                (VALID_FROM, VALID_UNTIL, reference_date.strftime("%m"),),
+                (
+                    VALID_FROM,
+                    VALID_UNTIL,
+                    reference_date.strftime("%m"),
+                ),
             )
         ]
 
@@ -443,19 +457,21 @@ class Claim(Model):
         if self.verb.data_type.name.endswith("directed_link"):
             raise RuntimeError("Can't edit link; delete it and create it again")
         else:
-            cur.execute("""
+            cur.execute(
+                """
                 UPDATE claims
                 SET value = ?, updated_at = datetime('now')
                 WHERE id = ?
                 """,
                 (
-                    value.encode(), self.id,
+                    value.encode(),
+                    self.id,
                 ),
             )
             if self.verb.id == LABEL:
                 cur.execute(
                     "UPDATE search_index SET value=? WHERE table_name=? AND id=?",
-                    (make_search_key(value.encode()), 'claims', self.subject.id),
+                    (make_search_key(value.encode()), "claims", self.subject.id),
                 )
         conn.commit()
         self.populate()
@@ -472,20 +488,17 @@ class Claim(Model):
                     VALUES
                         (?, ?, ?)
                 """,
-                (
-                    subject.id, verb.id, value_or_object.id
-                ),
+                (subject.id, verb.id, value_or_object.id),
             )
         else:
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO claims
                     (subject_id, verb_id, value)
                 VALUES
                     (?, ?, ?)
                 """,
-                (
-                    subject.id, verb.id, value_or_object.encode()
-                ),
+                (subject.id, verb.id, value_or_object.encode()),
             )
         conn.commit()
         return Claim(cur.lastrowid)
@@ -532,13 +545,16 @@ class Claim(Model):
             remarks.append(f"until {data[VALID_UNTIL][0].object.value}")
 
         if remarks:
-            remarks = f''' data-tooltip="{', '.join(remarks)}"'''
+            remarks = f' data-tooltip="{", ".join(remarks)}"'
         else:
             remarks = ""
         return f" {' '.join(css_classes)}" if css_classes else "", remarks
 
     def __format__(self, fmt):
-        if not context.user.is_admin and self.verb.id not in context.user.readable_verbs:
+        if (
+            not context.user.is_admin
+            and self.verb.id not in context.user.readable_verbs
+        ):
             return "(unknown claim)"
         data = self.get_data()
         css_classes, remarks = self._get_remarks(data)
@@ -551,10 +567,10 @@ class Claim(Model):
             if LABEL in data:
                 return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatar}{data[LABEL][0].object.value}</a>'
             else:
-                return f'{self:svo}'
+                return f"{self:svo}"
         elif fmt == "heading":
             if IS_A in data:
-                cat = f"""<br><small>&lt;{", ".join(f'<span>{c:handle}{c.object:link}</span>' for c in data[IS_A])}&gt;</small>"""
+                cat = f"""<br><small>&lt;{", ".join(f"<span>{c:handle}{c.object:link}</span>" for c in data[IS_A])}&gt;</small>"""
             else:
                 cat = ""
             buttons = []
@@ -629,20 +645,25 @@ class Claim(Model):
                 continue
             if link.verb.id in (IS_A, ROOT):
                 continue
-            edges.append({
-                "group": "edges",
-                "data": {
-                    "source": str(self.id),
-                    "target": str(link.object.id),
-                    "label": link.verb.label,
-                },
-            })
+            edges.append(
+                {
+                    "group": "edges",
+                    "data": {
+                        "source": str(self.id),
+                        "target": str(link.object.id),
+                        "label": link.verb.label,
+                    },
+                }
+            )
         return node, edges
 
 
 class Query(Model):
     table_name = "queries"
-    fields = ("label", "sql",)
+    fields = (
+        "label",
+        "sql",
+    )
 
     def populate(self):
         cur = conn.cursor()
@@ -809,7 +830,9 @@ class User(Model):
             values.append(salt)
         values.append(self.id)
         if to_set:
-            cur.execute(f"UPDATE users SET {', '.join(to_set)} WHERE id=?", tuple(values))
+            cur.execute(
+                f"UPDATE users SET {', '.join(to_set)} WHERE id=?", tuple(values)
+            )
 
         if any(vid >= 0 for vid in set(readable_verbs) ^ self.readable_verbs):
             cur.execute("DELETE FROM permissions WHERE user_id = ?", (self.id,))
@@ -821,7 +844,6 @@ class User(Model):
         conn.commit()
         self.populate()
 
-
     def __format__(self, fmt):
         if fmt == "link":
             return f'<a href="/users/{self.id}">{self.name}</a>'
@@ -832,7 +854,11 @@ class User(Model):
 
     @property
     def payload(self):
-        return {"u": self.id, "t": f"{datetime.now():%Y-%m-%dT%H:%M}", "g": self.generation}
+        return {
+            "u": self.id,
+            "t": f"{datetime.now():%Y-%m-%dT%H:%M}",
+            "g": self.generation,
+        }
 
     def increment_generation(self):
         cur = conn.cursor()

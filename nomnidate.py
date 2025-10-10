@@ -50,15 +50,26 @@ class NonOmniscientDatedelta:
                 return f"{abs(self.years)} years from today"
         elif self.days is None:
             return f"{d_part} {y_part}"
-        elif self.days and self.years and self.days > 0 and self.years > 0 and 1 not in (self.days, self.years):
+        elif (
+            self.days
+            and self.years
+            and self.days > 0
+            and self.years > 0
+            and 1 not in (self.days, self.years)
+        ):
             return f"{self.years} years and {self.days} days ago"
-        elif self.days and self.years and self.days < 0 and self.years < 0 and -1 not in (self.days, self.years):
+        elif (
+            self.days
+            and self.years
+            and self.days < 0
+            and self.years < 0
+            and -1 not in (self.days, self.years)
+        ):
             return f"in {abs(self.years)} years and {abs(self.days)} days"
         elif self.years != 0:
             return f"{y_part}, {d_part}"
         else:
             return d_part
-
 
 
 def subtract_years_and_days(dt1, dt2):

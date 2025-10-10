@@ -29,7 +29,10 @@ with open("login.html") as f:
 @app.on_request
 async def auth(request):
     """Ensure that each request is either authenticated or going to an explicitly allowed resource."""
-    if request.name and (request.name in ("Veronique.login", "Veronique.do_login") or request.name.endswith(("_css", "_js", "_svg"))):
+    if request.name and (
+        request.name in ("Veronique.login", "Veronique.do_login")
+        or request.name.endswith(("_css", "_js", "_svg"))
+    ):
         # allow unauthenticated access to login page
         context.user = None
         context.payload = None
@@ -60,12 +63,14 @@ async def refresh_session(request, response):
             secure=True,
             httponly=True,
             samesite="Strict",
-            max_age=60*60*24*31,  # roughly one month (afterwards it will anyways be invalid)
+            # roughly one month (afterwards it will anyways be invalid):
+            max_age=60 * 60 * 24 * 31,
         )
 
 
 def admin_only(fn):
     """Mark an endpoint to be only accessible by admins. Must be above @page."""
+
     @functools.wraps(fn)
     async def wrapper(request, *args, **kwargs):
         if not context.user.is_admin:
@@ -77,6 +82,7 @@ def admin_only(fn):
         if isinstance(ret, CoroutineType):
             ret = await ret
         return ret
+
     return wrapper
 
 
@@ -106,17 +112,20 @@ def pagination(url, page_no, *, more_results=True, allow_negative=False):
 
 def fragment(fn):
     """Mark an endpoint as returning HTML, but not a full page."""
+
     @functools.wraps(fn)
     async def wrapper(*args, **kwargs):
         ret = fn(*args, **kwargs)
         if isinstance(ret, CoroutineType):
             ret = await ret
         return html(ret)
+
     return wrapper
 
 
 def page(fn):
     """Mark an endpoint as returning a full standalone page."""
+
     @functools.wraps(fn)
     async def wrapper(request, *args, **kwargs):
         ret = fn(request, *args, **kwargs)
@@ -159,8 +168,20 @@ def page(fn):
             """
         else:
             news = ""
-        user=f'<li><details class="dropdown"><summary>{context.user.name}</summary><ul dir="rtl"><li><a href="/logout">Logout</a></li></ul></details></li>'
-        return html(TEMPLATE(title=title, content=ret, gotos="".join(gotos), news=news, user=user))
+        user = f"""
+        <li>
+            <details class="dropdown">
+                <summary>{context.user.name}</summary>
+                <ul dir="rtl"><li><a href="/logout">Logout</a></li></ul>
+            </details>
+        </li>
+        """
+        return html(
+            TEMPLATE(
+                title=title, content=ret, gotos="".join(gotos), news=news, user=user
+            )
+        )
+
     return wrapper
 
 
@@ -209,7 +230,8 @@ async def do_login(request):
             secure=True,
             httponly=True,
             samesite="Strict",
-            max_age=60*60*24*31,  # roughly one month (afterwards it will anyways be invalid)
+            # roughly one month (afterwards it will anyways be invalid):
+            max_age=60 * 60 * 24 * 31,
         )
         return response
     return redirect("/login")
@@ -247,18 +269,21 @@ async def index(request):
         recent_events.append(f"<p>{claim:link}</p>")
     if page_no == 1 and not past_today:
         recent_events.append('<hr class="date-today">')
-    heading = {1: "This month", 0: "Last month", 2: "Next month"}.get(page_no, f"{reference_date:%B}")
+    heading = {1: "This month", 0: "Last month", 2: "Next month"}.get(
+        page_no, f"{reference_date:%B}"
+    )
     return f"""
         <article><header>
         <h2>{heading}</h2>
         </header>
         {"".join(recent_events)}
-    """ + pagination(
-        "/",
-        page_no,
-        more_results=True,
-        allow_negative=True,
-    ) + "</article>"
+        {pagination("/",
+            page_no,
+            more_results=True,
+            allow_negative=True,
+        )}
+        </article>
+    """
 
 
 # TODO: make this accessible to regular users (after adding required restrictions)
@@ -281,7 +306,8 @@ async def network(request):
     claims = (
         c
         for c in O.Claim.all_labelled(page_size=9999)
-        if categories is None or ({cat.object for cat in c.get_data().get(IS_A, set())} & categories)
+        if categories is None
+        or ({cat.object for cat in c.get_data().get(IS_A, set())} & categories)
     )
     node_ids = set()
     elements, all_edges = [], []
@@ -301,8 +327,8 @@ async def network(request):
       <summary>Select Categories...</summary>
       <ul>
       {
-          "".join(
-              f'''<li><input
+            "".join(
+                f'''<li><input
                   type="checkbox"
                   id="cat{cat.id}"
                   name="categories"
@@ -316,17 +342,17 @@ async def network(request):
               />
               <label for="cat{cat.id}">{cat:label}</label></li>
               '''
-              for cat in all_categories
-          )
-      }
+                for cat in all_categories
+            )
+        }
       </ul>
     </details>
     <details class="dropdown">
     <summary>Select Verbs...</summary>
       <ul>
       {
-          "".join(
-              f'''<li><input
+            "".join(
+                f'''<li><input
                   type="checkbox"
                   id="verb{verb.id}"
                   name="verbs"
@@ -340,10 +366,10 @@ async def network(request):
               />
               <label for="verb{verb.id}">{verb.label}</label></li>
               '''
-              for verb in all_verbs
-              if verb.id not in (IS_A, ROOT)
-          )
-      }
+                for verb in all_verbs
+                if verb.id not in (IS_A, ROOT)
+            )
+        }
       </ul>
     </details>
     </fieldset>
@@ -398,10 +424,12 @@ async def autocomplete_claims(request):
         q=query,
         page_size=5,
     )
-    return "".join(
-        f"{claim:ac-result}"
-        for claim in claims
-    ) + f'<a class="clickable" href="/claims/new-root?connect={connect}&name={query}"><em>Create</em> {query} <em> claim...</em></a>'
+    return f"""
+    {"".join(f"{claim:ac-result}" for claim in claims)}
+    <a class="clickable" href="/claims/new-root?connect={connect}&name={query}">
+        <em>Create</em> {query} <em> claim...</em>
+    </a>
+    """
 
 
 @app.get("/claims/autocomplete/accept/<claim_id>")
@@ -451,13 +479,15 @@ async def new_root_claim_form(request):
                 name="category"
             >
                 <option value="">(None)</option>
-                {"".join(
-                    f'''<option
+                {
+            "".join(
+                f'''<option
                             value="{cat.id}"
                             {'selected="selected"' if i == 0 else ""}
                         >{cat:label}</option>'''
-                    for i, cat in enumerate(categories)
-                )}
+                for i, cat in enumerate(categories)
+            )
+        }
             </select>
             {connect_info}
             <button type="submit">»</button>
@@ -492,7 +522,9 @@ async def new_root_claim(request):
 @admin_only
 @fragment
 async def new_claim_form(request, claim_id: int, direction: str):
-    verbs = O.Verb.all(page_size=9999, data_type="directed_link" if direction == "incoming" else None)
+    verbs = O.Verb.all(
+        page_size=9999, data_type="directed_link" if direction == "incoming" else None
+    )
     return f"""
         <form
             action="/claims/new/{claim_id}/{direction}"
@@ -506,13 +538,15 @@ async def new_claim_form(request, claim_id: int, direction: str):
                 hx-swap="innerHTML"
             >
                 <option selected disabled>--Verb--</option>
-                {"".join(
-                    f'''<option
-                            value="{verb.id}"
-                        >{verb.label} ({verb.data_type})</option>'''
-                    for verb in verbs
-                    if verb.id != ROOT
-                )}
+                {
+                    "".join(
+                        f'''<option
+                                        value="{verb.id}"
+                                    >{verb.label} ({verb.data_type})</option>'''
+                        for verb in verbs
+                        if verb.id != ROOT
+                    )
+                }
             </select>
             <span id="valueinput"></span>
         </form>
@@ -565,7 +599,7 @@ async def search(request):
             LIMIT ?
             OFFSET ?
         """,
-        (make_search_key(query), PAGE_SIZE + 1, PAGE_SIZE * (page_no - 1))
+        (make_search_key(query), PAGE_SIZE + 1, PAGE_SIZE * (page_no - 1)),
     ).fetchall()
     parts = []
     more_results = False
@@ -643,10 +677,12 @@ async def list_verbs(request):
     page_no = int(request.args.get("page", 1))
     parts = []
     more_results = False
-    for i, verb in enumerate(O.Verb.all(
-        page_no=page_no-1,
-        page_size=PAGE_SIZE + 1,
-    )):
+    for i, verb in enumerate(
+        O.Verb.all(
+            page_no=page_no - 1,
+            page_size=PAGE_SIZE + 1,
+        )
+    ):
         if i == PAGE_SIZE:
             more_results = True
         elif verb.id not in (ROOT, LABEL):
@@ -675,10 +711,12 @@ async def new_verb_form(request):
                 hx-swap="innerHTML"
             >
                 <option selected disabled>--Type--</option>
-                {"".join(
-                    f'''<option value="{data_type}">{data_type}</option>'''
-                    for data_type in TYPES
-                )}
+                {
+            "".join(
+                f'''<option value="{data_type}">{data_type}</option>'''
+                for data_type in TYPES
+            )
+        }
             </select>
             <span id="steps"></span>
         </form>
@@ -715,10 +753,12 @@ async def list_queries(request):
     page_no = int(request.args.get("page", 1))
     parts = []
     more_results = False
-    for i, query in enumerate(O.Query.all(
-        page_no=page_no-1,
-        page_size=PAGE_SIZE + 1,
-    )):
+    for i, query in enumerate(
+        O.Query.all(
+            page_no=page_no - 1,
+            page_size=PAGE_SIZE + 1,
+        )
+    ):
         if i == PAGE_SIZE:
             more_results = True
         else:
@@ -811,8 +851,7 @@ for singular, plural, model in (
 ):
     SPECIAL_COL_NAMES[singular] = model
     SPECIAL_COL_NAMES[plural] = lambda value, model=model: ", ".join(
-        str(model(int(part)))
-        for part in value.split(",")
+        str(model(int(part))) for part in value.split(",")
     )
 
 
@@ -887,7 +926,7 @@ async def view_query(request, query_id: int):
     page_no = int(request.args.get("page", 1))
     query = O.Query(query_id)
     result = query.run(
-        page_no=page_no-1,
+        page_no=page_no - 1,
         page_size=PAGE_SIZE + 1,  # so we know if there would be more results
     )
     if len(result) > PAGE_SIZE:
@@ -898,25 +937,30 @@ async def view_query(request, query_id: int):
     return query.label, f"""
         <article><header>
         {query:heading}</header>{display_query_result(result)}
-    """ + pagination(
-        f"/queries/{query_id}",
-        page_no,
-        more_results=more_results,
-    ) + "</article>"
+        {
+            pagination(
+                f"/queries/{query_id}",
+                page_no,
+                more_results=more_results,
+            )
+        }
+        </article>
+    """
 
 
 @app.get("/claims")
 @page
 async def list_labelled_claims(request):
     page_no = int(request.args.get("page", 1))
-    parts = [
-    ]
+    parts = []
     more_results = False
-    for i, claim in enumerate(O.Claim.all_labelled(
-        order_by="id DESC",
-        page_no=page_no-1,
-        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
-    )):
+    for i, claim in enumerate(
+        O.Claim.all_labelled(
+            order_by="id DESC",
+            page_no=page_no - 1,
+            page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+        )
+    ):
         if i:
             parts.append("<br>")
         if i == PAGE_SIZE:
@@ -934,7 +978,11 @@ async def list_labelled_claims(request):
 @page
 async def view_claim(request, claim_id: int):
     claim = O.Claim(claim_id)
-    if not context.user.is_admin and claim.verb.id >= 0 and claim.verb.id not in context.user.readable_verbs:
+    if (
+        not context.user.is_admin
+        and claim.verb.id >= 0
+        and claim.verb.id not in context.user.readable_verbs
+    ):
         return HTTPResponse(
             body="403 Forbidden",
             status=403,
@@ -968,10 +1016,12 @@ async def view_verb(request, verb_id: int):
     verb = O.Verb(verb_id)
     parts = [f"<article><heading>{verb:heading}</heading>"]
     more_results = False
-    for i, claim in enumerate(verb.claims(
-        page_no=page_no-1,
-        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
-    )):
+    for i, claim in enumerate(
+        verb.claims(
+            page_no=page_no - 1,
+            page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+        )
+    ):
         if i == PAGE_SIZE:
             more_results = True
         else:
@@ -995,10 +1045,12 @@ async def list_users(request):
         "<tbody>",
     ]
     more_results = False
-    for i, user in enumerate(O.User.all(
-        page_no=page_no-1,
-        page_size=PAGE_SIZE + 1,
-    )):
+    for i, user in enumerate(
+        O.User.all(
+            page_no=page_no - 1,
+            page_size=PAGE_SIZE + 1,
+        )
+    ):
         if i == PAGE_SIZE:
             more_results = True
         else:
@@ -1020,9 +1072,7 @@ async def new_user_form(request):
     for verb in O.Verb.all(page_size=9999):
         if verb.id < 0:
             continue
-        verb_options.append(
-            f'<option value="{verb.id}">{verb.label}</option>'
-        )
+        verb_options.append(f'<option value="{verb.id}">{verb.label}</option>')
     verb_options = "\n".join(verb_options)
     password = token_urlsafe(16)
     return "New user", f"""

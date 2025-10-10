@@ -1,5 +1,6 @@
 from contextvars import ContextVar
 
+
 class Variable:
     def __set_name__(self, owner, name):
         self._var = ContextVar(name)

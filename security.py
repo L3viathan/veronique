@@ -36,6 +36,7 @@ def _hash(password, salt):
         500_000,
     ).hex()
 
+
 def hash_password(password, salt=None):
     if salt is None:
         salt = token_bytes(16)
