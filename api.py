@@ -992,14 +992,14 @@ async def view_claim(request, claim_id: int):
             <div id="edit-area"></div>
             <table class="claims"><tr><td>
         {
-            '<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>'
+            f'<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>'
             if context.user.is_admin
             else ""
         }
         {"".join(f"<p>{c:sv}</p>" for c in claim.incoming_claims())}
         </td><td>
         {
-            '<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>'
+            f'<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>'
             if context.user.is_admin
             else ""
         }
