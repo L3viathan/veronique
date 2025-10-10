@@ -1,8 +1,7 @@
 import json
-from contextvars import ContextVar
 from pathlib import Path
 from hashlib import pbkdf2_hmac
-from secrets import token_bytes, token_hex
+from secrets import token_bytes
 from hmac import compare_digest
 
 

@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from nomnidate import *
+from nomnidate import NonOmniscientDatedelta, NonOmniscientDate
 
 REFERENCE_DATE = date(2024, 10, 9)
 
