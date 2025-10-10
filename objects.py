@@ -574,21 +574,22 @@ class Claim(Model):
             else:
                 cat = ""
             buttons = []
-            if isinstance(self.object, Plain):
-                buttons.append(f"""<a
-                    hx-target="#edit-area"
-                    hx-get="/claims/{self.id}/edit"
-                    role="button"
-                    class="outline contrast toolbutton"
-                >✎ Edit</a>""")
-            if not list(self.outgoing_claims()) and not list(self.incoming_claims()):
-                buttons.append(f"""<a
-                    hx-target="#edit-area"
-                    hx-delete="/claims/{self.id}"
-                    hx-confirm="Are you sure you want to delete this claim?"
-                    role="button"
-                    class="outline contrast toolbutton"
-                >\N{WASTEBASKET}\ufe0e Delete</a>""")
+            if context.user.is_admin:
+                if isinstance(self.object, Plain):
+                    buttons.append(f"""<a
+                        hx-target="#edit-area"
+                        hx-get="/claims/{self.id}/edit"
+                        role="button"
+                        class="outline contrast"
+                    >✎ Edit</a>""")
+                if not list(self.outgoing_claims()) and not list(self.incoming_claims()):
+                    buttons.append(f"""<a
+                        hx-target="#edit-area"
+                        hx-delete="/claims/{self.id}"
+                        hx-confirm="Are you sure you want to delete this claim?"
+                        role="button"
+                        class="outline contrast"
+                    >\N{WASTEBASKET}\ufe0e Delete</a>""")
             if LABEL in data:
                 if self.verb.id == ROOT:
                     label = data[LABEL][0]

@@ -866,7 +866,7 @@ def display_query_result(result):
             parts.append("<tr>")
             for col in header:
                 value = row[col]
-                if col.endswith(tuple(SPECIAL_COL_NAMES)):
+                if value is not None and col.endswith(tuple(SPECIAL_COL_NAMES)):
                     _, __, ending = col.rpartition("_")
                     value = SPECIAL_COL_NAMES[ending](value)
                 parts.append(f"<td>{value}</td>")
@@ -979,7 +979,6 @@ async def view_claim(request, claim_id: int):
     claim = O.Claim(claim_id)
     if (
         not context.user.is_admin
-        and claim.verb.id >= 0
         and claim.verb.id not in context.user.readable_verbs
     ):
         return HTTPResponse(
@@ -992,10 +991,18 @@ async def view_claim(request, claim_id: int):
             <header>{claim:heading}{claim:avatar}</header>
             <div id="edit-area"></div>
             <table class="claims"><tr><td>
-        <div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>
+        {
+            '<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>'
+            if context.user.is_admin
+            else ""
+        }
         {"".join(f"<p>{c:sv}</p>" for c in claim.incoming_claims())}
         </td><td>
-        <div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>
+        {
+            '<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>'
+            if context.user.is_admin
+            else ""
+        }
         {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR))}
         </td></tr></table>
         {"<hr><h3>Mentions</h3>" + "".join(f"<p>{c:svo}</p>" for c in incoming_mentions) if incoming_mentions else ""}
@@ -1121,7 +1128,7 @@ async def edit_user_form(request, user_id: int):
             </select>
 
             <label>New password
-            <input name="password" value="" placeholder="(leave empty to keep as-is)">
+            <input type="password" name="password" value="" placeholder="(leave empty to keep as-is)">
             </label>
 
             <input type="submit" value="Save">
@@ -1137,7 +1144,7 @@ async def edit_user(request, user_id: int):
     user.update(
         name=form["name"],
         password=form.get("password"),
-        readable_verbs=[int(v) for v in request.form["verbs-readable"]],
+        readable_verbs=[int(v) for v in request.form["verbs-readable"]] if "verbs-readable" in request.form else [],
     )
     return redirect(f"/users/{user.id}")
 
@@ -1149,7 +1156,7 @@ async def new_user(request):
     user = O.User.new(
         form["name"],
         password=form["password"],
-        readable_verbs=[int(v) for v in request.form["verbs-readable"]],
+        readable_verbs=[int(v) for v in request.form["verbs-readable"]] if "verbs-readable" in request.form else [],
     )
     return redirect(f"/users/{user.id}")
 
