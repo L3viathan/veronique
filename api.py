@@ -30,7 +30,11 @@ async def auth(request):
     if payload := security.unsign(request.cookies.get("session")):
         if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=30):
             return unauthorized
-        context.user = O.User(payload["u"])
+        user = O.User(payload["u"])
+        if user.generation > payload.get("g", 0):
+            # this is to support proper logouts, see logout()
+            return unauthorized
+        context.user = user
         context.payload = payload
         return
     return unauthorized
@@ -41,10 +45,9 @@ async def refresh_session(request, response):
     if not (payload := context.payload):
         return
     if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=7):
-        payload["t"] = f"{datetime.now():%Y-%m-%dT%H:%M}"
         response.add_cookie(
             "session",
-            security.sign(payload),
+            security.sign(context.user.payload),
             secure=True,
             httponly=True,
             samesite="Strict",
@@ -163,6 +166,11 @@ def coalesce(*values):
 
 @app.get("/logout")
 async def logout(request):
+    # In order to support global logout despite having no server-side sessions,
+    # users have a "generation", which needs to be the same as the generation
+    # of the token payload. On logout, we increment that generation, such that
+    # all previously issued tokens are invalidated.
+    context.user.increment_generation()
     response = redirect("/")
     response.delete_cookie("session")
     return response
@@ -188,7 +196,7 @@ async def do_login(request):
         response = redirect("/")
         response.add_cookie(
             "session",
-            security.sign({"u": user.id, "t": f"{datetime.now():%Y-%m-%dT%H:%M}"}),
+            security.sign(user.payload),
             secure=True,
             httponly=True,
             samesite="Strict",

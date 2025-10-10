@@ -1,5 +1,5 @@
 import re
-from datetime import date
+from datetime import date, datetime
 
 from data_types import TYPES
 from nomnidate import NonOmniscientDate
@@ -733,14 +733,14 @@ class Query(Model):
 
 class User(Model):
     table_name = "users"
-    fields = ("name", "hash", "is_admin", "salt", "readable_verbs")
+    fields = ("name", "hash", "is_admin", "salt", "readable_verbs", "generation")
 
     def populate(self):
         cur = conn.cursor()
         row = cur.execute(
             """
                 SELECT
-                    id, name, hash, is_admin, salt
+                    id, name, hash, is_admin, salt, generation
                 FROM users
                 WHERE id = ?
             """,
@@ -752,6 +752,7 @@ class User(Model):
         self.hash = row["hash"]
         self.salt = row["salt"]
         self.is_admin = row["is_admin"]
+        self.generation = row["generation"]
         if not self.is_admin:
             self.readable_verbs = set()
             for row in cur.execute(
@@ -829,6 +830,19 @@ class User(Model):
 
     def __str__(self):
         return f"{self}"
+
+    @property
+    def payload(self):
+        return {"u": self.id, "t": f"{datetime.now():%Y-%m-%dT%H:%M}", "g": self.generation}
+
+    def increment_generation(self):
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users SET generation = generation + 1 WHERE id = ?",
+            (self.id,),
+        )
+        conn.commit()
+        self.populate()
 
 
 class Plain:

@@ -543,6 +543,15 @@ def add_permissions(cur):
         )
     """)
 
+@migration(12)
+def add_user_generation(cur):
+    cur.execute(
+        """
+        ALTER TABLE users
+        ADD generation INTEGER DEFAULT 0
+        """
+    )
+
 
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
