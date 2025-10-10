@@ -60,7 +60,7 @@ async def refresh_session(request, response):
             secure=True,
             httponly=True,
             samesite="Strict",
-            max_age=60*60*24*365,  # roughly one year
+            max_age=60*60*24*31,  # roughly one month (afterwards it will anyways be invalid)
         )
 
 
@@ -209,7 +209,7 @@ async def do_login(request):
             secure=True,
             httponly=True,
             samesite="Strict",
-            max_age=60*60*24*365,  # roughly one year
+            max_age=60*60*24*31,  # roughly one month (afterwards it will anyways be invalid)
         )
         return response
     return redirect("/login")
