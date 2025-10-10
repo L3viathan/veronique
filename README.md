@@ -102,3 +102,24 @@ Véronique now has basic support for additional users. Non-admin users only have
 read access, and only to a selected list of verbs. That list always includes
 all internal verbs, and can optionally include others. The user can then only
 see claims of that verb type, e.g. only birth dates.
+
+Regular users can't use queries or the network page:
+
+- The network page could be changed to allow regular users, we would just have
+  to filter the verbs for readable verbs of that user.
+- Queries could be made readable by regular users, but that should probably be
+  a dedicated permission per query, as they can expose arbitrary information.
+
+## Future plans
+
+- [ ] allowing users to _write_ claims of some verb types (i.e., adding a
+  `write-verb` permission). As opposed to how it's handled for reading,
+  internal verbs should have to be explicitly allow-listed here. We would
+  probably also have to add an "owner" field to each claim, unless we're fine
+  with users being able to _add_ claims, but not being able to delete or edit
+  them. Queries can never be made writable by regular users, as that involves
+  arbitrary database access.
+- [ ] a new (internal) verb called "comment", with special UI support. This
+  could be used to carefully allow editing of a Veronique instance by regular
+  users (by allowing them to exclusively create comments, which can then be
+  resolved by an admin).
