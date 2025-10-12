@@ -142,7 +142,7 @@ def page(fn):
         for page_name, restricted in [
             ("claims", False),
             ("verbs", False),
-            ("network", True),
+            ("network", False),
             ("queries", True),
             ("users", True),
         ]:
@@ -285,9 +285,7 @@ async def index(request):
     """
 
 
-# TODO: make this accessible to regular users (after adding required restrictions)
 @app.get("/network")
-@admin_only
 @page
 async def network(request):
     all_categories = list(O.Claim.all_categories(page_size=9999))
