@@ -754,7 +754,15 @@ class Query(Model):
 
 class User(Model):
     table_name = "users"
-    fields = ("name", "hash", "is_admin", "salt", "readable_verbs", "generation")
+    fields = (
+        "name",
+        "hash",
+        "is_admin",
+        "salt",
+        "readable_verbs",
+        "writable_verbs",
+        "generation",
+    )
 
     def populate(self):
         cur = conn.cursor()
@@ -789,8 +797,22 @@ class User(Model):
                     self.readable_verbs.add(row["object"])
             # internal verbs can always be seen
             self.readable_verbs.update(DATA_LABELS)
+
+            self.writable_verbs = set()
+            for row in cur.execute(
+                """
+                    SELECT
+                        permission, object
+                    FROM permissions
+                    WHERE user_id = ?
+                """,
+                (self.id,),
+            ).fetchall():
+                if row["permission"] == "write-verb":
+                    self.writable_verbs.add(row["object"])
         else:
             self.readable_verbs = None  # all of them
+            self.writable_verbs = None  # all of them
 
     @classmethod
     def by_name(cls, name):
@@ -801,7 +823,7 @@ class User(Model):
         return cls(row["id"])
 
     @classmethod
-    def new(cls, name, *, password, readable_verbs):
+    def new(cls, name, *, password, readable_verbs, writable_verbs):
         cur = conn.cursor()
         hash, salt = hash_password(password)
         cur.execute(
@@ -814,10 +836,15 @@ class User(Model):
                 "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
                 (u_id, "read-verb", readable_verb),
             )
+        for writable_verb in writable_verbs:
+            cur.execute(
+                "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                (u_id, "write-verb", writable_verb),
+            )
         conn.commit()
         return cls(u_id)
 
-    def update(self, *, name, password, readable_verbs):
+    def update(self, *, name, password, readable_verbs, writable_verbs):
         cur = conn.cursor()
         to_set, values = [], []
         if name != self.name:
@@ -836,11 +863,18 @@ class User(Model):
             )
 
         if any(vid >= 0 for vid in set(readable_verbs) ^ self.readable_verbs):
-            cur.execute("DELETE FROM permissions WHERE user_id = ?", (self.id,))
+            cur.execute("DELETE FROM permissions WHERE user_id = ? AND permission = 'read-verb'", (self.id,))
             for readable_verb in readable_verbs:
                 cur.execute(
                     "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
                     (self.id, "read-verb", readable_verb),
+                )
+        if set(writable_verbs) ^ self.writable_verbs:
+            cur.execute("DELETE FROM permissions WHERE user_id = ? AND permission = 'write-verb'", (self.id,))
+            for writable_verb in writable_verbs:
+                cur.execute(
+                    "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                    (self.id, "write-verb", writable_verb),
                 )
         conn.commit()
         self.populate()

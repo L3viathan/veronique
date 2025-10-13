@@ -1072,12 +1072,15 @@ async def list_users(request):
 @admin_only
 @page
 async def new_user_form(request):
-    verb_options = []
+    verb_options_r, verb_options_w = [], []
     for verb in O.Verb.all(page_size=9999):
         if verb.id < 0:
+            verb_options_w.append(f'<option value="{verb.id}">{verb.label}</option>')
             continue
-        verb_options.append(f'<option value="{verb.id}">{verb.label}</option>')
-    verb_options = "\n".join(verb_options)
+        verb_options_r.append(f'<option value="{verb.id}">{verb.label}</option>')
+        verb_options_w.append(f'<option value="{verb.id}">{verb.label}</option>')
+    verb_options_r = "\n".join(verb_options_r)
+    verb_options_w = "\n".join(verb_options_w)
     password = token_urlsafe(16)
     return "New user", f"""
         <form
@@ -1087,7 +1090,12 @@ async def new_user_form(request):
             <input name="name" placeholder="name"></input>
             <h3>Readable verbs</h3>
             <select name="verbs-readable" multiple size="10">
-            {verb_options}
+            {verb_options_r}
+            </select>
+
+            <h3>Writable verbs</h3>
+            <select name="verbs-writable" multiple size="10">
+            {verb_options_w}
             </select>
 
             <fieldset role="group">
@@ -1105,15 +1113,23 @@ async def new_user_form(request):
 @admin_only
 @page
 async def edit_user_form(request, user_id: int):
-    verb_options = []
     user = O.User(user_id)
+    verb_options_r, verb_options_w = [], []
     for verb in O.Verb.all(page_size=9999):
         if verb.id < 0:
+            verb_options_w.append(
+                f'<option {"selected" if verb.id in user.writable_verbs else ""} value="{verb.id}">{verb.label}</option>'
+            )
             continue
-        verb_options.append(
+        verb_options_r.append(
             f'<option {"selected" if verb.id in user.readable_verbs else ""} value="{verb.id}">{verb.label}</option>'
         )
-    verb_options = "\n".join(verb_options)
+        verb_options_w.append(
+            f'<option {"selected" if verb.id in user.writable_verbs else ""} value="{verb.id}">{verb.label}</option>'
+        )
+    verb_options_r = "\n".join(verb_options_r)
+    verb_options_w = "\n".join(verb_options_w)
+
     return f"Edit user {user.name}", f"""
         <form
             action="/users/{user_id}/edit"
@@ -1122,7 +1138,12 @@ async def edit_user_form(request, user_id: int):
             <input name="name" placeholder="name" value="{user.name}">
             <h3>Readable verbs</h3>
             <select name="verbs-readable" multiple size="10">
-            {verb_options}
+            {verb_options_r}
+            </select>
+
+            <h3>Writable verbs</h3>
+            <select name="verbs-writable" multiple size="10">
+            {verb_options_w}
             </select>
 
             <label>New password
@@ -1143,6 +1164,7 @@ async def edit_user(request, user_id: int):
         name=form["name"],
         password=form.get("password"),
         readable_verbs=[int(v) for v in request.form["verbs-readable"]] if "verbs-readable" in request.form else [],
+        writable_verbs=[int(v) for v in request.form["verbs-writable"]] if "verbs-writable" in request.form else [],
     )
     return redirect(f"/users/{user.id}")
 
@@ -1155,6 +1177,7 @@ async def new_user(request):
         form["name"],
         password=form["password"],
         readable_verbs=[int(v) for v in request.form["verbs-readable"]] if "verbs-readable" in request.form else [],
+        writable_verbs=[int(v) for v in request.form["verbs-writable"]] if "verbs-writable" in request.form else [],
     )
     return redirect(f"/users/{user.id}")
 
@@ -1176,6 +1199,7 @@ async def view_user(request, user_id: int):
         <table>
         <tr><th scope="row">Admin</th><td>{TYPES["boolean"].display_html(user.is_admin)}</td></tr>
         <tr><th scope="row">Readable verbs</th><td>{", ".join(str(O.Verb(v)) for v in (user.readable_verbs or []) if v >= 0)}</td></tr>
+        <tr><th scope="row">Writable verbs</th><td>{", ".join(str(O.Verb(v)) for v in (user.writable_verbs or []))}</td></tr>
         </table>
         </article>
     """
