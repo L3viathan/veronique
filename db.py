@@ -570,6 +570,18 @@ def add_user_generation(cur):
     )
 
 
+@migration(13)
+def give_root_verb_a_label(cur):
+    cur.execute(
+        """
+        UPDATE verbs
+        SET label='root'
+        WHERE id = ?
+        """,
+        (ROOT,),
+    )
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 

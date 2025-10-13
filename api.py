@@ -165,8 +165,12 @@ def page(fn):
                 </details>
             </li>
             """
-        else:
-            news = ""
+        elif context.user.can("write", "verb", ROOT):
+            news = """
+            <li>
+                <a href="/claims/new-root" id="add-button">+</a>
+            </li>
+            """
         user = f"""
         <li>
             <details class="dropdown">
@@ -409,7 +413,6 @@ async def network(request):
 
 
 @app.get("/claims/autocomplete")
-@admin_only
 @fragment
 async def autocomplete_claims(request):
     args = D(request.args)
@@ -422,7 +425,7 @@ async def autocomplete_claims(request):
         page_size=5,
     )
     return f"""
-    {"".join(f"{claim:ac-result}" for claim in claims)}
+    {"".join(f"{claim:ac-result}" for claim in claims if context.user.can("read", "verb", claim.verb.id))}
     <a class="clickable" href="/claims/new-root?connect={connect}&name={query}">
         <em>Create</em> {query} <em> claim...</em>
     </a>
@@ -430,7 +433,6 @@ async def autocomplete_claims(request):
 
 
 @app.get("/claims/autocomplete/accept/<claim_id>")
-@admin_only
 @fragment
 async def autocomplete_claims_accept(request, claim_id: int):
     claim = O.Claim(claim_id)
@@ -451,21 +453,25 @@ async def autocomplete_claims_accept(request, claim_id: int):
 
 
 @app.get("/claims/new-root")
-@admin_only
 @page
 async def new_root_claim_form(request):
+    if not context.user.can("write", "verb", ROOT):
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
     categories = O.Claim.all_categories()
     args = D(request.args)
+    connect_info = ""
     if connect := args.get("connect"):
         conn_claim_id, conn_dir, conn_verb_id = connect.split(":")
-        conn_verb = O.Verb(int(conn_verb_id))
-        conn_claim = O.Claim(int(conn_claim_id))
-        connect_info = f"""
-        <p>After creation, an {conn_dir} {conn_verb:link} link will be made to {conn_claim:link}</p>.
-        <input type="hidden" name="connect" value="{connect}">
-        """
-    else:
-        connect_info = ""
+        if context.user.can("write", "verb", int(conn_verb_id)):
+            conn_verb = O.Verb(int(conn_verb_id))
+            conn_claim = O.Claim(int(conn_claim_id))
+            connect_info = f"""
+            <p>After creation, an {conn_dir} {conn_verb:link} link will be made to {conn_claim:link}</p>.
+            <input type="hidden" name="connect" value="{connect}">
+            """
     name = args.get("name", "")
     return "New root", f"""
     <article>
@@ -494,29 +500,34 @@ async def new_root_claim_form(request):
 
 
 @app.post("/claims/new-root")
-@admin_only
 async def new_root_claim(request):
     form = D(request.form)
     name = form["name"]
+    if not all((context.user.can("write", "verb", v) for v in (ROOT, LABEL))):
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
     claim = O.Claim.new_root(name)
-    if form.get("category"):
+    if form.get("category") and context.user.can("write", "verb", IS_A):
         cat = O.Claim(int(form["category"]))
         O.Claim.new(claim, O.Verb(IS_A), cat)
     if connect := form.get("connect"):
         conn_claim_id, conn_dir, conn_verb_id = connect.split(":")
-        conn_verb = O.Verb(int(conn_verb_id))
-        conn_claim = O.Claim(int(conn_claim_id))
-        if conn_dir == "incoming":
-            O.Claim.new(claim, conn_verb, conn_claim)
-        else:
-            O.Claim.new(conn_claim, conn_verb, claim)
-        # We came from the conn_claim, so we want to go back there.
-        return redirect(f"/claims/{conn_claim.id}")
+        if context.user.can("write", "verb", int(conn_verb_id)):
+            conn_verb = O.Verb(int(conn_verb_id))
+            conn_claim = O.Claim(int(conn_claim_id))
+            if conn_dir == "incoming":
+                O.Claim.new(claim, conn_verb, conn_claim)
+            else:
+                O.Claim.new(conn_claim, conn_verb, claim)
+            # We came from the conn_claim, so we want to go back there.
+            return redirect(f"/claims/{conn_claim.id}")
+        # If we couldn't make the link, we want to go to the new root instead.
     return redirect(f"/claims/{claim.id}")
 
 
 @app.get("/claims/new/<claim_id>/<direction:incoming|outgoing>")
-@admin_only
 @fragment
 async def new_claim_form(request, claim_id: int, direction: str):
     verbs = O.Verb.all(
@@ -551,10 +562,14 @@ async def new_claim_form(request, claim_id: int, direction: str):
 
 
 @app.get("/claims/new/verb")
-@admin_only
 @fragment
 async def new_claim_form_verb_input(request):
     args = D(request.args)
+    if not context.user.can("write", "verb", int(args["verb"])):
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
     verb = O.Verb(int(args["verb"]))
     return f"""
         {verb.data_type.input_html(claim_id=args.get("claim_id"), direction=args.get("direction"), verb_id=verb.id)}
@@ -563,9 +578,16 @@ async def new_claim_form_verb_input(request):
 
 
 @app.post("/claims/new/<claim_id>/<direction:incoming|outgoing>")
-@admin_only
 async def new_claim(request, claim_id: int, direction: str):
     claim = O.Claim(claim_id)
+    if not (
+        context.user.can("read", "verb", claim.verb.id)
+        and context.user.can("write", "verb", int(form["verb"]))
+    ):
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
     form = D(request.form)
     if "value" in request.files:
         f = request.files["value"][0]
@@ -574,6 +596,11 @@ async def new_claim(request, claim_id: int, direction: str):
     value = form.get("value")
     if verb.data_type.name.endswith("directed_link"):
         value = O.Claim(int(value))
+        if not context.user.can("read", "verb", value.verb.id):
+            return HTTPResponse(
+                body="403 Forbidden",
+                status=403,
+            )
     else:
         value = O.Plain.from_form(verb, form)
     if direction == "incoming":
@@ -609,10 +636,10 @@ async def search(request):
             if hit["table_name"] == "claims":
                 parts.append(f"{O.Claim(hit['id']):link}")
             elif hit["table_name"] == "queries":
-                if context.user.is_admin:
+                if context.user.can("read", "query", hit["id"]):
                     parts.append(f"{O.Query(hit['id']):link}")
             elif hit["table_name"] == "verbs":
-                if context.user.is_admin or hit["id"] in context.user.readable_verbs:
+                if context.user.can("read", "verb", hit["id"]):
                     parts.append(f"{O.Verb(hit['id']):link}")
             else:
                 parts.append(f"TODO: implement for {hit['table_name']}")
@@ -624,7 +651,7 @@ async def search(request):
 
 
 @app.get("/claims/<claim_id>/edit")
-@admin_only
+@admin_only  # until claims have an owner
 @fragment
 async def edit_claim_form(request, claim_id: int):
     claim = O.Claim(claim_id)
@@ -975,10 +1002,7 @@ async def list_labelled_claims(request):
 @page
 async def view_claim(request, claim_id: int):
     claim = O.Claim(claim_id)
-    if (
-        not context.user.is_admin
-        and claim.verb.id not in context.user.readable_verbs
-    ):
+    if not context.user.can("read", "verb", claim.verb.id):
         return HTTPResponse(
             body="403 Forbidden",
             status=403,
@@ -991,14 +1015,14 @@ async def view_claim(request, claim_id: int):
             <table class="claims"><tr><td>
         {
             f'<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>'
-            if context.user.is_admin
+            if context.user.is_admin or context.user.writable_verbs
             else ""
         }
         {"".join(f"<p>{c:sv}</p>" for c in claim.incoming_claims())}
         </td><td>
         {
             f'<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>'
-            if context.user.is_admin
+            if context.user.is_admin or context.user.writable_verbs
             else ""
         }
         {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR))}
@@ -1012,7 +1036,7 @@ async def view_claim(request, claim_id: int):
 @page
 async def view_verb(request, verb_id: int):
     page_no = int(request.args.get("page", 1))
-    if not context.user.is_admin and verb_id not in context.user.readable_verbs:
+    if not context.user.can("read", "verb", verb_id):
         return HTTPResponse(
             body="403 Forbidden",
             status=403,
@@ -1118,14 +1142,14 @@ async def edit_user_form(request, user_id: int):
     for verb in O.Verb.all(page_size=9999):
         if verb.id < 0:
             verb_options_w.append(
-                f'<option {"selected" if verb.id in user.writable_verbs else ""} value="{verb.id}">{verb.label}</option>'
+                f'<option {"selected" if user.can("write", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
             )
             continue
         verb_options_r.append(
-            f'<option {"selected" if verb.id in user.readable_verbs else ""} value="{verb.id}">{verb.label}</option>'
+            f'<option {"selected" if user.can("read", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
         )
         verb_options_w.append(
-            f'<option {"selected" if verb.id in user.writable_verbs else ""} value="{verb.id}">{verb.label}</option>'
+            f'<option {"selected" if user.can("write", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
         )
     verb_options_r = "\n".join(verb_options_r)
     verb_options_w = "\n".join(verb_options_w)
@@ -1160,11 +1184,15 @@ async def edit_user_form(request, user_id: int):
 async def edit_user(request, user_id: int):
     form = D(request.form)
     user = O.User(user_id)
+    writable_verbs = [int(v) for v in request.form["verbs-writable"]] if "verbs-writable" in request.form else []
+    if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
+        # TODO: somehow emit error
+        return redirect(f"/users/{user_id}/edit")
     user.update(
         name=form["name"],
         password=form.get("password"),
         readable_verbs=[int(v) for v in request.form["verbs-readable"]] if "verbs-readable" in request.form else [],
-        writable_verbs=[int(v) for v in request.form["verbs-writable"]] if "verbs-writable" in request.form else [],
+        writable_verbs=writable_verbs,
     )
     return redirect(f"/users/{user.id}")
 
