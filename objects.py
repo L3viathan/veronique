@@ -164,13 +164,14 @@ class Verb(Model):
         order_by="id ASC",
         page_no=0,
         page_size=20,
+        only_writable=False,
     ):
         conditions = ["1=1"]
         values = []
         if data_type is not None:
             conditions.append("data_type LIKE ?")
             values.append(data_type)
-        if (verb_ids := context.user.readable_verbs) is not None:
+        if (verb_ids := (context.user.writable_verbs if only_writable else context.user.readable_verbs)) is not None:
             conditions.append(
                 f"id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
             )

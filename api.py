@@ -117,6 +117,8 @@ def fragment(fn):
         ret = fn(*args, **kwargs)
         if isinstance(ret, CoroutineType):
             ret = await ret
+        elif isinstance(ret, HTTPResponse):
+            return ret
         return html(ret)
 
     return wrapper
@@ -531,7 +533,7 @@ async def new_root_claim(request):
 @fragment
 async def new_claim_form(request, claim_id: int, direction: str):
     verbs = O.Verb.all(
-        page_size=9999, data_type="directed_link" if direction == "incoming" else None
+        page_size=9999, data_type="directed_link" if direction == "incoming" else None, only_writable=True
     )
     return f"""
         <form
@@ -580,6 +582,7 @@ async def new_claim_form_verb_input(request):
 @app.post("/claims/new/<claim_id>/<direction:incoming|outgoing>")
 async def new_claim(request, claim_id: int, direction: str):
     claim = O.Claim(claim_id)
+    form = D(request.form)
     if not (
         context.user.can("read", "verb", claim.verb.id)
         and context.user.can("write", "verb", int(form["verb"]))
@@ -588,7 +591,6 @@ async def new_claim(request, claim_id: int, direction: str):
             body="403 Forbidden",
             status=403,
         )
-    form = D(request.form)
     if "value" in request.files:
         f = request.files["value"][0]
         form["value"] = f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
@@ -1184,14 +1186,19 @@ async def edit_user_form(request, user_id: int):
 async def edit_user(request, user_id: int):
     form = D(request.form)
     user = O.User(user_id)
-    writable_verbs = [int(v) for v in request.form["verbs-writable"]] if "verbs-writable" in request.form else []
+    writable_verbs = {int(v) for v in request.form["verbs-writable"]} if "verbs-writable" in request.form else set()
+    readable_verbs = {int(v) for v in request.form["verbs-readable"]} if "verbs-readable" in request.form else set()
     if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
         # TODO: somehow emit error
         return redirect(f"/users/{user_id}/edit")
+    if any(v >= 0 for v in writable_verbs - readable_verbs):
+        # TODO: somehow emit error
+        return redirect(f"/users/{user_id}/edit")
+
     user.update(
         name=form["name"],
         password=form.get("password"),
-        readable_verbs=[int(v) for v in request.form["verbs-readable"]] if "verbs-readable" in request.form else [],
+        readable_verbs=readable_verbs,
         writable_verbs=writable_verbs,
     )
     return redirect(f"/users/{user.id}")
@@ -1201,11 +1208,19 @@ async def edit_user(request, user_id: int):
 @admin_only
 async def new_user(request):
     form = D(request.form)
+    writable_verbs = {int(v) for v in request.form["verbs-writable"]} if "verbs-writable" in request.form else set()
+    readable_verbs = {int(v) for v in request.form["verbs-readable"]} if "verbs-readable" in request.form else set()
+    if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
+        # TODO: somehow emit error
+        return redirect(f"/users/{user_id}/edit")
+    if any(v >= 0 for v in writable_verbs - readable_verbs):
+        # TODO: somehow emit error
+        return redirect(f"/users/{user_id}/edit")
     user = O.User.new(
         form["name"],
         password=form["password"],
-        readable_verbs=[int(v) for v in request.form["verbs-readable"]] if "verbs-readable" in request.form else [],
-        writable_verbs=[int(v) for v in request.form["verbs-writable"]] if "verbs-writable" in request.form else [],
+        readable_verbs=readable_verbs,
+        writable_verbs=writable_verbs,
     )
     return redirect(f"/users/{user.id}")
 
