@@ -10,7 +10,7 @@ conn = sqlite3.connect(os.environ.get("VERONIQUE_DB", "veronique.db"))
 conn.row_factory = sqlite3.Row
 orig_isolation_level, conn.isolation_level = conn.isolation_level, None
 
-DATA_LABELS = [ROOT, LABEL, IS_A, VALID_FROM, VALID_UNTIL, AVATAR] = range(-1, -7, -1)
+DATA_LABELS = [ROOT, LABEL, IS_A, VALID_FROM, VALID_UNTIL, AVATAR, COMMENT] = range(-1, -8, -1)
 
 
 try:
@@ -580,6 +580,31 @@ def give_root_verb_a_label(cur):
         """,
         (ROOT,),
     )
+
+
+@migration(14)
+def add_comments(cur):
+    cur.execute(f"""
+        INSERT INTO verbs (
+            id,
+            label,
+            data_type,
+            internal
+        ) VALUES (
+            {COMMENT},
+            'comment',
+            'string',
+            TRUE
+        )
+    """)
+
+
+@migration(15)
+def add_owner_to_claim(cur):
+    cur.execute(f"""
+        ALTER TABLE claims
+        ADD owner_id INTEGER DEFAULT 0
+    """)
 
 
 if os.environ.get("VERONIQUE_READONLY"):

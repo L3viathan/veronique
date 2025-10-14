@@ -16,6 +16,7 @@ from db import (
     VALID_FROM,
     VALID_UNTIL,
     DATA_LABELS,
+    COMMENT,
 )
 
 TEXT_REF = re.compile(r"<@(\d+)>")
@@ -228,6 +229,7 @@ class Claim(Model):
         "subject",
         "verb",
         "object",
+        "owner",
     )
     table_name = "claims"
 
@@ -239,7 +241,9 @@ class Claim(Model):
                 subject_id,
                 verb_id,
                 value,
-                object_id
+                object_id,
+                created_at,
+                owner_id
             FROM
                 claims
             WHERE id = ?
@@ -260,6 +264,8 @@ class Claim(Model):
         else:
             # ROOT claim
             self.object = None
+        self.owner = User(row["owner_id"])
+        self.created_at = row["created_at"]
 
     @classmethod
     def all(
@@ -348,6 +354,20 @@ class Claim(Model):
             (make_search_key(q),),
         ).fetchall():
             yield cls(row["id"])
+
+    def comments(self):
+        cur = conn.cursor()
+        for row in cur.execute(
+            f"""
+            SELECT
+                c.id
+            FROM claims c
+            WHERE c.subject_id = ?
+            AND c.verb_id = ?
+            """,
+            (self.id, COMMENT),
+        ).fetchall():
+            yield Claim(row["id"])
 
     def incoming_claims(self):
         cur = conn.cursor()
@@ -449,6 +469,23 @@ class Claim(Model):
         ).fetchall():
             yield cls(row["id"])
 
+    @classmethod
+    def all_comments(cls, *, order_by="id ASC", page_no=0, page_size=20):
+        cur = conn.cursor()
+        for row in cur.execute(
+            f"""
+            SELECT
+                id
+            FROM claims c
+            WHERE c.verb_id = ?
+            ORDER BY {order_by}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
+            """,
+            (COMMENT,),
+        ).fetchall():
+            yield cls(row["id"])
+
     def delete(self):
         cur = conn.cursor()
         cur.execute("DELETE FROM claims WHERE id = ?", (self.id,))
@@ -488,21 +525,21 @@ class Claim(Model):
             cur.execute(
                 """
                     INSERT INTO claims
-                        (subject_id, verb_id, object_id)
+                        (subject_id, verb_id, object_id, owner_id)
                     VALUES
-                        (?, ?, ?)
+                        (?, ?, ?, ?)
                 """,
-                (subject.id, verb.id, value_or_object.id),
+                (subject.id, verb.id, value_or_object.id, context.user.id),
             )
         else:
             cur.execute(
                 """
                 INSERT INTO claims
-                    (subject_id, verb_id, value)
+                    (subject_id, verb_id, value, owner_id)
                 VALUES
-                    (?, ?, ?)
+                    (?, ?, ?, ?)
                 """,
-                (subject.id, verb.id, value_or_object.encode()),
+                (subject.id, verb.id, value_or_object.encode(), context.user.id),
             )
         conn.commit()
         return Claim(cur.lastrowid)
@@ -510,11 +547,11 @@ class Claim(Model):
     @classmethod
     def new_root(cls, name):
         cur = conn.cursor()
-        cur.execute("INSERT INTO claims (verb_id) VALUES (?)", (ROOT,))
+        cur.execute("INSERT INTO claims (verb_id, owner_id) VALUES (?, ?)", (ROOT, context.user.id))
         new_id = cur.lastrowid
         cur.execute(
-            "INSERT INTO claims (subject_id, verb_id, value) VALUES (?, ?, ?)",
-            (new_id, LABEL, name),
+            "INSERT INTO claims (subject_id, verb_id, value, owner_id) VALUES (?, ?, ?, ?)",
+            (new_id, LABEL, name, context.user.id),
         )
         cur.execute(
             "INSERT INTO search_index (table_name, id, value) VALUES ('claims', ?, ?)",
@@ -624,6 +661,10 @@ class Claim(Model):
             if AVATAR not in data:
                 return ""
             return f'<img src="{data[AVATAR][0].object.value}" class="avatar">'
+        elif fmt == "raw":
+            return self.object.value
+        elif fmt == "comment":
+            return f'<tr><td data-placement="right" data-tooltip="{self.created_at}" class="comment-author">{self.owner.name}:</td><td>{self:handle}</td><td class="comment-text">{self.object.value}</td></tr>'
         return f"TODO: {fmt!r}"
 
     def __str__(self):

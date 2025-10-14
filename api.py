@@ -11,7 +11,7 @@ from nomnidate import NonOmniscientDate
 import objects as O
 import security
 from context import context
-from db import conn, LABEL, IS_A, ROOT, AVATAR, make_search_key
+from db import conn, LABEL, IS_A, ROOT, AVATAR, COMMENT, make_search_key
 from data_types import TYPES
 
 PAGE_SIZE = 20
@@ -28,6 +28,12 @@ with open("login.html") as f:
 def _error(msg):
     return f"""
     <aside id="errors"><strong>Error:</strong> {msg} <span class="dismiss" hx-get="about:blank" hx-on:click="document.getElementById('errors').remove()">×</span></aside>
+    """
+
+
+def _notice(msg):
+    return f"""
+    <aside id="notices"><strong>Info:</strong> {msg} <span class="dismiss" hx-get="about:blank" hx-on:click="document.getElementById('notices').remove()">×</span></aside>
     """
 
 
@@ -299,6 +305,7 @@ async def index(request):
             allow_negative=True,
         )}
         </article>
+        {_notice('There are <a href="/comments">unresolved comments</a>') if context.user.is_admin and list(O.Claim.all_comments()) else ""}
     """
 
 
@@ -988,6 +995,32 @@ async def view_query(request, query_id: int):
     """
 
 
+@app.get("/comments")
+@page
+async def list_comments(request):
+    page_no = int(request.args.get("page", 1))
+    parts = []
+    more_results = False
+    for i, claim in enumerate(
+        O.Claim.all_comments(
+            order_by="id DESC",
+            page_no=page_no - 1,
+            page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+        )
+    ):
+        if i:
+            parts.append("<br>")
+        if i == PAGE_SIZE:
+            more_results = True
+        else:
+            parts.append(f"{claim:link}")
+    return "Comments", "".join(parts) + pagination(
+        "/comments",
+        page_no,
+        more_results=more_results,
+    )
+
+
 @app.get("/claims")
 @page
 async def list_labelled_claims(request):
@@ -1024,6 +1057,7 @@ async def view_claim(request, claim_id: int):
             status=403,
         )
     incoming_mentions = list(claim.incoming_mentions())
+    comments = list(claim.comments())
     return f"{claim:label}", f"""
         <article>
             <header>{claim:heading}{claim:avatar}</header>
@@ -1041,9 +1075,17 @@ async def view_claim(request, claim_id: int):
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }
-        {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR))}
+        {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR, COMMENT))}
         </td></tr></table>
         {"<hr><h3>Mentions</h3>" + "".join(f"<p>{c:svo}</p>" for c in incoming_mentions) if incoming_mentions else ""}
+        {'<hr><h3>Comments</h3><table class="comments">' + "".join(f"{c:comment}" for c in comments) + "</table>" if comments else ""}
+        {
+        f'''<form method="POST" action="/claims/new/{claim_id}/outgoing">
+            <input type="hidden" name="verb" value="{COMMENT}">
+            <input name="value" placeholder="Add comment...">
+            <input type="submit" hidden>
+        </form>''' if context.user.can("write", "verb", COMMENT) else ""
+        }
         </article>
     """
 
