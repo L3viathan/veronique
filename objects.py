@@ -1,5 +1,6 @@
 import re
 from datetime import date, datetime
+from functools import cached_property
 
 from data_types import TYPES
 from nomnidate import NonOmniscientDate
@@ -163,13 +164,14 @@ class Verb(Model):
         order_by="id ASC",
         page_no=0,
         page_size=20,
+        only_writable=False,
     ):
         conditions = ["1=1"]
         values = []
         if data_type is not None:
             conditions.append("data_type LIKE ?")
             values.append(data_type)
-        if (verb_ids := context.user.readable_verbs) is not None:
+        if (verb_ids := (context.user.writable_verbs if only_writable else context.user.readable_verbs)) is not None:
             conditions.append(
                 f"id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
             )
@@ -190,6 +192,8 @@ class Verb(Model):
             yield cls(row["id"])
 
     def __format__(self, fmt):
+        if not context.user.can("read", "verb", self.id):
+            return "(unknown verb)"
         if fmt == "full":
             return f"""<span class="verb">
                 <a class="clickable" href="/verbs/{self.id}">{self.label}</a>
@@ -551,10 +555,7 @@ class Claim(Model):
         return f" {' '.join(css_classes)}" if css_classes else "", remarks
 
     def __format__(self, fmt):
-        if (
-            not context.user.is_admin
-            and self.verb.id not in context.user.readable_verbs
-        ):
+        if not context.user.can("read", "verb", self.verb.id):
             return "(unknown claim)"
         data = self.get_data()
         css_classes, remarks = self._get_remarks(data)
@@ -754,7 +755,14 @@ class Query(Model):
 
 class User(Model):
     table_name = "users"
-    fields = ("name", "hash", "is_admin", "salt", "readable_verbs", "generation")
+    fields = (
+        "name",
+        "hash",
+        "is_admin",
+        "salt",
+        "permissions",
+        "generation",
+    )
 
     def populate(self):
         cur = conn.cursor()
@@ -775,7 +783,7 @@ class User(Model):
         self.is_admin = row["is_admin"]
         self.generation = row["generation"]
         if not self.is_admin:
-            self.readable_verbs = set()
+            self.permissions = set()
             for row in cur.execute(
                 """
                     SELECT
@@ -785,12 +793,16 @@ class User(Model):
                 """,
                 (self.id,),
             ).fetchall():
-                if row["permission"] == "read-verb":
-                    self.readable_verbs.add(row["object"])
+                self.permissions.add((row["permission"], row["object"]))
             # internal verbs can always be seen
-            self.readable_verbs.update(DATA_LABELS)
+            for internal_verb in DATA_LABELS:
+                self.permissions.add(("read-verb", internal_verb))
         else:
-            self.readable_verbs = None  # all of them
+            self.permissions = None  # all of them
+        if "readable_verbs" in self.__dict__:
+            del self.readable_verbs
+        if "writable_verbs" in self.__dict__:
+            del self.writable_verbs
 
     @classmethod
     def by_name(cls, name):
@@ -801,7 +813,7 @@ class User(Model):
         return cls(row["id"])
 
     @classmethod
-    def new(cls, name, *, password, readable_verbs):
+    def new(cls, name, *, password, readable_verbs, writable_verbs):
         cur = conn.cursor()
         hash, salt = hash_password(password)
         cur.execute(
@@ -814,10 +826,15 @@ class User(Model):
                 "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
                 (u_id, "read-verb", readable_verb),
             )
+        for writable_verb in writable_verbs:
+            cur.execute(
+                "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                (u_id, "write-verb", writable_verb),
+            )
         conn.commit()
         return cls(u_id)
 
-    def update(self, *, name, password, readable_verbs):
+    def update(self, *, name, password, readable_verbs, writable_verbs):
         cur = conn.cursor()
         to_set, values = [], []
         if name != self.name:
@@ -835,12 +852,19 @@ class User(Model):
                 f"UPDATE users SET {', '.join(to_set)} WHERE id=?", tuple(values)
             )
 
-        if any(vid >= 0 for vid in set(readable_verbs) ^ self.readable_verbs):
-            cur.execute("DELETE FROM permissions WHERE user_id = ?", (self.id,))
+        if any(vid >= 0 for vid in set(readable_verbs) ^ {verb for perm, verb in self.permissions if perm == "read-verb"}):
+            cur.execute("DELETE FROM permissions WHERE user_id = ? AND permission = 'read-verb'", (self.id,))
             for readable_verb in readable_verbs:
                 cur.execute(
                     "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
                     (self.id, "read-verb", readable_verb),
+                )
+        if set(writable_verbs) ^ {verb for perm, verb in self.permissions if perm == "write-verb"}:
+            cur.execute("DELETE FROM permissions WHERE user_id = ? AND permission = 'write-verb'", (self.id,))
+            for writable_verb in writable_verbs:
+                cur.execute(
+                    "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                    (self.id, "write-verb", writable_verb),
                 )
         conn.commit()
         self.populate()
@@ -869,6 +893,23 @@ class User(Model):
         )
         conn.commit()
         self.populate()
+
+    def can(self, do, what, whom):
+        if self.is_admin:
+            return True
+        return (f"{do}-{what}", whom) in self.permissions
+
+    @cached_property
+    def readable_verbs(self):
+        if self.is_admin:
+            return None
+        return {verb_id for perm, verb_id in self.permissions if perm == "read-verb"}
+
+    @cached_property
+    def writable_verbs(self):
+        if self.is_admin:
+            return None
+        return {verb_id for perm, verb_id in self.permissions if perm == "write-verb"}
 
 
 class Plain:

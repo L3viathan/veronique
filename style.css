@@ -393,3 +393,21 @@ nav details.dropdown {
   background: #000;  /* same color as the highlighting background */
 }
 /* END: syntax highlighting */
+
+#errors {
+  position: fixed;
+  top: 20px;
+  width: 90%;
+  height: fit-content;
+  min-height: fit-content;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: pink;
+  padding: 20px;
+}
+
+.dismiss {
+  float: right;
+  cursor: pointer;
+  color: grey;
+}
