@@ -11,7 +11,7 @@ from nomnidate import NonOmniscientDate
 import objects as O
 import security
 from context import context
-from db import conn, LABEL, IS_A, ROOT, AVATAR, make_search_key
+from db import conn, LABEL, IS_A, ROOT, AVATAR, COMMENT, make_search_key
 from data_types import TYPES
 
 PAGE_SIZE = 20
@@ -1024,6 +1024,7 @@ async def view_claim(request, claim_id: int):
             status=403,
         )
     incoming_mentions = list(claim.incoming_mentions())
+    comments = list(claim.comments())
     return f"{claim:label}", f"""
         <article>
             <header>{claim:heading}{claim:avatar}</header>
@@ -1041,9 +1042,11 @@ async def view_claim(request, claim_id: int):
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }
-        {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR))}
+        {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR, COMMENT))}
         </td></tr></table>
         {"<hr><h3>Mentions</h3>" + "".join(f"<p>{c:svo}</p>" for c in incoming_mentions) if incoming_mentions else ""}
+        {"<hr><h3>Comments</h3>" + "".join(f"<p>{c:svo}</p>" for c in comments) if comments else ""}
+        <input placeholder="Add comment...">
         </article>
     """
 

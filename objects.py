@@ -16,6 +16,7 @@ from db import (
     VALID_FROM,
     VALID_UNTIL,
     DATA_LABELS,
+    COMMENT,
 )
 
 TEXT_REF = re.compile(r"<@(\d+)>")
@@ -348,6 +349,20 @@ class Claim(Model):
             (make_search_key(q),),
         ).fetchall():
             yield cls(row["id"])
+
+    def comments(self):
+        cur = conn.cursor()
+        for row in cur.execute(
+            f"""
+            SELECT
+                c.id
+            FROM claims c
+            WHERE c.object_id = ?
+            AND c.verb_id = ?
+            """,
+            (self.id, COMMENT),
+        ).fetchall():
+            yield Claim(row["id"])
 
     def incoming_claims(self):
         cur = conn.cursor()
