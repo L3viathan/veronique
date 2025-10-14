@@ -599,6 +599,14 @@ def add_comments(cur):
     """)
 
 
+@migration(15)
+def add_owner_to_claim(cur):
+    cur.execute(f"""
+        ALTER TABLE claims
+        ADD owner_id INTEGER DEFAULT 0
+    """)
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 

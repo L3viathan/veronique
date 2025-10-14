@@ -229,6 +229,7 @@ class Claim(Model):
         "subject",
         "verb",
         "object",
+        "owner",
     )
     table_name = "claims"
 
@@ -240,7 +241,9 @@ class Claim(Model):
                 subject_id,
                 verb_id,
                 value,
-                object_id
+                object_id,
+                created_at,
+                owner_id
             FROM
                 claims
             WHERE id = ?
@@ -261,6 +264,8 @@ class Claim(Model):
         else:
             # ROOT claim
             self.object = None
+        self.owner = User(row["owner_id"])
+        self.created_at = row["created_at"]
 
     @classmethod
     def all(
@@ -357,7 +362,7 @@ class Claim(Model):
             SELECT
                 c.id
             FROM claims c
-            WHERE c.object_id = ?
+            WHERE c.subject_id = ?
             AND c.verb_id = ?
             """,
             (self.id, COMMENT),
@@ -503,21 +508,21 @@ class Claim(Model):
             cur.execute(
                 """
                     INSERT INTO claims
-                        (subject_id, verb_id, object_id)
+                        (subject_id, verb_id, object_id, owner_id)
                     VALUES
-                        (?, ?, ?)
+                        (?, ?, ?, ?)
                 """,
-                (subject.id, verb.id, value_or_object.id),
+                (subject.id, verb.id, value_or_object.id, context.user.id),
             )
         else:
             cur.execute(
                 """
                 INSERT INTO claims
-                    (subject_id, verb_id, value)
+                    (subject_id, verb_id, value, owner_id)
                 VALUES
-                    (?, ?, ?)
+                    (?, ?, ?, ?)
                 """,
-                (subject.id, verb.id, value_or_object.encode()),
+                (subject.id, verb.id, value_or_object.encode(), context.user.id),
             )
         conn.commit()
         return Claim(cur.lastrowid)
@@ -525,11 +530,11 @@ class Claim(Model):
     @classmethod
     def new_root(cls, name):
         cur = conn.cursor()
-        cur.execute("INSERT INTO claims (verb_id) VALUES (?)", (ROOT,))
+        cur.execute("INSERT INTO claims (verb_id, owner_id) VALUES (?, ?)", (ROOT, context.user.id))
         new_id = cur.lastrowid
         cur.execute(
-            "INSERT INTO claims (subject_id, verb_id, value) VALUES (?, ?, ?)",
-            (new_id, LABEL, name),
+            "INSERT INTO claims (subject_id, verb_id, value, owner_id) VALUES (?, ?, ?, ?)",
+            (new_id, LABEL, name, context.user.id),
         )
         cur.execute(
             "INSERT INTO search_index (table_name, id, value) VALUES ('claims', ?, ?)",
@@ -639,6 +644,10 @@ class Claim(Model):
             if AVATAR not in data:
                 return ""
             return f'<img src="{data[AVATAR][0].object.value}" class="avatar">'
+        elif fmt == "raw":
+            return self.object.value
+        elif fmt == "comment":
+            return f'<tr><td data-placement="right" data-tooltip="{self.created_at}" class="comment-author">{self.owner.name}:</td><td>{self:handle}</td><td class="comment-text">{self.object.value}</td></tr>'
         return f"TODO: {fmt!r}"
 
     def __str__(self):
