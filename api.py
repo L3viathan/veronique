@@ -31,6 +31,12 @@ def _error(msg):
     """
 
 
+def _notice(msg):
+    return f"""
+    <aside id="notices"><strong>Info:</strong> {msg} <span class="dismiss" hx-get="about:blank" hx-on:click="document.getElementById('notices').remove()">×</span></aside>
+    """
+
+
 @app.on_request
 async def auth(request):
     """Ensure that each request is either authenticated or going to an explicitly allowed resource."""
@@ -299,6 +305,7 @@ async def index(request):
             allow_negative=True,
         )}
         </article>
+        {_notice('There are <a href="/comments">unresolved comments</a>') if context.user.is_admin and list(O.Claim.all_comments()) else ""}
     """
 
 
@@ -986,6 +993,32 @@ async def view_query(request, query_id: int):
         }
         </article>
     """
+
+
+@app.get("/comments")
+@page
+async def list_comments(request):
+    page_no = int(request.args.get("page", 1))
+    parts = []
+    more_results = False
+    for i, claim in enumerate(
+        O.Claim.all_comments(
+            order_by="id DESC",
+            page_no=page_no - 1,
+            page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+        )
+    ):
+        if i:
+            parts.append("<br>")
+        if i == PAGE_SIZE:
+            more_results = True
+        else:
+            parts.append(f"{claim:link}")
+    return "Comments", "".join(parts) + pagination(
+        "/comments",
+        page_no,
+        more_results=more_results,
+    )
 
 
 @app.get("/claims")

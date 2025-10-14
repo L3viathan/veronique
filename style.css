@@ -394,6 +394,18 @@ nav details.dropdown {
 }
 /* END: syntax highlighting */
 
+#notices {
+  position: fixed;
+  top: 20px;
+  width: 90%;
+  height: fit-content;
+  min-height: fit-content;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: lightblue;
+  padding: 20px;
+}
+
 #errors {
   position: fixed;
   top: 20px;

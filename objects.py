@@ -469,6 +469,23 @@ class Claim(Model):
         ).fetchall():
             yield cls(row["id"])
 
+    @classmethod
+    def all_comments(cls, *, order_by="id ASC", page_no=0, page_size=20):
+        cur = conn.cursor()
+        for row in cur.execute(
+            f"""
+            SELECT
+                id
+            FROM claims c
+            WHERE c.verb_id = ?
+            ORDER BY {order_by}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
+            """,
+            (COMMENT,),
+        ).fetchall():
+            yield cls(row["id"])
+
     def delete(self):
         cur = conn.cursor()
         cur.execute("DELETE FROM claims WHERE id = ?", (self.id,))
