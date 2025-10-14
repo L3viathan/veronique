@@ -1105,26 +1105,29 @@ async def list_users(request):
     )
 
 
-@app.get("/users/new")
-@admin_only
-@page
-async def new_user_form(request):
+def _user_form(*, password_input, endpoint, user=None):
     verb_options_r, verb_options_w = [], []
     for verb in O.Verb.all(page_size=9999):
         if verb.id < 0:
-            verb_options_w.append(f'<option value="{verb.id}">{verb.label}</option>')
+            verb_options_w.append(
+                f'<option {"selected" if user and user.can("write", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
+            )
             continue
-        verb_options_r.append(f'<option value="{verb.id}">{verb.label}</option>')
-        verb_options_w.append(f'<option value="{verb.id}">{verb.label}</option>')
+        verb_options_r.append(
+            f'<option {"selected" if user and user.can("read", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
+        )
+        verb_options_w.append(
+            f'<option {"selected" if user and user.can("write", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
+        )
     verb_options_r = "\n".join(verb_options_r)
     verb_options_w = "\n".join(verb_options_w)
-    password = token_urlsafe(16)
-    return "New user", f"""
+
+    return f"""
         <form
-            action="/users/new"
+            action="{endpoint}"
             method="POST"
         >
-            <input name="name" placeholder="name"></input>
+            <input name="name" placeholder="name" value="{user and user.name or ''}">
             <h3>Readable verbs</h3>
             <select name="verbs-readable" multiple size="10">
             {verb_options_r}
@@ -1135,15 +1138,26 @@ async def new_user_form(request):
             {verb_options_w}
             </select>
 
-            <fieldset role="group">
-            <input id="password" disabled value="{password}">
-            <input type="hidden" name="password" value="{password}">
-            <input type="button" value="copy" onclick="navigator.clipboard.writeText('{password}')">
-            </fieldset>
+            {password_input}
 
-            <input type="submit" value="Create">
+            <input type="submit" value="{'Save' if user else 'Create'}">
         </form>
     """
+
+
+
+@app.get("/users/new")
+@admin_only
+@page
+async def new_user_form(request):
+    password = token_urlsafe(16)
+    return "New user", _user_form(endpoint="/users/new", password_input=f"""
+        <fieldset role="group">
+        <input id="password" disabled value="{password}">
+        <input type="hidden" name="password" value="{password}">
+        <input type="button" value="copy" onclick="navigator.clipboard.writeText('{password}')">
+        </fieldset>
+    """)
 
 
 @app.get("/users/<user_id>/edit")
@@ -1151,85 +1165,50 @@ async def new_user_form(request):
 @page
 async def edit_user_form(request, user_id: int):
     user = O.User(user_id)
-    verb_options_r, verb_options_w = [], []
-    for verb in O.Verb.all(page_size=9999):
-        if verb.id < 0:
-            verb_options_w.append(
-                f'<option {"selected" if user.can("write", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
-            )
-            continue
-        verb_options_r.append(
-            f'<option {"selected" if user.can("read", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
+    return f"Edit user {user.name}", _user_form(user=user, endpoint=f"/users/{user_id}/edit", password_input="""
+        <label>New password
+        <input type="password" name="password" value="" placeholder="(leave empty to keep as-is)">
+        </label>
+    """)
+
+
+def _write_user(form, endpoint, user=None):
+    writable_verbs = {int(v) for v in form["verbs-writable"]} if "verbs-writable" in form else set()
+    readable_verbs = {int(v) for v in form["verbs-readable"]} if "verbs-readable" in form else set()
+    if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
+        return redirect(f"{endpoint}?err=When making the root verb writable, you also need to make category and label writable.")
+    if any(v >= 0 for v in writable_verbs - readable_verbs):
+        print(writable_verbs - readable_verbs, readable_verbs, writable_verbs)
+        return redirect(f"{endpoint}?err=All writable verbs need to be readable.")
+
+    if user:
+        user.update(
+            name=form.get("name"),
+            password=form.get("password"),
+            readable_verbs=readable_verbs,
+            writable_verbs=writable_verbs,
         )
-        verb_options_w.append(
-            f'<option {"selected" if user.can("write", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
+    else:
+        user = O.User.new(
+            name=form.get("name"),
+            password=form.get("password") if "password" in form else None,
+            readable_verbs=readable_verbs,
+            writable_verbs=writable_verbs,
         )
-    verb_options_r = "\n".join(verb_options_r)
-    verb_options_w = "\n".join(verb_options_w)
-
-    return f"Edit user {user.name}", f"""
-        <form
-            action="/users/{user_id}/edit"
-            method="POST"
-        >
-            <input name="name" placeholder="name" value="{user.name}">
-            <h3>Readable verbs</h3>
-            <select name="verbs-readable" multiple size="10">
-            {verb_options_r}
-            </select>
-
-            <h3>Writable verbs</h3>
-            <select name="verbs-writable" multiple size="10">
-            {verb_options_w}
-            </select>
-
-            <label>New password
-            <input type="password" name="password" value="" placeholder="(leave empty to keep as-is)">
-            </label>
-
-            <input type="submit" value="Save">
-        </form>
-    """
+    return redirect(f"/users/{user.id}")
 
 
 @app.post("/users/<user_id>/edit")
 @admin_only
 async def edit_user(request, user_id: int):
-    form = D(request.form)
     user = O.User(user_id)
-    writable_verbs = {int(v) for v in request.form["verbs-writable"]} if "verbs-writable" in request.form else set()
-    readable_verbs = {int(v) for v in request.form["verbs-readable"]} if "verbs-readable" in request.form else set()
-    if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
-        return redirect(f"/users/{user_id}/edit?err=When making the root verb writable, you also need to make category and label writable.")
-    if any(v >= 0 for v in writable_verbs - readable_verbs):
-        return redirect(f"/users/{user_id}/edit?err=All writable verbs need to be readable.")
-
-    user.update(
-        name=form["name"],
-        password=form.get("password"),
-        readable_verbs=readable_verbs,
-        writable_verbs=writable_verbs,
-    )
-    return redirect(f"/users/{user.id}")
+    return _write_user(request.form, endpoint=f"/users/{user_id}/edit", user=user)
 
 
 @app.post("/users/new")
 @admin_only
 async def new_user(request):
-    form = D(request.form)
-    writable_verbs = {int(v) for v in request.form["verbs-writable"]} if "verbs-writable" in request.form else set()
-    readable_verbs = {int(v) for v in request.form["verbs-readable"]} if "verbs-readable" in request.form else set()
-    if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
-        return redirect(f"/users/{user_id}/edit?err=When making the root verb writable, you also need to make category and label writable.")
-    if any(v >= 0 for v in writable_verbs - readable_verbs):
-        return redirect(f"/users/{user_id}/edit?err=All writable verbs need to be readable.")
-    user = O.User.new(
-        form["name"],
-        password=form["password"],
-        readable_verbs=readable_verbs,
-        writable_verbs=writable_verbs,
-    )
-    return redirect(f"/users/{user.id}")
+    return _write_user(request.form, endpoint="/users/new")
 
 
 @app.get("/users/<user_id>")

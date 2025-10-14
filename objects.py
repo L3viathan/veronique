@@ -813,7 +813,7 @@ class User(Model):
         return cls(row["id"])
 
     @classmethod
-    def new(cls, name, *, password, readable_verbs, writable_verbs):
+    def new(cls, *, name, password, readable_verbs, writable_verbs):
         cur = conn.cursor()
         hash, salt = hash_password(password)
         cur.execute(
