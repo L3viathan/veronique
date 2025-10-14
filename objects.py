@@ -684,6 +684,27 @@ class Query(Model):
         self.sql = row["sql"]
 
     @classmethod
+    def all(cls, *, order_by="id ASC", page_no=0, page_size=20):
+        cur = conn.cursor()
+        conditions = ["1=1"]
+        if (query_ids := context.user.viewable_queries) is not None:
+            conditions.append(
+                f"id IN ({','.join(str(query_id) for query_id in query_ids)})"
+            )
+        for row in cur.execute(
+            f"""
+            SELECT
+                id
+            FROM queries
+            WHERE {" AND ".join(conditions)}
+            ORDER BY {order_by}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
+            """
+        ).fetchall():
+            yield cls(row["id"])
+
+    @classmethod
     def new(cls, label, sql):
         cur = conn.cursor()
         cur.execute("INSERT INTO queries (label, sql) VALUES (?, ?)", (label, sql))
@@ -710,10 +731,13 @@ class Query(Model):
 
     def __format__(self, fmt):
         if fmt == "heading":
-            return f"""<h2
-            >{self.label} <a
-                href="/queries/{self.id}/edit"
-            >✎</a></h2>"""
+            if context.user.is_admin:
+                return f"""<h2
+                >{self.label} <a
+                    href="/queries/{self.id}/edit"
+                >✎</a></h2>"""
+            else:
+                return f"""<h2>{self.label}</h2>"""
         else:
             return f"""<a
                 class="clickable query"
@@ -803,6 +827,8 @@ class User(Model):
             del self.readable_verbs
         if "writable_verbs" in self.__dict__:
             del self.writable_verbs
+        if "viewable_queries" in self.__dict__:
+            del self.viewable_queries
 
     @classmethod
     def by_name(cls, name):
@@ -813,7 +839,7 @@ class User(Model):
         return cls(row["id"])
 
     @classmethod
-    def new(cls, *, name, password, readable_verbs, writable_verbs):
+    def new(cls, *, name, password, readable_verbs, writable_verbs, viewable_queries):
         cur = conn.cursor()
         hash, salt = hash_password(password)
         cur.execute(
@@ -831,10 +857,15 @@ class User(Model):
                 "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
                 (u_id, "write-verb", writable_verb),
             )
+        for viewable_query in viewable_queries:
+            cur.execute(
+                "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                (u_id, "view-query", viewable_query),
+            )
         conn.commit()
         return cls(u_id)
 
-    def update(self, *, name, password, readable_verbs, writable_verbs):
+    def update(self, *, name, password, readable_verbs, writable_verbs, viewable_queries):
         cur = conn.cursor()
         to_set, values = [], []
         if name != self.name:
@@ -865,6 +896,13 @@ class User(Model):
                 cur.execute(
                     "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
                     (self.id, "write-verb", writable_verb),
+                )
+        if set(viewable_queries) ^ {query for perm, query in self.permissions if perm == "view-query"}:
+            cur.execute("DELETE FROM permissions WHERE user_id = ? AND permission = 'view-query'", (self.id,))
+            for viewable_query in viewable_queries:
+                cur.execute(
+                    "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                    (self.id, "view-query", viewable_query),
                 )
         conn.commit()
         self.populate()
@@ -910,6 +948,12 @@ class User(Model):
         if self.is_admin:
             return None
         return {verb_id for perm, verb_id in self.permissions if perm == "write-verb"}
+
+    @cached_property
+    def viewable_queries(self):
+        if self.is_admin:
+            return None
+        return {query_id for perm, query_id in self.permissions if perm == "view-query"}
 
 
 class Plain:

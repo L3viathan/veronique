@@ -151,7 +151,7 @@ def page(fn):
             ("claims", False),
             ("verbs", False),
             ("network", False),
-            ("queries", True),
+            ("queries", False),
             ("users", True),
         ]:
             if restricted and not context.user.is_admin:
@@ -784,7 +784,6 @@ async def new_verb(request):
 
 
 @app.get("/queries")
-@admin_only
 @page
 async def list_queries(request):
     page_no = int(request.args.get("page", 1))
@@ -957,9 +956,13 @@ async def edit_query(request, query_id: int):
 
 
 @app.get("/queries/<query_id>")
-@admin_only
 @page
 async def view_query(request, query_id: int):
+    if not context.user.can("view", "query", query_id):
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
     page_no = int(request.args.get("page", 1))
     query = O.Query(query_id)
     result = query.run(
@@ -1106,7 +1109,7 @@ async def list_users(request):
 
 
 def _user_form(*, password_input, endpoint, user=None):
-    verb_options_r, verb_options_w = [], []
+    verb_options_r, verb_options_w, query_options = [], [], []
     for verb in O.Verb.all(page_size=9999):
         if verb.id < 0:
             verb_options_w.append(
@@ -1119,8 +1122,13 @@ def _user_form(*, password_input, endpoint, user=None):
         verb_options_w.append(
             f'<option {"selected" if user and user.can("write", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
         )
+    for query in O.Query.all(page_size=9999):
+        query_options.append(
+            f'<option {"selected" if user and user.can("view", "query", query.id) else ""} value="{query.id}">{query.label}</option>'
+        )
     verb_options_r = "\n".join(verb_options_r)
     verb_options_w = "\n".join(verb_options_w)
+    query_options = "\n".join(query_options)
 
     return f"""
         <form
@@ -1136,6 +1144,11 @@ def _user_form(*, password_input, endpoint, user=None):
             <h3>Writable verbs</h3>
             <select name="verbs-writable" multiple size="10">
             {verb_options_w}
+            </select>
+
+            <h3>Viewable queries</h3>
+            <select name="queries-viewable" multiple size="10">
+            {query_options}
             </select>
 
             {password_input}
@@ -1175,6 +1188,7 @@ async def edit_user_form(request, user_id: int):
 def _write_user(form, endpoint, user=None):
     writable_verbs = {int(v) for v in form["verbs-writable"]} if "verbs-writable" in form else set()
     readable_verbs = {int(v) for v in form["verbs-readable"]} if "verbs-readable" in form else set()
+    viewable_queries = {int(v) for v in form["queries-viewable"]} if "queries-viewable" in form else set()
     if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
         return redirect(f"{endpoint}?err=When making the root verb writable, you also need to make category and label writable.")
     if any(v >= 0 for v in writable_verbs - readable_verbs):
@@ -1187,6 +1201,7 @@ def _write_user(form, endpoint, user=None):
             password=form.get("password"),
             readable_verbs=readable_verbs,
             writable_verbs=writable_verbs,
+            viewable_queries=viewable_queries,
         )
     else:
         user = O.User.new(
@@ -1194,6 +1209,7 @@ def _write_user(form, endpoint, user=None):
             password=form.get("password") if "password" in form else None,
             readable_verbs=readable_verbs,
             writable_verbs=writable_verbs,
+            viewable_queries=viewable_queries,
         )
     return redirect(f"/users/{user.id}")
 
@@ -1229,6 +1245,7 @@ async def view_user(request, user_id: int):
         <tr><th scope="row">Admin</th><td>{TYPES["boolean"].display_html(user.is_admin)}</td></tr>
         <tr><th scope="row">Readable verbs</th><td>{", ".join(str(O.Verb(v)) for v in (user.readable_verbs or []) if v >= 0)}</td></tr>
         <tr><th scope="row">Writable verbs</th><td>{", ".join(str(O.Verb(v)) for v in (user.writable_verbs or []))}</td></tr>
+        <tr><th scope="row">Viewable queries</th><td>{", ".join(str(O.Query(q)) for q in (user.viewable_queries or []))}</td></tr>
         </table>
         </article>
     """
