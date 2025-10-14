@@ -25,6 +25,12 @@ with open("login.html") as f:
     LOGIN = f.read()
 
 
+def _error(msg):
+    return f"""
+    <aside id="errors"><strong>Error:</strong> {msg} <span class="dismiss" hx-get="about:blank" hx-on:click="document.getElementById('errors').remove()">×</span></aside>
+    """
+
+
 @app.on_request
 async def auth(request):
     """Ensure that each request is either authenticated or going to an explicitly allowed resource."""
@@ -183,7 +189,12 @@ def page(fn):
         """
         return html(
             TEMPLATE(
-                title=title, content=ret, gotos="".join(gotos), news=news, user=user
+                title=title,
+                content=ret,
+                gotos="".join(gotos),
+                news=news,
+                user=user,
+                errors=_error(request.args["err"][0]) if "err" in request.args else "",
             )
         )
 
@@ -1189,11 +1200,9 @@ async def edit_user(request, user_id: int):
     writable_verbs = {int(v) for v in request.form["verbs-writable"]} if "verbs-writable" in request.form else set()
     readable_verbs = {int(v) for v in request.form["verbs-readable"]} if "verbs-readable" in request.form else set()
     if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
-        # TODO: somehow emit error
-        return redirect(f"/users/{user_id}/edit")
+        return redirect(f"/users/{user_id}/edit?err=When making the root verb writable, you also need to make category and label writable.")
     if any(v >= 0 for v in writable_verbs - readable_verbs):
-        # TODO: somehow emit error
-        return redirect(f"/users/{user_id}/edit")
+        return redirect(f"/users/{user_id}/edit?err=All writable verbs need to be readable.")
 
     user.update(
         name=form["name"],
@@ -1211,11 +1220,9 @@ async def new_user(request):
     writable_verbs = {int(v) for v in request.form["verbs-writable"]} if "verbs-writable" in request.form else set()
     readable_verbs = {int(v) for v in request.form["verbs-readable"]} if "verbs-readable" in request.form else set()
     if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
-        # TODO: somehow emit error
-        return redirect(f"/users/{user_id}/edit")
+        return redirect(f"/users/{user_id}/edit?err=When making the root verb writable, you also need to make category and label writable.")
     if any(v >= 0 for v in writable_verbs - readable_verbs):
-        # TODO: somehow emit error
-        return redirect(f"/users/{user_id}/edit")
+        return redirect(f"/users/{user_id}/edit?err=All writable verbs need to be readable.")
     user = O.User.new(
         form["name"],
         password=form["password"],
