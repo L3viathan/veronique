@@ -612,7 +612,7 @@ class Claim(Model):
             else:
                 cat = ""
             buttons = []
-            if context.user.is_admin:
+            if context.user.is_admin or self.owner.id == context.user.id:
                 if isinstance(self.object, Plain):
                     buttons.append(f"""<a
                         hx-target="#edit-area"
