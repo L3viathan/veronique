@@ -185,6 +185,8 @@ def page(fn):
                 <a href="/claims/new-root" id="add-button">+</a>
             </li>
             """
+        else:
+            news = ""
         user = f"""
         <li>
             <details class="dropdown">
@@ -1178,6 +1180,7 @@ def _user_form(*, password_input, endpoint, user=None):
             method="POST"
         >
             <input name="name" placeholder="name" value="{user and user.name or ''}">
+            {'' if user and user.is_admin else f'''
             <h3>Readable verbs</h3>
             <select name="verbs-readable" multiple size="10">
             {verb_options_r}
@@ -1192,6 +1195,7 @@ def _user_form(*, password_input, endpoint, user=None):
             <select name="queries-viewable" multiple size="10">
             {query_options}
             </select>
+            '''}
 
             {password_input}
 
@@ -1234,7 +1238,6 @@ def _write_user(form, endpoint, user=None):
     if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
         return redirect(f"{endpoint}?err=When making the root verb writable, you also need to make category and label writable.")
     if any(v >= 0 for v in writable_verbs - readable_verbs):
-        print(writable_verbs - readable_verbs, readable_verbs, writable_verbs)
         return redirect(f"{endpoint}?err=All writable verbs need to be readable.")
 
     if user:

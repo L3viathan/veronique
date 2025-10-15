@@ -924,27 +924,28 @@ class User(Model):
                 f"UPDATE users SET {', '.join(to_set)} WHERE id=?", tuple(values)
             )
 
-        if any(vid >= 0 for vid in set(readable_verbs) ^ {verb for perm, verb in self.permissions if perm == "read-verb"}):
-            cur.execute("DELETE FROM permissions WHERE user_id = ? AND permission = 'read-verb'", (self.id,))
-            for readable_verb in readable_verbs:
-                cur.execute(
-                    "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
-                    (self.id, "read-verb", readable_verb),
-                )
-        if set(writable_verbs) ^ {verb for perm, verb in self.permissions if perm == "write-verb"}:
-            cur.execute("DELETE FROM permissions WHERE user_id = ? AND permission = 'write-verb'", (self.id,))
-            for writable_verb in writable_verbs:
-                cur.execute(
-                    "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
-                    (self.id, "write-verb", writable_verb),
-                )
-        if set(viewable_queries) ^ {query for perm, query in self.permissions if perm == "view-query"}:
-            cur.execute("DELETE FROM permissions WHERE user_id = ? AND permission = 'view-query'", (self.id,))
-            for viewable_query in viewable_queries:
-                cur.execute(
-                    "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
-                    (self.id, "view-query", viewable_query),
-                )
+        if not self.is_admin:
+            if any(vid >= 0 for vid in set(readable_verbs) ^ {verb for perm, verb in self.permissions if perm == "read-verb"}):
+                cur.execute("DELETE FROM permissions WHERE user_id = ? AND permission = 'read-verb'", (self.id,))
+                for readable_verb in readable_verbs:
+                    cur.execute(
+                        "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                        (self.id, "read-verb", readable_verb),
+                    )
+            if set(writable_verbs) ^ {verb for perm, verb in self.permissions if perm == "write-verb"}:
+                cur.execute("DELETE FROM permissions WHERE user_id = ? AND permission = 'write-verb'", (self.id,))
+                for writable_verb in writable_verbs:
+                    cur.execute(
+                        "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                        (self.id, "write-verb", writable_verb),
+                    )
+            if set(viewable_queries) ^ {query for perm, query in self.permissions if perm == "view-query"}:
+                cur.execute("DELETE FROM permissions WHERE user_id = ? AND permission = 'view-query'", (self.id,))
+                for viewable_query in viewable_queries:
+                    cur.execute(
+                        "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
+                        (self.id, "view-query", viewable_query),
+                    )
         conn.commit()
         self.populate()
 
