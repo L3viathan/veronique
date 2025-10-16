@@ -1092,7 +1092,8 @@ async def view_claim(request, claim_id: int):
         {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR, COMMENT))}
         </td></tr></table>
         {"<hr><h3>Mentions</h3>" + "".join(f"<p>{c:svo}</p>" for c in incoming_mentions) if incoming_mentions else ""}
-        {'<hr><h3>Comments</h3><table class="comments">' + "".join(f"{c:comment}" for c in comments) + "</table>" if comments else ""}
+        <footer>
+        {'<table class="comments">' + "".join(f"{c:comment}" for c in comments) + "</table>" if comments else ""}
         {
         f'''<form method="POST" action="/claims/new/{claim_id}/outgoing">
             <input type="hidden" name="verb" value="{COMMENT}">
@@ -1100,6 +1101,7 @@ async def view_claim(request, claim_id: int):
             <input type="submit" hidden>
         </form>''' if context.user.can("write", "verb", COMMENT) else ""
         }
+        </footer>
         </article>
     """
 
