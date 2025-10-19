@@ -4,7 +4,7 @@ import base64
 import sys
 import sqlite3
 import unicodedata
-from security import hash_password
+from veronique.security import hash_password
 
 conn = sqlite3.connect(os.environ.get("VERONIQUE_DB", "veronique.db"))
 conn.row_factory = sqlite3.Row

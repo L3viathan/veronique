@@ -7,12 +7,13 @@ from secrets import token_urlsafe
 from datetime import date, datetime, timedelta
 from types import CoroutineType
 from sanic import Sanic, HTTPResponse, html, file, redirect
-from nomnidate import NonOmniscientDate
-import objects as O
-import security
-from context import context
-from db import conn, LABEL, IS_A, ROOT, AVATAR, COMMENT, make_search_key
-from data_types import TYPES
+
+import veronique.objects as O
+import veronique.security as security
+from veronique.context import context
+from veronique.nomnidate import NonOmniscientDate
+from veronique.db import conn, LABEL, IS_A, ROOT, AVATAR, COMMENT, make_search_key
+from veronique.data_types import TYPES
 
 PAGE_SIZE = 20
 

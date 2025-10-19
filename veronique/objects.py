@@ -2,11 +2,11 @@ import re
 from datetime import date, datetime
 from functools import cached_property
 
-from data_types import TYPES
-from nomnidate import NonOmniscientDate
-from security import hash_password
-from context import context
-from db import (
+from veronique.data_types import TYPES
+from veronique.nomnidate import NonOmniscientDate
+from veronique.security import hash_password
+from veronique.context import context
+from veronique.db import (
     conn,
     make_search_key,
     LABEL,

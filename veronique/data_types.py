@@ -4,7 +4,7 @@ import unicodedata
 from datetime import date as dt_date, timedelta
 from urllib.parse import quote_plus
 
-from nomnidate import NonOmniscientDate
+from veronique.nomnidate import NonOmniscientDate
 
 TYPES = {}
 
