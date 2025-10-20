@@ -21,7 +21,7 @@ tool.
 - Install `sanic` (to a venv)
 - Place a file called `veronique_initial_pw` containing a password in the
   working directory. This will be the password of the `admin` user.
-- Run `sanic api --dev`
+- Run `sanic veronique.api:app --dev`
 
 ## Deployment
 
