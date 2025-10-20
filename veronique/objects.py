@@ -1,5 +1,5 @@
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from functools import cached_property
 
 from veronique.data_types import TYPES
@@ -305,7 +305,7 @@ class Claim(Model):
             yield cls(row["id"])
 
     @classmethod
-    def all_of_same_month(cls, reference_date=None):
+    def all_near_today(cls, reference_date=None, days_back=3, days_ahead=10):
         cur = conn.cursor()
         if reference_date is None:
             reference_date = date.today()
@@ -313,8 +313,14 @@ class Claim(Model):
             "v.id != ?",
             "v.id != ?",
             "v.data_type = 'date'",
-            "c.value LIKE '%-' || ? || '-%'",
         ]
+        target_days = [
+            reference_date + timedelta(days=d)
+            for d in range(-days_back, days_ahead+1)
+        ]
+        conditions.append(
+            f"""({' OR '.join(f"c.value LIKE '%-{d:%m-%d}'" for d in target_days)})"""
+        )
         if (verb_ids := context.user.readable_verbs) is not None:
             conditions.append(
                 f"verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
@@ -333,7 +339,6 @@ class Claim(Model):
                 (
                     VALID_FROM,
                     VALID_UNTIL,
-                    reference_date.strftime("%m"),
                 ),
             )
         ]

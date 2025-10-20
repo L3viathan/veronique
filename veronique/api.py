@@ -268,14 +268,13 @@ async def index(request):
     recent_events = []
     page_no = int(request.args.get("page", 1))
     past_today = False
+    days_back = 3
+    days_ahead = 7
     reference_date = date.today()
     if page_no != 1:
-        reference_date = reference_date.replace(
-            day=1,
-            month=((reference_date.month + (page_no - 1)) % 12) or 12,
-        )
+        reference_date += timedelta(days=(days_back+days_ahead+1)*(page_no-1))
     for claim in sorted(
-        O.Claim.all_of_same_month(reference_date),
+        O.Claim.all_near_today(reference_date, days_back=days_back, days_ahead=days_ahead),
         key=lambda c: (
             # unspecified dates are always before everything else
             coalesce((reference_date - NonOmniscientDate(c.object.value)).days, 99)
@@ -294,9 +293,7 @@ async def index(request):
         recent_events.append(f"<p>{claim:link}</p>")
     if page_no == 1 and not past_today:
         recent_events.append('<hr class="date-today">')
-    heading = {1: "This month", 0: "Last month", 2: "Next month"}.get(
-        page_no, f"{reference_date:%B}"
-    )
+    heading = f"Events near {'today' if page_no == 1 else f'{reference_date:%m-%d}'}"
     return f"""
         <article><header>
         <h2>{heading}</h2>
