@@ -601,7 +601,7 @@ def add_comments(cur):
 
 @migration(15)
 def add_owner_to_claim(cur):
-    cur.execute(f"""
+    cur.execute("""
         ALTER TABLE claims
         ADD owner_id INTEGER DEFAULT 0
     """)

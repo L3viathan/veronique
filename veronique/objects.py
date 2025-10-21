@@ -363,7 +363,7 @@ class Claim(Model):
     def comments(self):
         cur = conn.cursor()
         for row in cur.execute(
-            f"""
+            """
             SELECT
                 c.id
             FROM claims c
