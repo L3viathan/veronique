@@ -460,3 +460,7 @@ table.comments {
     text-align: right;
   }
 }
+
+.row {
+  display: block;
+}

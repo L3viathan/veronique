@@ -290,7 +290,7 @@ async def index(request):
         elif not past_today and (difference or 0) < 0 and page_no == 1:
             recent_events.append('<hr class="date-today">')
             past_today = True
-        recent_events.append(f"<p>{claim:link}</p>")
+        recent_events.append(f'<span class="row">{claim:link}</span>')
     if page_no == 1 and not past_today:
         recent_events.append('<hr class="date-today">')
     heading = f"Events near {'today' if page_no == 1 else f'{reference_date:%m-%d}'}"
@@ -489,7 +489,7 @@ async def new_root_claim_form(request):
             conn_verb = O.Verb(int(conn_verb_id))
             conn_claim = O.Claim(int(conn_claim_id))
             connect_info = f"""
-            <p>After creation, an {conn_dir} {conn_verb:link} link will be made to {conn_claim:link}</p>.
+            <p>After creation, an {conn_dir} {conn_verb:link} link will be made to {conn_claim:link}.</p>
             <input type="hidden" name="connect" value="{connect}">
             """
     name = args.get("name", "")
@@ -1080,16 +1080,16 @@ async def view_claim(request, claim_id: int):
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }
-        {"".join(f"<p>{c:sv}</p>" for c in claim.incoming_claims())}
+        {"".join(f'<span class="row">{c:sv}</span>' for c in claim.incoming_claims())}
         </td><td>
         {
             f'<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>'
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }
-        {"".join(f"<p>{c:vo:{claim_id}}</p>" for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR, COMMENT))}
+        {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR, COMMENT))}
         </td></tr></table>
-        {"<hr><h3>Mentions</h3>" + "".join(f"<p>{c:svo}</p>" for c in incoming_mentions) if incoming_mentions else ""}
+        {"<hr><h3>Mentions</h3>" + "".join(f'<span class="row">{c:svo}</span>' for c in incoming_mentions) if incoming_mentions else ""}
         <footer>
         {'<table class="comments">' + "".join(f"{c:comment}" for c in comments) + "</table>" if comments else ""}
         {
@@ -1125,7 +1125,7 @@ async def view_verb(request, verb_id: int):
         if i == PAGE_SIZE:
             more_results = True
         else:
-            parts.append(f"<p>{claim:svo}</p>")
+            parts.append(f'<span class="row">{claim:svo}</span>')
     parts.append("</article>")
     return verb.label, "".join(parts) + pagination(
         f"/verbs/{verb_id}",
