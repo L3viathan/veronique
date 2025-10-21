@@ -15,7 +15,7 @@ else:
 
 def sign(data):
     payload = json.dumps(data, sort_keys=True)
-    signature = _hash(payload.encode(), key)
+    signature = _hash_token(payload.encode(), key)
     return f"{signature}.{payload}"
 
 
@@ -23,11 +23,20 @@ def unsign(data):
     if not data:
         return
     signature, _, payload = data.partition(".")
-    if _hash(payload.encode(), key) == signature:
+    if _hash_token(payload.encode(), key) == signature:
         return json.loads(payload)
 
 
-def _hash(password, salt):
+def _hash_token(payload, key):
+    return pbkdf2_hmac(
+        "sha256",
+        payload,
+        key,
+        1,
+    ).hex()
+
+
+def _hash_pwd(password, salt):
     return pbkdf2_hmac(
         "sha256",
         password,
@@ -39,11 +48,11 @@ def _hash(password, salt):
 def hash_password(password, salt=None):
     if salt is None:
         salt = token_bytes(16)
-    return _hash(password.encode(), salt), salt.hex()
+    return _hash_pwd(password.encode(), salt), salt.hex()
 
 
 def is_correct(password, hash, salt):
     return compare_digest(
-        _hash(password.encode(), bytes.fromhex(salt)),
+        _hash_pwd(password.encode(), bytes.fromhex(salt)),
         hash,
     )
