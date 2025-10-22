@@ -3,7 +3,6 @@ import pytest
 
 from sanic_testing.reusable import ReusableClient
 
-import veronique.objects as O
 from veronique import db
 from veronique.context import context
 from veronique.api import app
@@ -22,7 +21,6 @@ def conn(monkeypatch):
         cur.execute("BEGIN")
         migration(cur)
         cur.execute("COMMIT")
-    context.user = O.User(0)
     yield conn
 
 
