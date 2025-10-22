@@ -1,10 +1,12 @@
 import sqlite3
 import pytest
 
+from sanic_testing.reusable import ReusableClient
+
 import veronique.objects as O
 from veronique import db
 from veronique.context import context
-
+from veronique.api import app
 
 
 @pytest.fixture
@@ -25,17 +27,13 @@ def conn(monkeypatch):
 
 
 @pytest.fixture
-def regular_user(conn):
-    u = O.User.new(
-        name="someone",
-        password="password",
-        readable_verbs=[],
-        writable_verbs=[],
-        viewable_queries=[],
-    )
-    orig_user = context.user
-    try:
-        context.user = u
-        yield u
-    finally:
-        context.user = orig_user
+def client(conn):
+    with ReusableClient(app) as rc:
+        yield rc
+
+
+@pytest.fixture
+def admin_client(client):
+    _, resp = client.post("/login", data={"username": "admin", "password": "admin"})
+    with ReusableClient(app, client_kwargs={"cookies": {"session": resp.cookies["session"]}}) as rc:
+        yield rc
