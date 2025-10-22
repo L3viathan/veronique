@@ -2,8 +2,9 @@ import json
 import datetime
 import unicodedata
 from datetime import date as dt_date, timedelta
-from markdown_it import MarkdownIt
 from urllib.parse import quote_plus
+
+from markdown_it import MarkdownIt
 
 from veronique.nomnidate import NonOmniscientDate
 
