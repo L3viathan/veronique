@@ -1,37 +1,28 @@
+import os
+
 import sqlite3
 import pytest
 
 from sanic_testing.reusable import ReusableClient
 
-from veronique import db
-from veronique.context import context
-from veronique.api import app
 
-
-@pytest.fixture
-def conn(monkeypatch):
-    conn = sqlite3.connect(":memory:")
-    conn.row_factory = sqlite3.Row
-    monkeypatch.setattr(db, "conn", conn)
-    monkeypatch.setattr(db, "version", 0)
-    cur = conn.cursor()
+def pytest_sessionstart(session):
     with open("veronique_initial_pw", "w") as f:
         f.write("admin")
-    for migration in db.MIGRATIONS:
-        cur.execute("BEGIN")
-        migration(cur)
-        cur.execute("COMMIT")
-    yield conn
+    os.environ["VERONIQUE_DB"] = ":memory:"
+
 
 
 @pytest.fixture
-def client(conn):
+def client():
+    from veronique.api import app
     with ReusableClient(app) as rc:
         yield rc
 
 
 @pytest.fixture
 def admin_client(client):
+    from veronique.api import app
     _, resp = client.post("/login", data={"username": "admin", "password": "admin"})
     with ReusableClient(app, client_kwargs={"cookies": {"session": resp.cookies["session"]}}) as rc:
         yield rc
