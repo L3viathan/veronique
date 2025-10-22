@@ -1,22 +1,27 @@
 import pytest
 import asyncio
 from veronique.context import context
-from contextvars import copy_context
 
 
 @pytest.mark.asyncio
 async def test_context_isolated():
-    async def set_and_check(n, barrier):
+    n_set = 0
+    event = asyncio.Event()
+
+    async def set_and_check(n):
+        nonlocal n_set
         assert context.payload is None
 
         context.payload = n
+        n_set += 1
+        if n_set == 2:
+            event.set()
 
-        await barrier.wait()
+        await event.wait()
 
         assert context.payload == n
 
-    barrier = asyncio.Barrier(2)
     await asyncio.gather(
-        set_and_check(1, barrier),
-        set_and_check(2, barrier),
+        set_and_check(1),
+        set_and_check(2),
     )
