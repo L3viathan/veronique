@@ -2,12 +2,12 @@ import re
 from datetime import date, datetime, timedelta
 from functools import cached_property
 
+from veronique import db
 from veronique.data_types import TYPES
 from veronique.nomnidate import NonOmniscientDate
 from veronique.security import hash_password
 from veronique.context import context
 from veronique.db import (
-    conn,
     make_search_key,
     LABEL,
     IS_A,
@@ -70,7 +70,7 @@ class Model:
 
     @classmethod
     def all(cls, *, order_by="id ASC", page_no=0, page_size=20):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         for row in cur.execute(
             f"""
             SELECT
@@ -93,7 +93,7 @@ class Verb(Model):
     table_name = "verbs"
 
     def populate(self):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         row = cur.execute(
             """
             SELECT
@@ -118,7 +118,7 @@ class Verb(Model):
         *,
         data_type,
     ):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         cur.execute(
             """
             INSERT INTO
@@ -139,11 +139,11 @@ class Verb(Model):
             "INSERT INTO search_index (table_name, id, value) VALUES ('verbs', ?, ?)",
             (cur.lastrowid, make_search_key(label)),
         )
-        conn.commit()
+        db.conn.commit()
         return Verb(verb_id)
 
     def claims(self, page_no=0, page_size=20):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         for row in cur.execute(
             f"""
             SELECT
@@ -177,7 +177,7 @@ class Verb(Model):
                 f"id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
             )
 
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         for row in cur.execute(
             f"""
             SELECT
@@ -208,7 +208,7 @@ class Verb(Model):
             >{self.label}</a>"""
 
     def rename(self, name):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         cur.execute(
             """
             UPDATE verbs
@@ -217,7 +217,7 @@ class Verb(Model):
             """,
             (name, self.id),
         )
-        conn.commit()
+        db.conn.commit()
         self.label = name
 
     def __str__(self):
@@ -234,7 +234,7 @@ class Claim(Model):
     table_name = "claims"
 
     def populate(self):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         row = cur.execute(
             """
             SELECT
@@ -277,7 +277,7 @@ class Claim(Model):
         page_no=0,
         page_size=20,
     ):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         conditions = ["1=1"]
         bindings = []
         if subject_id is not None:
@@ -306,7 +306,7 @@ class Claim(Model):
 
     @classmethod
     def all_near_today(cls, reference_date=None, days_back=3, days_ahead=10):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         if reference_date is None:
             reference_date = date.today()
         conditions = [
@@ -345,7 +345,7 @@ class Claim(Model):
 
     @classmethod
     def search(cls, q, *, page_size=20, page_no=0, category_id=None):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         for row in cur.execute(
             f"""
             SELECT
@@ -361,7 +361,7 @@ class Claim(Model):
             yield cls(row["id"])
 
     def comments(self):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         for row in cur.execute(
             """
             SELECT
@@ -375,7 +375,7 @@ class Claim(Model):
             yield Claim(row["id"])
 
     def incoming_claims(self):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         if (verb_ids := context.user.readable_verbs) is not None:
             cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
         else:
@@ -396,7 +396,7 @@ class Claim(Model):
             yield Claim(row["id"])
 
     def incoming_mentions(self):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         if (verb_ids := context.user.readable_verbs) is not None:
             cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
         else:
@@ -415,7 +415,7 @@ class Claim(Model):
             yield Claim(row["id"])
 
     def outgoing_claims(self):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         if (verb_ids := context.user.readable_verbs) is not None:
             cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
         else:
@@ -437,7 +437,7 @@ class Claim(Model):
 
     @classmethod
     def all_labelled(cls, *, order_by="id ASC", page_no=0, page_size=20):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
 
         if (verb_ids := context.user.readable_verbs) is None:
             cond = ""
@@ -460,7 +460,7 @@ class Claim(Model):
 
     @classmethod
     def all_categories(cls, *, order_by="id ASC", page_no=0, page_size=20):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         for row in cur.execute(
             f"""
             SELECT
@@ -476,7 +476,7 @@ class Claim(Model):
 
     @classmethod
     def all_comments(cls, *, order_by="id ASC", page_no=0, page_size=20):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         for row in cur.execute(
             f"""
             SELECT
@@ -492,14 +492,14 @@ class Claim(Model):
             yield cls(row["id"])
 
     def delete(self):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         cur.execute("DELETE FROM claims WHERE id = ?", (self.id,))
         # evict deleted claim from cache:
-        conn.commit()
+        db.conn.commit()
         self._cache.pop(self.id)
 
     def set_value(self, value):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         if self.verb.data_type.name.endswith("directed_link"):
             raise RuntimeError("Can't edit link; delete it and create it again")
         else:
@@ -519,12 +519,12 @@ class Claim(Model):
                     "UPDATE search_index SET value=? WHERE table_name=? AND id=?",
                     (make_search_key(value.encode()), "claims", self.subject.id),
                 )
-        conn.commit()
+        db.conn.commit()
         self.populate()
 
     @classmethod
     def new(cls, subject, verb, value_or_object):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         if verb.data_type.name.endswith("directed_link"):
             # "entity"
             cur.execute(
@@ -546,12 +546,12 @@ class Claim(Model):
                 """,
                 (subject.id, verb.id, value_or_object.encode(), context.user.id),
             )
-        conn.commit()
+        db.conn.commit()
         return Claim(cur.lastrowid)
 
     @classmethod
     def new_root(cls, name):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         cur.execute("INSERT INTO claims (verb_id, owner_id) VALUES (?, ?)", (ROOT, context.user.id))
         new_id = cur.lastrowid
         cur.execute(
@@ -562,7 +562,7 @@ class Claim(Model):
             "INSERT INTO search_index (table_name, id, value) VALUES ('claims', ?, ?)",
             (new_id, make_search_key(name)),
         )
-        conn.commit()
+        db.conn.commit()
         return Claim(new_id)
 
     def get_data(self):
@@ -714,7 +714,7 @@ class Query(Model):
     )
 
     def populate(self):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         row = cur.execute(
             """
                 SELECT
@@ -731,7 +731,7 @@ class Query(Model):
 
     @classmethod
     def all(cls, *, order_by="id ASC", page_no=0, page_size=20):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         conditions = ["1=1"]
         if (query_ids := context.user.viewable_queries) is not None:
             conditions.append(
@@ -752,18 +752,18 @@ class Query(Model):
 
     @classmethod
     def new(cls, label, sql):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         cur.execute("INSERT INTO queries (label, sql) VALUES (?, ?)", (label, sql))
         q_id = cur.lastrowid
         cur.execute(
             "INSERT INTO search_index (table_name, id, value) VALUES ('queries', ?, ?)",
             (q_id, make_search_key(label)),
         )
-        conn.commit()
+        db.conn.commit()
         return cls(q_id)
 
     def rename(self, label):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         cur.execute(
             """
             UPDATE queries
@@ -772,7 +772,7 @@ class Query(Model):
             """,
             (label, self.id),
         )
-        conn.commit()
+        db.conn.commit()
         self.label = label
 
     def __format__(self, fmt):
@@ -795,7 +795,7 @@ class Query(Model):
             ><strong>{self.label}</strong></a>"""
 
     def run(self, page_no, page_size):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         cur.execute(
             f"""
             {self.sql}
@@ -806,7 +806,7 @@ class Query(Model):
         return cur.fetchall()
 
     def update(self, sql, label):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         cur.execute(
             """
             UPDATE queries
@@ -815,7 +815,7 @@ class Query(Model):
             """,
             (label, sql, self.id),
         )
-        conn.commit()
+        db.conn.commit()
         self.sql = sql
         self.label = label
 
@@ -835,7 +835,7 @@ class User(Model):
     )
 
     def populate(self):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         row = cur.execute(
             """
                 SELECT
@@ -878,7 +878,7 @@ class User(Model):
 
     @classmethod
     def by_name(cls, name):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         row = cur.execute("SELECT id FROM users WHERE name = ?", (name,)).fetchone()
         if not row:
             raise ValueError("No User with this ID found")
@@ -886,7 +886,7 @@ class User(Model):
 
     @classmethod
     def new(cls, *, name, password, readable_verbs, writable_verbs, viewable_queries):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         hash, salt = hash_password(password)
         cur.execute(
             "INSERT INTO users (name, hash, salt, is_admin) VALUES (?, ?, ?, ?)",
@@ -908,11 +908,11 @@ class User(Model):
                 "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
                 (u_id, "view-query", viewable_query),
             )
-        conn.commit()
+        db.conn.commit()
         return cls(u_id)
 
     def update(self, *, name, password, readable_verbs, writable_verbs, viewable_queries):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         to_set, values = [], []
         if name != self.name:
             to_set.append("name=?")
@@ -951,7 +951,7 @@ class User(Model):
                         "INSERT INTO permissions (user_id, permission, object) VALUES (?, ?, ?)",
                         (self.id, "view-query", viewable_query),
                     )
-        conn.commit()
+        db.conn.commit()
         self.populate()
 
     def __format__(self, fmt):
@@ -971,12 +971,12 @@ class User(Model):
         }
 
     def increment_generation(self):
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         cur.execute(
             "UPDATE users SET generation = generation + 1 WHERE id = ?",
             (self.id,),
         )
-        conn.commit()
+        db.conn.commit()
         self.populate()
 
     def can(self, do, what, whom):
