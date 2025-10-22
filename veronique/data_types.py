@@ -2,11 +2,14 @@ import json
 import datetime
 import unicodedata
 from datetime import date as dt_date, timedelta
+from markdown_it import MarkdownIt
 from urllib.parse import quote_plus
 
 from veronique.nomnidate import NonOmniscientDate
 
 TYPES = {}
+
+md = MarkdownIt("gfm-like")
 
 
 def float_int(val):
@@ -186,8 +189,7 @@ class location(DataType):
 
 class text(DataType):
     def display_html(self, value, **_):
-        newline = "\n"
-        return f"""<span class="type-text">{value.replace(newline, "<br>")}</span>"""
+        return f"""<span class="type-text">{md.render(value)}</span>"""
 
     def input_html(self, value=None, **_):
         if value:
