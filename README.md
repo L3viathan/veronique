@@ -10,10 +10,10 @@ facts about people, but there's not really any features specific to that.
 
 This is meant as a personal, intentionally non-scalable tool. As such, it uses
 SQLite, and there's no proper packaging yet (mostly because it's not needed).
-The app is protected by basic auth, but beyond that there's no protection
-against e.g. XSS. This is a feature, you can put HTML into text fields for
-example. If you need SSO, MFA, or any other similar features, use a different
-tool.
+The app is protected from unauthenticated access, but beyond that there's no
+protection against e.g. XSS. This is a feature, you can put HTML into text
+fields for example. If you need SSO, MFA, or any other similar features, use a
+different tool.
 
 ## Development
 
@@ -76,6 +76,7 @@ get special treatment:
   visible as such in the frontend.
 - `AVATAR`: A special field of type `picture` that will be used as the avatar
   for facts in their detail view and almost all other references to it.
+- `COMMENT`: A regular `text` verb, except with special UI support.
 
 ### Data type
 
