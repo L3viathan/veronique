@@ -189,8 +189,11 @@ class location(DataType):
 
 
 class text(DataType):
+    def __init__(self):
+        self.md = MarkdownIt("gfm-like")
+
     def display_html(self, value, **_):
-        return f"""<span class="type-text">{md.render(value)}</span>"""
+        return f"""<span class="type-text">{self.md.render(value)}</span>"""
 
     def input_html(self, value=None, **_):
         if value:
