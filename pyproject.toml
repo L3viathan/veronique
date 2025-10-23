@@ -1,0 +1,21 @@
+[project]
+name = "veronique"
+version = "0.1.0"
+description = "Private graph DB / social network"
+authors = [
+  {name = "L3viathan", email="git@l3vi.de"},
+]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "sanic",
+  "markdown-it-py[linkify]",
+]
+[project.optional-dependencies]
+test = [
+  "sanic-testing",
+  "pytest",
+  "pytest-asyncio",
+]
+[project.urls]
+Repository = "https://github.com/L3viathan/veronique"
