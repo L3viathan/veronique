@@ -10,8 +10,6 @@ from veronique.nomnidate import NonOmniscientDate
 
 TYPES = {}
 
-md = MarkdownIt("gfm-like")
-
 
 def float_int(val):
     val = float(val)
