@@ -11,7 +11,7 @@ dependencies = [
   "sanic",
   "markdown-it-py[linkify]",
 ]
-[project.optional-dependencies]
+[dependency-groups]
 test = [
   "sanic-testing",
   "pytest",
