@@ -19,10 +19,10 @@ PAGE_SIZE = 20
 
 app = Sanic("Veronique")
 
-with open("template.html") as f:
+with open("data/template.html") as f:
     TEMPLATE = f.read().format
 
-with open("login.html") as f:
+with open("data/login.html") as f:
     LOGIN = f.read()
 
 
@@ -1311,49 +1311,49 @@ async def view_user(request, user_id: int):
 
 @app.get("/htmx.js")
 async def htmx_js(request):
-    return await file("htmx.js", mime_type="text/javascript")
+    return await file("data/htmx.js", mime_type="text/javascript")
 
 
 @app.get("/style.css")
 async def style_css(request):
-    return await file("style.css", mime_type="text/css")
+    return await file("data/style.css", mime_type="text/css")
 
 
 @app.get("/mana-cost.css")
 async def mana_cost_css(request):
-    return await file("mana-cost.css", mime_type="text/css")
+    return await file("data/mana-cost.css", mime_type="text/css")
 
 
 @app.get("/mana.svg")
 async def mana_svg(request):
-    return await file("mana.svg", mime_type="image/svg+xml")
+    return await file("data/mana.svg", mime_type="image/svg+xml")
 
 
 @app.get("/prism.css")
 async def prism_css(request):
-    return await file("prism.css", mime_type="text/css")
+    return await file("data/prism.css", mime_type="text/css")
 
 
 @app.get("/pico.min.css")
 async def pico_css(request):
-    return await file("pico.min.css", mime_type="text/css")
+    return await file("data/pico.min.css", mime_type="text/css")
 
 
 @app.get("/prism.js")
 async def prism_js(request):
-    return await file("prism.js", mime_type="text/javascript")
+    return await file("data/prism.js", mime_type="text/javascript")
 
 
 @app.get("/cytoscape.min.js")
 async def cytoscape_js(request):
-    return await file("cytoscape.min.js", mime_type="text/javascript")
+    return await file("data/cytoscape.min.js", mime_type="text/javascript")
 
 
 @app.get("/favicon.ico")
 async def favicon_ico(request):
-    return await file("favicon.ico", mime_type="image/x-icon")
+    return await file("data/favicon.ico", mime_type="image/x-icon")
 
 
 @app.get("/logo.svg")
 async def logo_svg(request):
-    return await file("logo.svg", mime_type="image/svg+xml")
+    return await file("data/logo.svg", mime_type="image/svg+xml")

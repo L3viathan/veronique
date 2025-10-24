@@ -19,3 +19,6 @@ test = [
 ]
 [project.urls]
 Repository = "https://github.com/L3viathan/veronique"
+
+[tool.uv.build-backend]
+source-include = ["data/**"]
