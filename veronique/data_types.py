@@ -1,3 +1,4 @@
+import re
 import json
 import datetime
 import unicodedata
@@ -9,6 +10,7 @@ from markdown_it import MarkdownIt
 from veronique.nomnidate import NonOmniscientDate
 
 TYPES = {}
+TEXT_REF = re.compile(r"&lt;@(\d+)&gt;")
 
 
 def float_int(val):
@@ -190,8 +192,13 @@ class text(DataType):
     def __init__(self):
         self.md = MarkdownIt("gfm-like")
 
+    def _sub(self, match):
+        import veronique.objects as O
+        return f"{O.Claim(int(match.group(1))):link}"
+
     def display_html(self, value, **_):
-        return f"""<span class="type-text">{self.md.render(value)}</span>"""
+        value = self.md.render(value)
+        return f"""<span class="type-text">{re.sub(TEXT_REF, self._sub, value)}</span>"""
 
     def input_html(self, value=None, **_):
         if value:

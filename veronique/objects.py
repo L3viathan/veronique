@@ -1,4 +1,3 @@
-import re
 from datetime import date, datetime, timedelta
 from functools import cached_property
 
@@ -19,7 +18,6 @@ from veronique.db import (
     COMMENT,
 )
 
-TEXT_REF = re.compile(r"<@(\d+)>")
 SELF = object()
 UNSET = object()
 
@@ -1023,9 +1021,4 @@ class Plain:
         return str(self)
 
     def __str__(self):
-        text = self.prop.data_type.display_html(self.value)
-        for ref_id, claim in {
-            ref_id: Claim(ref_id) for ref_id in set(map(int, TEXT_REF.findall(text)))
-        }.items():
-            text = text.replace(f"<@{ref_id}>", f"{claim:link}")
-        return text
+        return self.prop.data_type.display_html(self.value)
