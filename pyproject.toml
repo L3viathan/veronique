@@ -17,8 +17,15 @@ test = [
   "pytest",
   "pytest-asyncio",
 ]
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"
+
 [project.urls]
 Repository = "https://github.com/L3viathan/veronique"
 
 [tool.uv.build-backend]
-source-include = ["data/**"]
+module-name = "veronique"
+module-root = ""
+source-exclude = ["test/**"]
+data = { data = "data" }
