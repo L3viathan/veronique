@@ -26,3 +26,12 @@ def admin_client(client):
     _, resp = client.post("/login", data={"username": "admin", "password": "admin"})
     with ReusableClient(app, client_kwargs={"cookies": {"session": resp.cookies["session"]}}) as rc:
         yield rc
+
+
+@pytest.fixture
+def user_client(admin_client, client):
+    from veronique.api import app
+    admin_client.post("/users/new", data={"name": "user", "password": "user"})
+    _, resp = client.post("/login", data={"username": "user", "password": "user"})
+    with ReusableClient(app, client_kwargs={"cookies": {"session": resp.cookies["session"]}}) as rc:
+        yield rc
