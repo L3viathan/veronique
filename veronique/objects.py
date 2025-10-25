@@ -499,7 +499,17 @@ class Claim(Model):
     def set_value(self, value):
         cur = db.conn.cursor()
         if self.verb.data_type.name.endswith("directed_link"):
-            raise RuntimeError("Can't edit link; delete it and create it again")
+            cur.execute(
+                """
+                UPDATE claims
+                SET object_id = ?, updated_at = datetime('now')
+                WHERE id = ?
+                """,
+                (
+                    value.id,
+                    self.id,
+                ),
+            )
         else:
             cur.execute(
                 """
@@ -632,14 +642,13 @@ class Claim(Model):
                 cat = ""
             buttons = []
             if context.user.is_admin or self.owner.id == context.user.id:
-                if isinstance(self.object, Plain):
+                if self.verb.id != ROOT:
                     buttons.append(f"""<a
                         hx-target="#edit-area"
                         hx-get="/claims/{self.id}/edit"
                         role="button"
                         class="outline contrast"
                     >✎ Edit</a>""")
-                if self.verb.id != ROOT:
                     buttons.append(f"""<a
                         hx-target="#edit-area"
                         hx-get="/claims/{self.id}/move"

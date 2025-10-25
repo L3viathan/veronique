@@ -740,7 +740,7 @@ async def edit_claim(request, claim_id: int):
     value = form.get("value")
     if claim.verb.data_type.name.endswith("directed_link"):
         # no longer allowed
-        raise RuntimeError("Can't edit links; delete it and make a new one")
+        value = O.Claim(int(value))
     else:
         value = O.Plain.from_form(claim.verb, form)
     claim.set_value(value)
