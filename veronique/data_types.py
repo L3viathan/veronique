@@ -59,13 +59,13 @@ class DataType:
 
 
 class directed_link(DataType):
-    def input_html(self, value=None, claim_id=None, direction=None, verb_id=None, **_):
+    def input_html(self, value=None, claim_id=None, direction=None, verb_id=None, allow_connect=True, **_):
         return f"""
             <div class="ac-widget">
                 <input
                     name="ac-query"
                     placeholder="Start typing..."
-                    hx-get="/claims/autocomplete?connect={claim_id}:{direction}:{verb_id}"
+                    hx-get="/claims/autocomplete{f"?connect={claim_id}:{direction}:{verb_id}" if allow_connect else ""}"
                     hx-target="next .ac-results"
                     hx-swap="innerHTML"
                     hx-trigger="input changed delay:200ms, search"

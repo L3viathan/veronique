@@ -437,7 +437,7 @@ async def network(request):
 async def autocomplete_claims(request):
     args = D(request.args)
     query = args.get("ac-query", "")
-    connect = args["connect"]
+    connect = args.get("connect", None)
     if not query:
         return ""
     claims = O.Claim.search(
@@ -446,9 +446,9 @@ async def autocomplete_claims(request):
     )
     return f"""
     {"".join(f"{claim:ac-result}" for claim in claims if context.user.can("read", "verb", claim.verb.id))}
-    <a class="clickable" href="/claims/new-root?connect={connect}&name={query}">
+    {f'''<a class="clickable" href="/claims/new-root?connect={connect}&name={query}">
         <em>Create</em> {query} <em> claim...</em>
-    </a>
+    </a>''' if connect is not None else ''}
     """
 
 
@@ -690,6 +690,26 @@ async def edit_claim_form(request, claim_id: int):
         """
 
 
+@app.get("/claims/<claim_id>/move")
+@fragment
+async def move_claim_form(request, claim_id: int):
+    claim = O.Claim(claim_id)
+    if claim.owner.id != context.user.id:
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
+    return f"""
+        <form
+            action="/claims/{claim_id}/move"
+            method="POST"
+        >
+            {TYPES["directed_link"].input_html(value=claim.object, allow_connect=False)}
+            <button type="submit">»</button>
+        </form>
+        """
+
+
 @app.delete("/claims/<claim_id>")
 @fragment
 async def delete_claim(request, claim_id: int):
@@ -724,6 +744,20 @@ async def edit_claim(request, claim_id: int):
     else:
         value = O.Plain.from_form(claim.verb, form)
     claim.set_value(value)
+    return redirect(f"/claims/{claim_id}")
+
+
+@app.post("/claims/<claim_id>/move")
+async def move_claim(request, claim_id: int):
+    form = D(request.form)
+    claim = O.Claim(claim_id)
+    if claim.owner.id != context.user.id:
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
+    value = form.get("value")
+    claim.set_subject(O.Claim(int(value)))
     return redirect(f"/claims/{claim_id}")
 
 

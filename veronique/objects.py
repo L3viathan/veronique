@@ -520,6 +520,22 @@ class Claim(Model):
         db.conn.commit()
         self.populate()
 
+    def set_subject(self, subject):
+        cur = db.conn.cursor()
+        cur.execute(
+            """
+            UPDATE claims
+            SET subject_id = ?, updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            (
+                subject.id,
+                self.id,
+            ),
+        )
+        db.conn.commit()
+        self.populate()
+
     @classmethod
     def new(cls, subject, verb, value_or_object):
         cur = db.conn.cursor()
@@ -623,6 +639,13 @@ class Claim(Model):
                         role="button"
                         class="outline contrast"
                     >✎ Edit</a>""")
+                if self.verb.id != ROOT:
+                    buttons.append(f"""<a
+                        hx-target="#edit-area"
+                        hx-get="/claims/{self.id}/move"
+                        role="button"
+                        class="outline contrast"
+                    >→ Move</a>""")
                 if not list(self.outgoing_claims()) and not list(self.incoming_claims()):
                     buttons.append(f"""<a
                         hx-target="#edit-area"
