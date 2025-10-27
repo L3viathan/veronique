@@ -198,7 +198,12 @@ class Verb(Model):
                 <a class="clickable" href="/verbs/{self.id}">{self.label}</a>
                 {self.data_type}</span>"""
         elif fmt == "heading":
-            return f"""<h2>{self.label}</h2>"""
+            return f"""<h2>{self.label}</h2>{f'''<a
+                        hx-target="#edit-area"
+                        hx-get="/verbs/{self.id}/edit"
+                        role="button"
+                        class="outline contrast"
+                    >✎ Edit</a>''' if context.user.is_admin else ''}"""
         else:
             return f"""<a
                 class="clickable verb"

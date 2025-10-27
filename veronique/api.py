@@ -1148,7 +1148,7 @@ async def view_verb(request, verb_id: int):
             status=403,
         )
     verb = O.Verb(verb_id)
-    parts = [f"<article><heading>{verb:heading}</heading>"]
+    parts = [f'<article><header>{verb:heading}</header><div id="edit-area"></div>']
     more_results = False
     for i, claim in enumerate(
         verb.claims(
@@ -1275,6 +1275,32 @@ async def edit_user_form(request, user_id: int):
         <input type="password" name="password" value="" placeholder="(leave empty to keep as-is)">
         </label>
     """)
+
+
+@app.get("/verbs/<verb_id>/edit")
+@admin_only
+@fragment
+async def edit_verb_form(request, verb_id: int):
+    verb = O.Verb(verb_id)
+    return f"""
+        <form
+            action="/verbs/{verb_id}/edit"
+            method="POST"
+        >
+            <input name="label" value="{verb.label}">
+            <button type="submit">»</button>
+        </form>
+        """
+
+
+@app.post("/verbs/<verb_id>/edit")
+@admin_only
+async def edit_verb(request, verb_id: int):
+    form = D(request.form)
+    verb = O.Verb(verb_id)
+    value = form.get("label")
+    verb.rename(value)
+    return redirect(f"/verbs/{verb_id}")
 
 
 def _write_user(form, endpoint, user=None):
