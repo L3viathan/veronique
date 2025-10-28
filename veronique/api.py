@@ -790,25 +790,72 @@ async def list_verbs(request):
 @admin_only
 @page
 async def new_autoverb_form(request):
-    print(request.args)
     hxall = 'hx-select="#autoform" hx-target="#autoform" hx-get="/autoverbs/new" hx-include="#autoform"'
-    return "New autoverb", f"""
+    verbs = list(O.Verb.all(data_type="%directed_link", page_size=999))
+    args = D(request.args)
+    print(args)
+    if "g1s" not in args:
+        print("default cond")
+        conditions = [("this", verbs[0].id, "that")]
+    else:
+        n = 1
+        conditions = []
+        while f"g{n}s" in args:
+            print("cond", n)
+            conditions.append((args[f"g{n}s"], int(args[f"g{n}v"]), args[f"g{n}o"]))
+            n += 1
+
+    if "more" in args:
+        print("extra cond")
+        conditions.append(("this", verbs[0].id, "that"))
+    elif "less" in args:
+        print("less cond")
+        conditions.pop()
+
+    label = args.get("label", "")
+    directedness = args.get("directedness", "a directed")
+
+    parts = ["""
         <form
             action="/autoverbs/new"
             method="POST"
             id="autoform"
         >
-            <p>There will be <select name="directedness" class="inline"><option>a directed</option><option>an undirected</option></select> relation
+        <p>There will be <select name="directedness" class="inline">
+    """]
+    parts.append(f"<option {'selected' if directedness == 'a directed' else ''}>a directed</option>")
+    parts.append(f"<option {'selected' if directedness == 'an undirected' else ''}>an undirected</option>")
+    parts.append(f"""</select> relation
+<span class="svo"><tt class="claim-link">this</tt><input class="inline verb" name="label" placeholder="label" value="{label}"><tt class="claim-link">that</tt></span> if:
+    """)
 
-<span class="svo"><tt class="claim-link">this</tt><input class="inline verb" name="label" placeholder="label"><tt class="claim-link">that</tt></span> if:
+    for n, (subj, selected_verb_id, obj) in enumerate(conditions, start=1):
+        parts.append(
+            f"""
             <fieldset role="group">
-                <select name="g1s" {hxall}><option>this</option><option>that</option><option>x<sub>1</sub></option></select>
-                <select name="g1v" {hxall}><option>child of</option><option>partner of</option><option>lives in</option></select>
-                <select name="g1o" {hxall}><option>that</option><option>that</option><option>x<sub>1</sub></option></select>
+                <select name="g{n}s" {hxall}><option>this</option><option>that</option><option>x<sub>1</sub></option></select>
+                <select name="g{n}v" {hxall}>
+            """
+        )
+        for verb in verbs:
+            parts.append(f"""
+                <option value="{verb.id}" {"selected" if verb.id == selected_verb_id else ""}>{verb.label}</option>
+            """)
+        parts.append(
+            f"""
+                </select>
+                <select name="g{n}o" {hxall}><option>that</option><option>that</option><option>x<sub>1</sub></option></select>
+                <button class="outline contrast" {hxall.replace("new", "new?less=true")} {"disabled" if n == 1 else ""}>-</button>
             </fieldset>
+            """
+        )
+
+    parts.append(f"""
+            <button {hxall.replace("new", "new?more=true")}>+</button>
             <button type="submit">Create</button>
         </form>
-    """
+    """)
+    return "New autoverb", "".join(parts)
 
 
 @app.get("/verbs/new")
