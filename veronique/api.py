@@ -947,19 +947,22 @@ for singular, plural, model in (
 def display_query_result(result):
     if result:
         header = dict(result[0]).keys()
+        colmap = {}
+        for col in header:
+            prefix, _, type_ = col.rpartition(":")
+            if type_ in SPECIAL_COL_NAMES:
+                colmap[col] = {"label": prefix, "display": SPECIAL_COL_NAMES[type_]}
+            else:
+                colmap[col] = {"label": col, "display": str}
         parts = [
             "<table><thead><tr>",
-            *(f"<td>{col}</td>" for col in header),
+            *(f"<td>{colmap[col]['label']}</td>" for col in header),
             "</tr></thead><tbody>",
         ]
         for row in result:
             parts.append("<tr>")
             for col in header:
-                value = row[col]
-                if value is not None and col.endswith(tuple(SPECIAL_COL_NAMES)):
-                    _, __, ending = col.rpartition("_")
-                    value = SPECIAL_COL_NAMES[ending](value)
-                parts.append(f"<td>{value}</td>")
+                parts.append(f"<td>{colmap[col]['display'](row[col])}</td>")
             parts.append("</tr>")
         parts.append("</tbody></table>")
         return "".join(parts)
