@@ -157,6 +157,7 @@ def page(fn):
         for page_name, restricted in [
             ("claims", False),
             ("verbs", False),
+            ("autoverbs", False),
             ("network", False),
             ("queries", False),
             ("users", True),
@@ -174,6 +175,7 @@ def page(fn):
                     <ul>
                         <li><a href="/claims/new-root">Root claim</a></li>
                         <li><a href="/verbs/new">Verb</a></li>
+                        <li><a href="/autoverbs/new">Autoverb</a></li>
                         <li><a href="/queries/new">Query</a></li>
                         <li><a href="/users/new">User</a></li>
                     </ul>
@@ -782,6 +784,31 @@ async def list_verbs(request):
         page_no,
         more_results=more_results,
     )
+
+
+@app.get("/autoverbs/new")
+@admin_only
+@page
+async def new_autoverb_form(request):
+    print(request.args)
+    hxall = 'hx-select="#autoform" hx-target="#autoform" hx-get="/autoverbs/new" hx-include="#autoform"'
+    return "New autoverb", f"""
+        <form
+            action="/autoverbs/new"
+            method="POST"
+            id="autoform"
+        >
+            <p>There will be <select name="directedness" class="inline"><option>a directed</option><option>an undirected</option></select> relation
+
+<span class="svo"><tt class="claim-link">this</tt><input class="inline verb" name="label" placeholder="label"><tt class="claim-link">that</tt></span> if:
+            <fieldset role="group">
+                <select name="g1s" {hxall}><option>this</option><option>that</option><option>x<sub>1</sub></option></select>
+                <select name="g1v" {hxall}><option>child of</option><option>partner of</option><option>lives in</option></select>
+                <select name="g1o" {hxall}><option>that</option><option>that</option><option>x<sub>1</sub></option></select>
+            </fieldset>
+            <button type="submit">Create</button>
+        </form>
+    """
 
 
 @app.get("/verbs/new")
