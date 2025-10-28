@@ -793,24 +793,25 @@ async def new_autoverb_form(request):
     hxall = 'hx-select="#autoform" hx-target="#autoform" hx-get="/autoverbs/new" hx-include="#autoform"'
     verbs = list(O.Verb.all(data_type="%directed_link", page_size=999))
     args = D(request.args)
-    print(args)
     if "g1s" not in args:
-        print("default cond")
         conditions = [("this", verbs[0].id, "that")]
     else:
         n = 1
         conditions = []
         while f"g{n}s" in args:
-            print("cond", n)
             conditions.append((args[f"g{n}s"], int(args[f"g{n}v"]), args[f"g{n}o"]))
             n += 1
 
     if "more" in args:
-        print("extra cond")
         conditions.append(("this", verbs[0].id, "that"))
     elif "less" in args:
-        print("less cond")
         conditions.pop()
+
+    alphabet = {"this", "that"}
+    alphabet.update(s for s, *_ in conditions)
+    alphabet.update(o for *_, o in conditions)
+    alphabet.add(next(letter for letter in "ABCDEFG" if letter not in alphabet))
+    alphabet = sorted(alphabet, key=lambda s: (s.isupper(), s.startswith("tha"), s))
 
     label = args.get("label", "")
     directedness = args.get("directedness", "a directed")
@@ -833,8 +834,15 @@ async def new_autoverb_form(request):
         parts.append(
             f"""
             <fieldset role="group">
-                <select name="g{n}s" {hxall}><option>this</option><option>that</option><option>x<sub>1</sub></option></select>
-                <select name="g{n}v" {hxall}>
+                <select name="g{n}s" {hxall}>
+            """
+        )
+        for symbol in alphabet:
+            parts.append(f"<option {'selected' if symbol == args.get(f'g{n}s') else ''}>{symbol}</option>")
+        parts.append(
+            f"""
+            </select>
+            <select name="g{n}v" {hxall}>
             """
         )
         for verb in verbs:
@@ -844,7 +852,13 @@ async def new_autoverb_form(request):
         parts.append(
             f"""
                 </select>
-                <select name="g{n}o" {hxall}><option>that</option><option>that</option><option>x<sub>1</sub></option></select>
+                <select name="g{n}o" {hxall}>
+            """
+        )
+        for symbol in alphabet:
+            parts.append(f"<option {'selected' if symbol == args.get(f'g{n}o') else ''}>{symbol}</option>")
+        parts.append(f"""
+            </select>
                 <button class="outline contrast" {hxall.replace("new", "new?less=true")} {"disabled" if n == 1 else ""}>-</button>
             </fieldset>
             """
