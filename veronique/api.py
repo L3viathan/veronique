@@ -964,7 +964,7 @@ def display_query_result(result):
             for col in header:
                 try:
                     parts.append(f"<td>{colmap[col]['display'](int(row[col]))}</td>")
-                except ValueError:
+                except (ValueError, TypeError):
                     parts.append(f"<td>{row[col]}</td>")
             parts.append("</tr>")
         parts.append("</tbody></table>")
