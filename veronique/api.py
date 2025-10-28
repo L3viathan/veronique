@@ -938,7 +938,7 @@ for singular, plural, model in (
     ("c", "cs", O.Claim),
     ("v", "vs", O.Verb),
 ):
-    SPECIAL_COL_NAMES[singular] = model
+    SPECIAL_COL_NAMES[singular] = lambda value, model=model: model(int(value))
     SPECIAL_COL_NAMES[plural] = lambda value, model=model: ", ".join(
         str(model(int(part))) for part in value.split(",")
     )
@@ -963,7 +963,7 @@ def display_query_result(result):
             parts.append("<tr>")
             for col in header:
                 try:
-                    parts.append(f"<td>{colmap[col]['display'](int(row[col]))}</td>")
+                    parts.append(f"<td>{colmap[col]['display'](row[col])}</td>")
                 except (ValueError, TypeError):
                     parts.append(f"<td>{row[col]}</td>")
             parts.append("</tr>")
