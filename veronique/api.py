@@ -962,7 +962,10 @@ def display_query_result(result):
         for row in result:
             parts.append("<tr>")
             for col in header:
-                parts.append(f"<td>{colmap[col]['display'](int(row[col]))}</td>")
+                try:
+                    parts.append(f"<td>{colmap[col]['display'](int(row[col]))}</td>")
+                except ValueError:
+                    parts.append(f"<td>{row[col]}</td>")
             parts.append("</tr>")
         parts.append("</tbody></table>")
         return "".join(parts)
