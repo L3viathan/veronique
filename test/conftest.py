@@ -1,6 +1,5 @@
 import os
 
-import sqlite3
 import pytest
 
 from sanic_testing.reusable import ReusableClient

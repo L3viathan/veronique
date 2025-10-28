@@ -464,3 +464,13 @@ table.comments {
 .row {
   display: block;
 }
+
+.inline {
+  width: auto !important;
+}
+
+input.inline {
+  height: 1em !important;
+  text-align: center;
+  margin: 5px !important;
+}

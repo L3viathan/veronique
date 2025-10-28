@@ -17,4 +17,3 @@ jobs:
         run: python -m pytest
       - name: Lint
         run: ruff check
-        continue-on-error: true
