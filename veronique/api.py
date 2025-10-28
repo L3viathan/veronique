@@ -949,7 +949,7 @@ def display_query_result(result):
         header = dict(result[0]).keys()
         colmap = {}
         for col in header:
-            prefix, _, type_ = col.rpartition(":")
+            prefix, _, type_ = col.rpartition("_")
             if type_ in SPECIAL_COL_NAMES:
                 colmap[col] = {"label": prefix, "display": SPECIAL_COL_NAMES[type_]}
             else:
