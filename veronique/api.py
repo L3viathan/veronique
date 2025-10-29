@@ -857,7 +857,7 @@ async def new_autoverb_form(request):
         )
         for symbol in alphabet:
             parts.append(f"<option {'selected' if symbol == args.get(f'g{n}o') else ''}>{symbol}</option>")
-        parts.append(f"""
+        parts.append("""
             </select>
             </fieldset>
             """
