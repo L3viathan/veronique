@@ -157,7 +157,6 @@ def page(fn):
         for page_name, restricted in [
             ("claims", False),
             ("verbs", False),
-            ("autoverbs", False),
             ("network", False),
             ("queries", False),
             ("users", True),
@@ -175,7 +174,6 @@ def page(fn):
                     <ul>
                         <li><a href="/claims/new-root">Root claim</a></li>
                         <li><a href="/verbs/new">Verb</a></li>
-                        <li><a href="/autoverbs/new">Autoverb</a></li>
                         <li><a href="/queries/new">Query</a></li>
                         <li><a href="/users/new">User</a></li>
                     </ul>
@@ -786,94 +784,6 @@ async def list_verbs(request):
     )
 
 
-@app.get("/autoverbs/new")
-@admin_only
-@page
-async def new_autoverb_form(request):
-    hxall = 'hx-select="#autoform" hx-target="#autoform" hx-get="/autoverbs/new" hx-include="#autoform"'
-    verbs = list(O.Verb.all(data_type="%directed_link", page_size=999))
-    args = D(request.args)
-    if "g1s" not in args:
-        conditions = [("this", verbs[0].id, "that")]
-    else:
-        n = 1
-        conditions = []
-        while f"g{n}s" in args:
-            conditions.append((args[f"g{n}s"], int(args[f"g{n}v"]), args[f"g{n}o"]))
-            n += 1
-
-    if "more" in args:
-        conditions.append(("this", verbs[0].id, "that"))
-    elif "less" in args:
-        conditions.pop()
-
-    alphabet = {"this", "that"}
-    alphabet.update(s for s, *_ in conditions)
-    alphabet.update(o for *_, o in conditions)
-    alphabet.add(next(letter for letter in "ABCDEFG" if letter not in alphabet))
-    alphabet = sorted(alphabet, key=lambda s: (s.isupper(), s.startswith("tha"), s))
-
-    label = args.get("label", "")
-    directedness = args.get("directedness", "a directed")
-
-    parts = ["""
-        <form
-            action="/autoverbs/new"
-            method="POST"
-            id="autoform"
-        >
-        <p>There will be <select name="directedness" class="inline">
-    """]
-    parts.append(f"<option {'selected' if directedness == 'a directed' else ''}>a directed</option>")
-    parts.append(f"<option {'selected' if directedness == 'an undirected' else ''}>an undirected</option>")
-    parts.append(f"""</select> relation
-<span class="svo"><tt class="claim-link">this</tt><input class="inline verb" name="label" placeholder="label" value="{label}"><tt class="claim-link">that</tt></span> if:
-    """)
-
-    for n, (subj, selected_verb_id, obj) in enumerate(conditions, start=1):
-        parts.append(
-            f"""
-            <fieldset role="group">
-                <select name="g{n}s" {hxall}>
-            """
-        )
-        for symbol in alphabet:
-            parts.append(f"<option {'selected' if symbol == args.get(f'g{n}s') else ''}>{symbol}</option>")
-        parts.append(
-            f"""
-            </select>
-            <select name="g{n}v" {hxall}>
-            """
-        )
-        for verb in verbs:
-            parts.append(f"""
-                <option value="{verb.id}" {"selected" if verb.id == selected_verb_id else ""}>{verb.label}</option>
-            """)
-        parts.append(
-            f"""
-                </select>
-                <select name="g{n}o" {hxall}>
-            """
-        )
-        for symbol in alphabet:
-            parts.append(f"<option {'selected' if symbol == args.get(f'g{n}o') else ''}>{symbol}</option>")
-        parts.append("""
-            </select>
-            </fieldset>
-            """
-        )
-
-    parts.append(f"""
-            <fieldset role="group">
-                <button data-tooltip="Fewer conditions" class="outline" {hxall.replace("new", "new?less=true")} {"disabled" if len(conditions) == 1 else ""}>-</button>
-                <button style="width: 100%;" type="submit">Create</button>
-                <button data-tooltip="More conditions" class="outline" {hxall.replace("new", "new?more=true")} {"disabled" if len(conditions) >= 5 else ""}>+</button>
-            </fieldset>
-        </form>
-    """)
-    return "New autoverb", "".join(parts)
-
-
 @app.get("/verbs/new")
 @admin_only
 @page
@@ -889,6 +799,7 @@ async def new_verb_form(request):
                 hx-get="/verbs/new/steps"
                 hx-target="#steps"
                 hx-swap="innerHTML"
+                hx-include="closest form"
             >
                 <option selected disabled>--Type--</option>
                 {
@@ -910,7 +821,9 @@ async def new_verb_form_steps(request):
     args = D(request.args)
     type = TYPES[args["data_type"]]
     if response := type.next_step(args):
+        print("returning response for", type, "and", args)
         return response
+    print("not returning; response was", response)
     return '<button type="submit">»</button>'
 
 
