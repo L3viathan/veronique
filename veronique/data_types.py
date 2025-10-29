@@ -166,6 +166,10 @@ class inferred(DataType):
         """)
         return "".join(parts)
 
+    def get_extra(self, args):
+        # {'label': 'sibling of', 'data_type': 'inferred', 'directedness': 'an undirected', 'g1s': 'this', 'g1v': '1', 'g1o': 'A', 'g2s': 'that', 'g2v': '1', 'g2o': 'A'}
+        ...
+
 
 class string(DataType):
     def display_html(self, value, **_):
