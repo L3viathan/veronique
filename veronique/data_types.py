@@ -88,7 +88,6 @@ class inferred(DataType):
 
     def next_step(self, args):
         import veronique.objects as O
-        print(args)
         hxall = 'hx-select="#autoform" hx-replace="outerHTML" hx-target="#autoform" hx-get="/verbs/new/steps" hx-include="closest form"'
         verbs = list(O.Verb.all(data_type="%directed_link", page_size=999))
         if "g1s" not in args:

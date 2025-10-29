@@ -821,10 +821,8 @@ async def new_verb_form_steps(request):
     args = D(request.args)
     type = TYPES[args["data_type"]]
     if response := type.next_step(args):
-        print("returning response for", type, "and", args)
         return response
-    print("not returning; response was", response)
-    return '<button type="submit">»</button>'
+    return '<button type="submit">Create</button>'
 
 
 @app.post("/verbs/new")
