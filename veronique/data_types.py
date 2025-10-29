@@ -167,8 +167,10 @@ class inferred(DataType):
         return "".join(parts)
 
     def get_extra(self, args):
-        # {'label': 'sibling of', 'data_type': 'inferred', 'directedness': 'an undirected', 'g1s': 'this', 'g1v': '1', 'g1o': 'A', 'g2s': 'that', 'g2v': '1', 'g2o': 'A'}
-        ...
+        payload = args.copy()
+        payload.pop("label")
+        payload.pop("data_type")
+        return json.dumps(payload)
 
 
 class string(DataType):
