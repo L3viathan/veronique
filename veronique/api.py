@@ -859,14 +859,16 @@ async def new_autoverb_form(request):
             parts.append(f"<option {'selected' if symbol == args.get(f'g{n}o') else ''}>{symbol}</option>")
         parts.append(f"""
             </select>
-                <button class="outline contrast" {hxall.replace("new", "new?less=true")} {"disabled" if n == 1 else ""}>-</button>
             </fieldset>
             """
         )
 
     parts.append(f"""
-            <button {hxall.replace("new", "new?more=true")}>+</button>
-            <button type="submit">Create</button>
+            <fieldset role="group">
+                <button data-tooltip="Fewer conditions" class="outline" {hxall.replace("new", "new?less=true")} {"disabled" if len(conditions) == 1 else ""}>-</button>
+                <button style="width: 100%;" type="submit">Create</button>
+                <button data-tooltip="More conditions" class="outline" {hxall.replace("new", "new?more=true")} {"disabled" if len(conditions) >= 5 else ""}>+</button>
+            </fieldset>
         </form>
     """)
     return "New autoverb", "".join(parts)
