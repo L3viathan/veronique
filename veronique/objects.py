@@ -87,6 +87,7 @@ class Verb(Model):
         "label",
         "data_type",
         "internal",
+        "extra",
     )
     table_name = "verbs"
 
@@ -97,7 +98,8 @@ class Verb(Model):
             SELECT
                 label,
                 data_type,
-                internal
+                internal,
+                extra
             FROM verbs
             WHERE id = ?
             """,
@@ -108,6 +110,7 @@ class Verb(Model):
         self.label = row["label"]
         self.data_type = TYPES[row["data_type"]]
         self.internal = row["internal"]
+        self.extra = row["extra"]
 
     @classmethod
     def new(
@@ -115,6 +118,7 @@ class Verb(Model):
         label,
         *,
         data_type,
+        extra=None,
     ):
         cur = db.conn.cursor()
         cur.execute(
@@ -124,12 +128,14 @@ class Verb(Model):
                 (
                     label,
                     data_type,
-                    internal
-                ) VALUES (?, ?, FALSE)
+                    internal,
+                    extra
+                ) VALUES (?, ?, FALSE, ?)
             """,
             (
                 label,
                 data_type.name,
+                extra,
             ),
         )
         verb_id = cur.lastrowid
@@ -1058,4 +1064,4 @@ class Plain:
         return str(self)
 
     def __str__(self):
-        return self.prop.data_type.display_html(self.value)
+        return self.prop.data_type.display_html(self.value, prop=self.prop)

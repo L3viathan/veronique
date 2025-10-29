@@ -829,9 +829,11 @@ async def new_verb_form_steps(request):
 async def new_verb(request):
     form = D(request.form)
     data_type = TYPES[form["data_type"]]
+    extra = data_type.get_extra(form)
     verb = O.Verb.new(
         form["label"],
         data_type=data_type,
+        extra=extra,
     )
     return redirect(f"/verbs/{verb.id}")
 

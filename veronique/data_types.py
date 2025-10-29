@@ -33,6 +33,9 @@ class DataType:
     def next_step(self, args):
         return None
 
+    def get_extra(self, args):
+        return None
+
     def encode(self, value):
         """Encode how value should be represented in the DB."""
         return str(value)
@@ -262,8 +265,8 @@ class picture(DataType):
 
 
 class social(DataType):
-    def display_html(self, value, **_):
-        return f'<span class="type-social">{value}</span>'
+    def display_html(self, value, prop, **_):
+        return f'<span class="type-social">{prop.extra.format(value)}</span>'
 
     def input_html(self, value=None, **_):
         if value:
@@ -282,6 +285,9 @@ class social(DataType):
             ></input>
             <button type="submit">»</button>
         """
+
+    def get_extra(self, args):
+        return args["template"]
 
 
 class mtgcolors(DataType):

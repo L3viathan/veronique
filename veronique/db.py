@@ -612,6 +612,14 @@ def add_owner_to_claim(cur):
     """)
 
 
+@migration(16)
+def add_extra_to_verbs(cur):
+    cur.execute("""
+        ALTER TABLE verbs
+        ADD extra TEXT
+    """)
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 
