@@ -572,7 +572,7 @@ async def new_claim_form(request, claim_id: int, direction: str):
                                         value="{verb.id}"
                                     >{verb.label} ({verb.data_type})</option>'''
                         for verb in verbs
-                        if verb.id != ROOT
+                        if verb.id != ROOT and verb.data_type is not TYPES["inferred"]
                     )
                 }
             </select>
@@ -621,6 +621,11 @@ async def new_claim(request, claim_id: int, direction: str):
                 body="403 Forbidden",
                 status=403,
             )
+    elif verb.data_type.name == "inferred":
+        return HTTPResponse(
+            body="400 Bad Request",
+            status=400,
+        )
     else:
         value = O.Plain.from_form(verb, form)
     if direction == "incoming":
@@ -739,7 +744,6 @@ async def edit_claim(request, claim_id: int):
         )
     value = form.get("value")
     if claim.verb.data_type.name.endswith("directed_link"):
-        # no longer allowed
         value = O.Claim(int(value))
     else:
         value = O.Plain.from_form(claim.verb, form)
@@ -799,6 +803,7 @@ async def new_verb_form(request):
                 hx-get="/verbs/new/steps"
                 hx-target="#steps"
                 hx-swap="innerHTML"
+                hx-include="closest form"
             >
                 <option selected disabled>--Type--</option>
                 {
@@ -821,7 +826,7 @@ async def new_verb_form_steps(request):
     type = TYPES[args["data_type"]]
     if response := type.next_step(args):
         return response
-    return '<button type="submit">»</button>'
+    return '<button type="submit">Create</button>'
 
 
 @app.post("/verbs/new")
@@ -1130,6 +1135,7 @@ async def view_claim(request, claim_id: int):
             else ""
         }
         {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR, COMMENT))}
+        {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in claim.outgoing_inferred_claims())}
         </td></tr></table>
         {"<hr><h3>Mentions</h3>" + "".join(f'<span class="row">{c:svo}</span>' for c in incoming_mentions) if incoming_mentions else ""}
         <footer>

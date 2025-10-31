@@ -82,6 +82,97 @@ class directed_link(DataType):
 TYPES["undirected_link"] = directed_link()
 
 
+class inferred(DataType):
+    def display_html(self, value, **_):
+        return "TODO"
+
+    def next_step(self, args):
+        import veronique.objects as O
+        hxall = 'hx-select="#autoform" hx-replace="outerHTML" hx-target="#autoform" hx-get="/verbs/new/steps" hx-include="closest form"'
+        verbs = list(O.Verb.all(data_type="%directed_link", page_size=999))
+        if "g1s" not in args:
+            conditions = [("this", verbs[0].id, "that")]
+        else:
+            n = 1
+            conditions = []
+            while f"g{n}s" in args:
+                conditions.append((args[f"g{n}s"], int(args[f"g{n}v"]), args[f"g{n}o"]))
+                n += 1
+
+        if "more" in args:
+            conditions.append(("this", verbs[0].id, "that"))
+        elif "less" in args:
+            conditions.pop()
+
+        alphabet = {"this", "that"}
+        alphabet.update(s for s, *_ in conditions)
+        alphabet.update(o for *_, o in conditions)
+        alphabet.add(next(letter for letter in "ABCDEFG" if letter not in alphabet))
+        alphabet = sorted(alphabet, key=lambda s: (s.isupper(), s.startswith("tha"), s))
+
+        label = args.get("label", "")
+        directedness = args.get("directedness", "a directed")
+
+        parts = ["""
+            <div id="autoform">
+            <p>There will be <select name="directedness" class="inline">
+        """]
+        parts.append(f"<option {'selected' if directedness == 'a directed' else ''}>a directed</option>")
+        parts.append(f"<option {'selected' if directedness == 'an undirected' else ''}>an undirected</option>")
+        parts.append(f"""</select> relation
+    <span class="svo"><tt class="claim-link">this</tt><span class="inline verb">{label}</span><tt class="claim-link">that</tt></span> if:
+        """)
+
+        for n, (subj, selected_verb_id, obj) in enumerate(conditions, start=1):
+            parts.append(
+                f"""
+                <fieldset role="group">
+                    <select name="g{n}s" {hxall}>
+                """
+            )
+            for symbol in alphabet:
+                parts.append(f"<option {'selected' if symbol == args.get(f'g{n}s') else ''}>{symbol}</option>")
+            parts.append(
+                f"""
+                </select>
+                <select name="g{n}v" {hxall}>
+                """
+            )
+            for verb in verbs:
+                parts.append(f"""
+                    <option value="{verb.id}" {"selected" if verb.id == selected_verb_id else ""}>{verb.label}</option>
+                """)
+            parts.append(
+                f"""
+                    </select>
+                    <select name="g{n}o" {hxall}>
+                """
+            )
+            for symbol in alphabet:
+                parts.append(f"<option {'selected' if symbol == args.get(f'g{n}o') else ''}>{symbol}</option>")
+            parts.append("""
+                </select>
+                </fieldset>
+                """
+            )
+
+        parts.append(f"""
+            <fieldset role="group">
+                <button data-tooltip="Fewer conditions" class="outline" {hxall.replace("steps", "steps?less=true")} {"disabled" if len(conditions) == 1 else ""}>-</button>
+                <button style="width: 100%;" type="submit">Create</button>
+                <button data-tooltip="More conditions" class="outline" {hxall.replace("steps", "steps?more=true")} {"disabled" if len(conditions) >= 5 else ""}>+</button>
+            </fieldset>
+            </div>
+        """)
+        return "".join(parts)
+
+    def get_extra(self, args):
+        payload = args.copy()
+        payload.pop("label")
+        payload.pop("data_type")
+        return json.dumps(payload)
+
+
 class string(DataType):
     def display_html(self, value, **_):
         return f'<span class="type-string">"{value}"</span>'

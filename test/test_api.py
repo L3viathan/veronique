@@ -1,6 +1,3 @@
-import pytest
-
-
 def test_unauthenticated(client):
     _, resp = client.get("/", follow_redirects=False)
     assert resp.is_redirect

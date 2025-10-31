@@ -1,5 +1,8 @@
+import json
 from datetime import date, datetime, timedelta
-from functools import cached_property
+from functools import cached_property, cache
+from itertools import count
+from collections import defaultdict
 
 from veronique import db
 from veronique.data_types import TYPES
@@ -145,6 +148,14 @@ class Verb(Model):
         )
         db.conn.commit()
         return Verb(verb_id)
+
+    @classmethod
+    @cache
+    def get_inferables(cls):
+        result = []
+        for inferable in cls.all(data_type="inferred"):
+            result.append(Inferable(inferable))
+        return result
 
     def claims(self, page_no=0, page_size=20):
         cur = db.conn.cursor()
@@ -443,6 +454,12 @@ class Claim(Model):
             (self.id, self.id),
         ).fetchall():
             yield Claim(row["id"])
+
+    def outgoing_inferred_claims(self):
+        inferables = Verb.get_inferables()
+        for inferable in inferables:
+            for inferred in inferable(self.id):
+                yield inferred
 
     @classmethod
     def all_labelled(cls, *, order_by="id ASC", page_no=0, page_size=20):
@@ -1065,3 +1082,82 @@ class Plain:
 
     def __str__(self):
         return self.prop.data_type.display_html(self.value, prop=self.prop)
+
+
+class Inferable:
+    def __init__(self, verb):
+        self.verb = verb
+
+    @cached_property
+    def sql_query(self):
+        extra = json.loads(self.verb.extra)
+        conditions = []
+        that_id = None
+        this_id = None
+        equal = defaultdict(list)
+        n_selects = 0
+        for n in count(start=1):
+            if f"g{n}s" not in extra:
+                break
+            subj = extra[f"g{n}s"]
+            verb_id = int(extra[f"g{n}v"])
+            obj = extra[f"g{n}o"]
+
+            subj_id = f"cond{n}.subject_id"
+            obj_id = f"cond{n}.object_id"
+
+            if subj == "that":
+                that_id = subj_id
+            elif obj == "that":
+                that_id = obj_id
+
+            if subj == "this":
+                this_id = subj_id
+            elif obj == "this":
+                this_id = obj_id
+
+            equal[subj].append(subj_id)
+            equal[obj].append(obj_id)
+            conditions.append(
+                f"cond{n}.verb_id = {verb_id}",
+            )
+            n_selects += 1
+
+        for name, labels in equal.items():
+            if len(labels) <= 1:
+                continue
+            for other_label in labels[1:]:
+                conditions.append(
+                    f"{labels[0]} = {other_label}",
+                )
+        conditions.append(f"{this_id} = :this")
+        conditions.append(f"{that_id} != {this_id}")
+
+        return f"""
+            SELECT DISTINCT({that_id}) AS id
+            FROM {", ".join(f"claims cond{n}" for n in range(1, n_selects+1))}
+            WHERE {" AND ".join(conditions)}
+        """
+
+    def __call__(self, claim_id):
+        cur = db.conn.cursor()
+        for row in cur.execute(self.sql_query, {"this": claim_id}).fetchall():
+            yield InferredClaim(Claim(claim_id), self.verb, Claim(row["id"]))
+
+
+class InferredClaim:
+    def __init__(self, subj, verb, obj):
+        self.subject = subj
+        self.verb = verb
+        self.object = obj
+
+    def __format__(self, fmt):
+        if fmt == "handle":
+            return ""
+        return Claim.__format__(self, fmt)
+
+    def get_data(self):
+        return {}
+
+    def _get_remarks(self, data):
+        return "", ""
