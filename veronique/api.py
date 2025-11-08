@@ -714,7 +714,7 @@ async def move_claim_form(request, claim_id: int):
 @fragment
 async def delete_claim(request, claim_id: int):
     claim = O.Claim(claim_id)
-    if claim.owner.id != context.user.id:
+    if not context.user.is_admin and claim.owner.id != context.user.id:
         return HTTPResponse(
             body="403 Forbidden",
             status=403,
