@@ -557,6 +557,22 @@ class Claim(Model):
         db.conn.commit()
         self.populate()
 
+    def set_verb(self, verb):
+        cur = db.conn.cursor()
+        cur.execute(
+            """
+            UPDATE claims
+            SET verb_id = ?, updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            (
+                verb.id,
+                self.id,
+            ),
+        )
+        db.conn.commit()
+        self.populate()
+
     @classmethod
     def new(cls, subject, verb, value_or_object):
         cur = db.conn.cursor()
@@ -666,6 +682,12 @@ class Claim(Model):
                         role="button"
                         class="outline contrast"
                     >→ Move</a>""")
+                    buttons.append(f"""<a
+                        hx-target="#edit-area"
+                        hx-get="/claims/{self.id}/reverb"
+                        role="button"
+                        class="outline contrast"
+                    >→ Reverb</a>""")
                 if not list(self.outgoing_claims()) and not list(self.incoming_claims()):
                     buttons.append(f"""<a
                         hx-target="#edit-area"

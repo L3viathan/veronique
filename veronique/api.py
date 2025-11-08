@@ -694,7 +694,7 @@ async def edit_claim_form(request, claim_id: int):
 @fragment
 async def move_claim_form(request, claim_id: int):
     claim = O.Claim(claim_id)
-    if claim.owner.id != context.user.id:
+    if not context.user.is_admin and claim.owner.id != context.user.id:
         return HTTPResponse(
             body="403 Forbidden",
             status=403,
@@ -708,6 +708,39 @@ async def move_claim_form(request, claim_id: int):
             <button type="submit">»</button>
         </form>
         """
+
+
+@app.get("/claims/<claim_id>/reverb")
+@fragment
+async def reverb_claim_form(request, claim_id: int):
+    claim = O.Claim(claim_id)
+    if not context.user.is_admin and claim.owner.id != context.user.id:
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
+    verbs = O.Verb.all(data_type=claim.verb.data_type.name)
+    parts = [
+        f"""
+        <form
+            action="/claims/{claim_id}/reverb"
+            method="POST"
+        >
+            <select name="verb">
+        """
+    ]
+    for verb in verbs:
+        parts.append(f"""
+            <option value="{verb.id}" {"selected" if verb.id == claim.verb.id else ""}>{verb}</option>
+        """)
+    parts.append(
+        """
+            </select>
+            <button type="submit">»</button>
+        </form>
+        """
+    )
+    return "".join(parts)
 
 
 @app.delete("/claims/<claim_id>")
@@ -744,6 +777,20 @@ async def edit_claim(request, claim_id: int):
     else:
         value = O.Plain.from_form(claim.verb, form)
     claim.set_value(value)
+    return redirect(f"/claims/{claim_id}")
+
+
+@app.post("/claims/<claim_id>/reverb")
+async def reverb_claim(request, claim_id: int):
+    form = D(request.form)
+    claim = O.Claim(claim_id)
+    if not context.user.is_admin and claim.owner.id != context.user.id:
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
+    verb_id = int(form.get("verb"))
+    claim.set_verb(O.Verb(verb_id))
     return redirect(f"/claims/{claim_id}")
 
 
