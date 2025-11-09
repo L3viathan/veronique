@@ -743,6 +743,16 @@ async def reverb_claim_form(request, claim_id: int):
     return "".join(parts)
 
 
+@app.delete("/verbs/<verb_id>")
+@admin_only
+@fragment
+async def delete_verb(request, verb_id: int):
+    O.Verb(verb_id).delete()
+    return """
+        <meta http-equiv="refresh" content="0; url=/">
+    """
+
+
 @app.delete("/claims/<claim_id>")
 @fragment
 async def delete_claim(request, claim_id: int):

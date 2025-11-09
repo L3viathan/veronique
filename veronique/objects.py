@@ -204,12 +204,25 @@ class Verb(Model):
                 <a class="clickable" href="/verbs/{self.id}">{self.label}</a>
                 {self.data_type}</span>"""
         elif fmt == "heading":
-            return f"""<h2>{self.label}</h2>{f'''<a
+            buttons = []
+            if context.user.is_admin:
+                buttons.append(f'''<a
                         hx-target="#edit-area"
                         hx-get="/verbs/{self.id}/edit"
                         role="button"
                         class="outline contrast"
-                    >✎ Edit</a>''' if context.user.is_admin else ''}"""
+                    >✎ Edit</a>'''
+                )
+                if not list(self.claims(page_size=1)):
+                    buttons.append(f'''<a
+                            hx-target="#edit-area"
+                            hx-delete="/verbs/{self.id}"
+                            hx-confirm="Are you sure you want to delete this verb?"
+                            role="button"
+                            class="outline contrast"
+                        >\N{WASTEBASKET}\ufe0e Delete</a>'''
+                    )
+            return f"""<h2>{self.label}</h2>{" ".join(buttons)}"""
         else:
             return f"""<a
                 class="clickable verb"
@@ -228,6 +241,13 @@ class Verb(Model):
         )
         db.conn.commit()
         self.label = name
+
+    def delete(self):
+        cur = db.conn.cursor()
+        cur.execute("DELETE FROM verbs WHERE id = ?", (self.id,))
+        db.conn.commit()
+        # evict deleted verb from cache:
+        self._cache.pop(self.id)
 
     def __str__(self):
         return f"{self}"
