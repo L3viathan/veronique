@@ -79,7 +79,8 @@ class directed_link(DataType):
         """
 
 
-TYPES["undirected_link"] = directed_link()
+class undirected_link(directed_link):
+    pass
 
 
 class string(DataType):
