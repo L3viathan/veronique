@@ -708,7 +708,7 @@ class Claim(Model):
                         role="button"
                         class="outline contrast"
                     >→ Reverb</a>""")
-                if not list(self.outgoing_claims()) and not list(self.incoming_claims()):
+                if self.deletable:
                     buttons.append(f"""<a
                         hx-target="#edit-area"
                         hx-delete="/claims/{self.id}"
@@ -754,6 +754,16 @@ class Claim(Model):
         elif fmt == "comment":
             return f'<tr><td data-placement="right" data-tooltip="{self.created_at}" class="comment-author">{self.owner.name}:</td><td>{self:handle}</td><td class="comment-text">{self.object.value}</td></tr>'
         return f"TODO: {fmt!r}"
+
+    @property
+    def deletable(self):
+        if list(self.outgoing_claims()) or list(self.incoming_claims()):
+            return False
+        if self.verb.id == LABEL and self.subject.verb.id == ROOT:
+            # This means even if there are _several_ labels you can't delete any.
+            # Ideally we'd allow it in that case, but maybe don't multi-label things.
+            return False
+        return True
 
     def __str__(self):
         return f"{self:link}"
