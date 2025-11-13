@@ -24,6 +24,9 @@ build-backend = "uv_build"
 [project.urls]
 Repository = "https://github.com/L3viathan/veronique"
 
+[project.scripts]
+veronique-bootstrap = "veronique.bootstrap"
+
 [tool.uv.build-backend]
 module-name = "veronique"
 module-root = ""
