@@ -1,5 +1,7 @@
+import json
 from datetime import date, datetime, timedelta
-from functools import cached_property
+from functools import cached_property, cache
+from itertools import count, combinations
 
 from veronique import db
 from veronique.data_types import TYPES
@@ -144,7 +146,17 @@ class Verb(Model):
             (cur.lastrowid, make_search_key(label)),
         )
         db.conn.commit()
+        if data_type.name == "inferred":
+            cls.get_inferables.cache_clear()
         return Verb(verb_id)
+
+    @classmethod
+    @cache
+    def get_inferables(cls):
+        result = []
+        for inferable in cls.all(data_type="inferred"):
+            result.append(Inferable(inferable))
+        return result
 
     def claims(self, page_no=0, page_size=20):
         cur = db.conn.cursor()
@@ -223,6 +235,8 @@ class Verb(Model):
                         >\N{WASTEBASKET}\ufe0e Delete</a>'''
                     )
             return f"""<h2>{self.label}</h2>{" ".join(buttons)}"""
+        elif fmt == "detail":
+            return self.data_type.detail_for(self)
         else:
             return f"""<a
                 class="clickable verb"
@@ -463,6 +477,12 @@ class Claim(Model):
             (self.id, self.id),
         ).fetchall():
             yield Claim(row["id"])
+
+    def outgoing_inferred_claims(self):
+        inferables = Verb.get_inferables()
+        for inferable in inferables:
+            for inferred in inferable(self.id):
+                yield inferred
 
     @classmethod
     def all_labelled(cls, *, order_by="id ASC", page_no=0, page_size=20):
@@ -1117,3 +1137,102 @@ class Plain:
 
     def __str__(self):
         return self.prop.data_type.display_html(self.value, prop=self.prop)
+
+
+class Inferable:
+    def __init__(self, verb):
+        self.verb = verb
+
+    def _get_condition_variants(self, conditions):
+        if not conditions:
+            yield []
+            return
+
+        [ci, cs, cv, co], *rest = conditions
+        for variant in self._get_condition_variants(rest):
+            yield [conditions[0], *variant]
+        if Verb(int(cv)).data_type is TYPES["undirected_link"]:
+            for variant in self._get_condition_variants(rest):
+                yield [(ci, co, cv, cs), *variant]
+
+    @cached_property
+    def sql_query(self):
+        extra = json.loads(self.verb.extra)
+        conditions = []
+        for n in count(start=1):
+            if f"g{n}s" not in extra:
+                break
+            subj = extra[f"g{n}s"]
+            verb_id = int(extra[f"g{n}v"])
+            obj = extra[f"g{n}o"]
+
+            conditions.append((n, subj, verb_id, obj))
+
+        parts = []
+
+        for conditions in self._get_condition_variants(conditions):
+            links = []
+            joins = []
+            for i, condition in enumerate(conditions):
+                if not i:
+                    # can't link at the first condition
+                    continue
+                my_names = {condition[1], condition[3]}
+                for other in conditions[:i]:  # needs to connect somehow with a _previous_ condition
+                    if my_names & {other[1], other[3]}:
+                        links.append((condition, other))
+                        break
+                else:
+                    raise  # we didn't find a link
+            for (s_id, s_sub, _, s_obj), (t_id, t_sub, _, t_obj) in links:
+                if s_sub == t_sub:
+                    joins.append((s_id, f"cond{s_id}.subject_id = cond{t_id}.subject_id"))
+                elif s_sub == t_obj:
+                    joins.append((s_id, f"cond{s_id}.subject_id = cond{t_id}.object_id"))
+                elif s_obj == t_sub:
+                    joins.append((s_id, f"cond{s_id}.object_id = cond{t_id}.subject_id"))
+                elif s_obj == t_obj:
+                    joins.append((s_id, f"cond{s_id}.object_id = cond{t_id}.object_id"))
+
+            parts.append(self._build_subquery(conditions, joins))
+        return " UNION ".join(parts)
+
+    def __call__(self, claim_id):
+        cur = db.conn.cursor()
+        for row in cur.execute(self.sql_query, {"this": claim_id}).fetchall():
+            yield InferredClaim(Claim(claim_id), self.verb, Claim(row["id"]))
+
+    def _build_subquery(self, conditions, joins):
+        labels = {}
+        for cid, slab, _, olab in conditions:
+            labels[slab] = f"cond{cid}.subject_id"
+            labels[olab] = f"cond{cid}.object_id"
+        parts = [
+            f"SELECT DISTINCT({labels['that']}) AS id FROM claims cond1"
+        ]
+        for cond_id, join in joins:
+            parts.append(f"LEFT JOIN claims cond{cond_id} ON {join}")
+        parts.append(f"WHERE {labels['this']}=:this")
+        for cond_id, sname, vid, oname in conditions:
+            parts.append(f"AND cond{cond_id}.verb_id = {vid}")
+        for lab_a, lab_b in combinations(labels, 2):
+            parts.append(f"AND {labels[lab_a]} != {labels[lab_b]}")
+        return " ".join(parts)
+
+
+class InferredClaim:
+    def __init__(self, subj, verb, obj):
+        self.subject = subj
+        self.verb = verb
+        self.object = obj
+
+    def __format__(self, fmt):
+        if fmt == "handle":
+            return ""
+        return Claim.__format__(self, fmt)
+
+    def get_data(self):
+        return {}
+
+    def _get_remarks(self, data):
+        return "", ""

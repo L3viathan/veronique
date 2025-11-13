@@ -96,6 +96,11 @@ Notable data types are:
   question mark. This allows you to represent dates such as "some time in
   1973" or "26th of July, but I don't know which year", which can be common
   when entering data without full knowledge of the truth.
+- `inferred`: This is a special type for which you can't create any actual
+  claims. Instead, you need to define a set of rules by which this claim will
+  automatically be shown on claim detail pages. As this sounds pretty abstract,
+  here's an example: If you have a "child of" claim, you could create a
+  "sibling" claim based on the fact that siblings always have a shared parent.
 
 ### Users
 
