@@ -11,11 +11,10 @@ from sanic import Sanic, HTTPResponse, html, file, redirect
 import veronique.objects as O
 import veronique.security as security
 from veronique.context import context
+from veronique.settings import settings as S
 from veronique.nomnidate import NonOmniscientDate
 from veronique.db import conn, LABEL, IS_A, ROOT, AVATAR, COMMENT, make_search_key
 from veronique.data_types import TYPES
-
-PAGE_SIZE = 20
 
 app = Sanic("Veronique")
 
@@ -146,12 +145,12 @@ def page(fn):
         if isinstance(ret, CoroutineType):
             ret = await ret
         if isinstance(ret, str):
-            title = "Véronique"
+            title = S.app_name
         elif isinstance(ret, HTTPResponse):
             return ret
         else:
             title, ret = ret
-            title = f"{title} — Véronique"
+            title = f"{title} — {S.app_name}"
 
         gotos = []
         for page_name, restricted in [
@@ -192,7 +191,10 @@ def page(fn):
         <li>
             <details class="dropdown">
                 <summary>{context.user.name}</summary>
-                <ul dir="rtl"><li><a href="/logout">Logout</a></li></ul>
+                <ul dir="rtl">
+                    {'<li><a href="/settings">Settings</a></li>' if context.user.is_admin else ""}
+                    <li><a href="/logout">Logout</a></li>
+                </ul>
             </details>
         </li>
         """
@@ -268,13 +270,11 @@ async def index(request):
     recent_events = []
     page_no = int(request.args.get("page", 1))
     past_today = False
-    days_back = 3
-    days_ahead = 7
     reference_date = date.today()
     if page_no != 1:
-        reference_date += timedelta(days=(days_back+days_ahead+1)*(page_no-1))
+        reference_date += timedelta(days=(S.index_days_back+S.index_days_ahead+1)*(page_no-1))
     for claim in sorted(
-        O.Claim.all_near_today(reference_date, days_back=days_back, days_ahead=days_ahead),
+        O.Claim.all_near_today(reference_date, days_back=S.index_days_back, days_ahead=S.index_days_ahead),
         key=lambda c: (
             # unspecified dates are always before everything else
             coalesce((reference_date - NonOmniscientDate(c.object.value)).days, 99)
@@ -648,14 +648,14 @@ async def search(request):
             LIMIT ?
             OFFSET ?
         """,
-        (make_search_key(query), PAGE_SIZE + 1, PAGE_SIZE * (page_no - 1)),
+        (make_search_key(query), S.page_size + 1, S.page_size * (page_no - 1)),
     ).fetchall()
     parts = []
     more_results = False
     for i, hit in enumerate(hits):
         if i:
             parts.append("<br>")
-        if i == PAGE_SIZE:
+        if i == S.page_size:
             more_results = True
         else:
             if hit["table_name"] == "claims":
@@ -831,10 +831,10 @@ async def list_verbs(request):
     for i, verb in enumerate(
         O.Verb.all(
             page_no=page_no - 1,
-            page_size=PAGE_SIZE + 1,
+            page_size=S.page_size + 1,
         )
     ):
-        if i == PAGE_SIZE:
+        if i == S.page_size:
             more_results = True
         elif verb.id not in (ROOT, LABEL):
             parts.append(f"{verb:full}")
@@ -909,10 +909,10 @@ async def list_queries(request):
     for i, query in enumerate(
         O.Query.all(
             page_no=page_no - 1,
-            page_size=PAGE_SIZE + 1,
+            page_size=S.page_size + 1,
         )
     ):
-        if i == PAGE_SIZE:
+        if i == S.page_size:
             more_results = True
         else:
             parts.append(f"{query:full}")
@@ -1090,9 +1090,9 @@ async def view_query(request, query_id: int):
     query = O.Query(query_id)
     result = query.run(
         page_no=page_no - 1,
-        page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+        page_size=S.page_size + 1,  # so we know if there would be more results
     )
-    if len(result) > PAGE_SIZE:
+    if len(result) > S.page_size:
         more_results = True
         result = result[:-1]
     else:
@@ -1121,12 +1121,12 @@ async def list_comments(request):
         O.Claim.all_comments(
             order_by="id DESC",
             page_no=page_no - 1,
-            page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+            page_size=S.page_size + 1,  # so we know if there would be more results
         )
     ):
         if i:
             parts.append("<br>")
-        if i == PAGE_SIZE:
+        if i == S.page_size:
             more_results = True
         else:
             parts.append(f"{claim:link}")
@@ -1147,12 +1147,12 @@ async def list_labelled_claims(request):
         O.Claim.all_labelled(
             order_by="id DESC",
             page_no=page_no - 1,
-            page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+            page_size=S.page_size + 1,  # so we know if there would be more results
         )
     ):
         if i:
             parts.append("<br>")
-        if i == PAGE_SIZE:
+        if i == S.page_size:
             more_results = True
         else:
             parts.append(f"{claim:link}")
@@ -1224,10 +1224,10 @@ async def view_verb(request, verb_id: int):
     for i, claim in enumerate(
         verb.claims(
             page_no=page_no - 1,
-            page_size=PAGE_SIZE + 1,  # so we know if there would be more results
+            page_size=S.page_size + 1,  # so we know if there would be more results
         )
     ):
-        if i == PAGE_SIZE:
+        if i == S.page_size:
             more_results = True
         else:
             parts.append(f'<span class="row">{claim:svo}</span>')
@@ -1253,10 +1253,10 @@ async def list_users(request):
     for i, user in enumerate(
         O.User.all(
             page_no=page_no - 1,
-            page_size=PAGE_SIZE + 1,
+            page_size=S.page_size + 1,
         )
     ):
-        if i == PAGE_SIZE:
+        if i == S.page_size:
             more_results = True
         else:
             parts.append(f"<tr><td>{user.id}</td>")
@@ -1438,6 +1438,57 @@ async def view_user(request, user_id: int):
         </article>
     """
     return user.name, result
+
+
+@app.get("/settings")
+@admin_only
+@page
+async def settings_form(request):
+    return "Settings", f"""
+        <article>
+            <header><h2>Settings</h2></header>
+            <form method="POST">
+                <h4>General</h4>
+                <fieldset class="grid">
+                    <label>
+                    Application name
+                    <input name="page_size" placeholder="Véronique">
+                    <small>This will be shown as part of page titles.</small>
+                    </label>
+                    <label>
+                    Page size
+                    <input type="number" name="page_size" min=1 value="{S.page_size}">
+                    <small>How many items to show in paginated pages.</small>
+                    </label>
+                </fieldset>
+                <h4>Index page</h4>
+                <fieldset class="grid">
+                    <label>
+                    Days back
+                    <input type="number" name="index_days_back" min=1 value="{S.index_days_back}">
+                    <small>How many days to look back for relevant events.</small>
+                    </label>
+                    <label>
+                    Days ahead
+                    <input type="number" name="index_days_ahead" min=1 value="{S.index_days_ahead}">
+                    <small>How many days to look forwards for relevant events.</small>
+                    </label>
+                </fieldset>
+                <input type="submit" value="Save">
+            </form>
+        </article>
+    """
+
+
+@app.post("/settings")
+@admin_only
+async def save_settings(request):
+    form = D(request.form)
+    S.app_name = form.get("app_name")
+    S.page_size = form.get("page_size")
+    S.index_days_ahead = form.get("index_days_ahead")
+    S.index_days_back = form.get("index_days_back")
+    return redirect("/")
 
 
 @app.get("/htmx.js")

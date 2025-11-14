@@ -620,6 +620,17 @@ def add_extra_to_verbs(cur):
     """)
 
 
+@migration(17)
+def add_settings(cur):
+    cur.execute("""
+        CREATE TABLE settings
+        (
+            key TEXT NOT NULL,
+            value TEXT
+        )
+    """)
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 
