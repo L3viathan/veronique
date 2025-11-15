@@ -13,7 +13,7 @@ import veronique.security as security
 from veronique.context import context
 from veronique.settings import settings as S
 from veronique.nomnidate import NonOmniscientDate
-from veronique.db import conn, LABEL, IS_A, ROOT, AVATAR, COMMENT, make_search_key
+from veronique.db import conn, LABEL, IS_A, ROOT, AVATAR, COMMENT, make_search_key, rebuild_search_index
 from veronique.data_types import TYPES
 
 app = Sanic("Veronique")
@@ -673,6 +673,15 @@ async def search(request):
         page_no=page_no,
         more_results=more_results,
     )
+
+
+@app.post("/search/rebuild")
+@admin_only
+@fragment
+async def rebuild_search(request):
+    cur = conn.cursor()
+    rebuild_search_index(cur)
+    return "<em>successfully rebuilt</em>"
 
 
 @app.get("/claims/<claim_id>/edit")
@@ -1474,6 +1483,11 @@ async def settings_form(request):
                     <small>How many days to look forwards for relevant events.</small>
                     </label>
                 </fieldset>
+                <h4>Maintenance</h4>
+                <fieldset>
+                <a href="#" role="button" hx-swap="outerHTML" hx-post="/search/rebuild">Rebuild search index</a>
+                </fieldset>
+
                 <input type="submit" value="Save">
             </form>
         </article>
