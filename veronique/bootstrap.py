@@ -1,3 +1,4 @@
+import sys
 import os
 
 def make(name, *relations, category="human"):
@@ -11,7 +12,12 @@ def make(name, *relations, category="human"):
 
 
 if __name__ == "__main__":
-    os.unlink("veronique.db")
+    if os.path.exists("veronique.db"):
+        print(
+            "Can't bootstrap, DB already exists. Delete veronique.db and run this again.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     with open("veronique_initial_pw", "w") as f:
         f.write("admin")
     # running migrations:
