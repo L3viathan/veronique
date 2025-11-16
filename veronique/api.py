@@ -264,9 +264,7 @@ async def do_login(request):
     return redirect("/login")
 
 
-@app.get("/")
-@page
-async def index(request):
+def _recent_events_page(request):
     recent_events = []
     page_no = int(request.args.get("page", 1))
     past_today = False
@@ -307,6 +305,28 @@ async def index(request):
         </article>
         {_notice('There are <a href="/comments">unresolved comments</a>') if context.user.is_admin and list(O.Claim.all_comments()) else ""}
     """
+
+
+def _newest_claims(request, only_root=True):
+    parts = ["<article><header><h2>Newest claims</h2></header>"]
+    for claim in O.Claim.all(
+        verb_id=ROOT if only_root else None,
+        order_by="created_at DESC",
+        page_size=S.page_size,
+    ):
+        parts.append(f'<span class="row">{claim:link}</span>')
+    parts.append("</article>")
+    return "".join(parts)
+
+
+@app.get("/")
+@page
+async def index(request):
+    return {
+        "recent_events": _recent_events_page,
+        "newest_claims": functools.partial(_newest_claims, only_root=False),
+        "newest_root_claims": _newest_claims,
+    }[S.index_type](request)
 
 
 @app.get("/network")
@@ -1471,6 +1491,11 @@ async def settings_form(request):
                     </label>
                 </fieldset>
                 <h4>Index page</h4>
+                    <select name="index_type">
+                        <option value="recent_events" {"selected" if S.index_type == "recent_events" else ""}>Recent events</option>
+                        <option value="newest_root_claims" {"selected" if S.index_type == "newest_root_claims" else ""}>Newest claims (roots only)</option>
+                        <option value="newest_claims" {"selected" if S.index_type == "newest_claims" else ""}>Newest claims (all)</option>
+                    </select>
                 <fieldset class="grid">
                     <label>
                     Days back
@@ -1502,6 +1527,7 @@ async def save_settings(request):
     S.page_size = form.get("page_size")
     S.index_days_ahead = form.get("index_days_ahead")
     S.index_days_back = form.get("index_days_back")
+    S.index_type = form.get("index_type")
     return redirect("/")
 
 

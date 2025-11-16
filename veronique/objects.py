@@ -316,6 +316,7 @@ class Claim(Model):
         *,
         subject_id=None,
         object_id=None,
+        verb_id=None,
         order_by="id ASC",
         page_no=0,
         page_size=20,
@@ -329,6 +330,9 @@ class Claim(Model):
         if object_id is not None:
             conditions.append("object_id = ?")
             bindings.append(object_id)
+        if verb_id is not None:
+            conditions.append("verb_id = ?")
+            bindings.append(verb_id)
         if (verb_ids := context.user.readable_verbs) is not None:
             conditions.append(
                 f"verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"

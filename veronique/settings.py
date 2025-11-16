@@ -38,6 +38,7 @@ class Setting:
 class Settings:
     app_name: str = Setting("Véronique")
     page_size: int = Setting(20)
+    index_type: str = Setting("recent_events")
     index_days_ahead: int = Setting(7)
     index_days_back: int = Setting(3)
 
