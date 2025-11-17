@@ -743,10 +743,10 @@ class Claim(Model):
             if LABEL in data:
                 if self.verb.id == ROOT:
                     label = data[LABEL][0]
-                    return f"""<h2>{label:handle}{label.object.value} {cat}</h2>{" ".join(buttons)}"""
+                    return f"""<h2>{label:handle}{label.object.value}{cat}</h2>{" ".join(buttons)}"""
                 else:
                     # non-roots should still show their actual SVO
-                    return f"""<h2>{label:handle}{label.object.value} {cat}<br>{self:svo}</h2>{" ".join(buttons)}"""
+                    return f"""<h2>{label:handle}{label.object.value}{cat}<br>{self:svo}</h2>{" ".join(buttons)}"""
             else:
                 return f"""<h2>{self:svo}</h2>{" ".join(buttons)}"""
         elif fmt.startswith("vo:"):
