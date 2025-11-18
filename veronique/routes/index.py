@@ -58,13 +58,24 @@ def _recent_events_page(request):
 
 
 def _newest_claims(request, only_root=True):
+    page_no = int(request.args.get("page", 1))
     parts = ["<article><header><h2>Newest claims</h2></header>"]
-    for claim in O.Claim.all(
+    more_results = False
+    for i, claim in enumerate(O.Claim.all(
         verb_id=ROOT if only_root else None,
         order_by="created_at DESC",
-        page_size=S.page_size,
-    ):
-        parts.append(f'<span class="row">{claim:link}</span>')
+        page_no=page_no - 1,
+        page_size=S.page_size + 1,
+    )):
+        if i == S.page_size:
+            more_results = True
+        else:
+            parts.append(f'<span class="row">{claim:link}</span>')
+    parts.append(pagination(
+        "/",
+        page_no,
+        more_results=more_results,
+    ))
     parts.append("</article>")
     return "".join(parts)
 
