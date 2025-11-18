@@ -1,6 +1,6 @@
 from sanic import Blueprint, redirect
 
-import veronique.settings as S
+from veronique.settings import settings as S
 from veronique.utils import admin_only, page, D
 
 settings = Blueprint("settings", url_prefix="/settings")

@@ -6,7 +6,7 @@ import veronique.objects as O
 import veronique.security as security
 from veronique.context import context
 from veronique.utils import D
-from veronique.routes import claims, verbs, queries, users, settings, network, static, index
+from veronique.routes import claims, verbs, queries, users, settings, network, static, index, search
 
 app = Sanic("Veronique")
 app.blueprint(claims)
@@ -17,6 +17,7 @@ app.blueprint(settings)
 app.blueprint(network)
 app.blueprint(static)
 app.blueprint(index)
+app.blueprint(search)
 
 with open("data/login.html") as f:
     LOGIN = f.read()

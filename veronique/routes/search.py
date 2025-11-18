@@ -1,7 +1,7 @@
 from sanic import Blueprint
 
 import veronique.objects as O
-import veronique.settings as S
+from veronique.settings import settings as S
 from veronique.context import context
 from veronique.utils import page, pagination, D, admin_only, fragment
 from veronique.db import conn, make_search_key, rebuild_search_index
