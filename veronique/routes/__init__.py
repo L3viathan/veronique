@@ -5,3 +5,4 @@ from .users import users as users
 from .settings import settings as settings
 from .network import network as network
 from .search import search as search
+from .static import static as static

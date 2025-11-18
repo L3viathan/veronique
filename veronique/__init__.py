@@ -10,7 +10,7 @@ from veronique.settings import settings as S
 from veronique.nomnidate import NonOmniscientDate
 from veronique.db import ROOT
 from veronique.utils import page, coalesce, pagination, D, _notice
-from veronique.routes import claims, verbs, queries, users, settings, network
+from veronique.routes import claims, verbs, queries, users, settings, network, static
 
 app = Sanic("Veronique")
 app.blueprint(claims)
@@ -19,6 +19,7 @@ app.blueprint(queries)
 app.blueprint(users)
 app.blueprint(settings)
 app.blueprint(network)
+app.blueprint(static)
 
 with open("data/login.html") as f:
     LOGIN = f.read()
@@ -173,46 +174,6 @@ async def index(request):
         "newest_claims": functools.partial(_newest_claims, only_root=False),
         "newest_root_claims": _newest_claims,
     }[S.index_type](request)
-
-
-@app.get("/htmx.js")
-async def htmx_js(request):
-    return await file("data/htmx.js", mime_type="text/javascript")
-
-
-@app.get("/style.css")
-async def style_css(request):
-    return await file("data/style.css", mime_type="text/css")
-
-
-@app.get("/mana-cost.css")
-async def mana_cost_css(request):
-    return await file("data/mana-cost.css", mime_type="text/css")
-
-
-@app.get("/mana.svg")
-async def mana_svg(request):
-    return await file("data/mana.svg", mime_type="image/svg+xml")
-
-
-@app.get("/prism.css")
-async def prism_css(request):
-    return await file("data/prism.css", mime_type="text/css")
-
-
-@app.get("/pico.min.css")
-async def pico_css(request):
-    return await file("data/pico.min.css", mime_type="text/css")
-
-
-@app.get("/prism.js")
-async def prism_js(request):
-    return await file("data/prism.js", mime_type="text/javascript")
-
-
-@app.get("/cytoscape.min.js")
-async def cytoscape_js(request):
-    return await file("data/cytoscape.min.js", mime_type="text/javascript")
 
 
 @app.get("/favicon.ico")
