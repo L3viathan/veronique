@@ -24,7 +24,7 @@ different tool.
 - _Or_: Run `python -m veronique.bootstrap` to fill the database with testing
   data. The password of the admin user will be "admin". **This irrevocably
   overwrites any existing db you may have.**
-- Run `sanic veronique.api:app --dev`
+- Run `sanic veronique:app --dev`
 
 ## Deployment
 
