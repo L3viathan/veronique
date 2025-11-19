@@ -91,7 +91,7 @@ def page(fn):
                 gotos.append(f'<li><a href="#" disabled>{page_name.title()}</a></li>')
             else:
                 gotos.append(f'<li><a href="/{page_name}">{page_name.title()}</a></li>')
-        if context.user.is_admin and False:
+        if context.user.is_admin:
             news = """
             <li>
                 <details class="dropdown">
