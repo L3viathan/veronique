@@ -91,25 +91,32 @@ def page(fn):
                 gotos.append(f'<li><a href="#" disabled>{page_name.title()}</a></li>')
             else:
                 gotos.append(f'<li><a href="/{page_name}">{page_name.title()}</a></li>')
-        if context.user.is_admin:
+        if context.user.is_admin and False:
             news = """
             <li>
-                <details class="dropdown clean">
-                    <summary id="add-button">+
-                    </summary>
-                    <ul>
-                        <li><a href="/claims/new-root">Root claim</a></li>
-                        <li><a href="/verbs/new">Verb</a></li>
-                        <li><a href="/queries/new">Query</a></li>
-                        <li><a href="/users/new">User</a></li>
-                    </ul>
+                <details class="dropdown">
+                <summary>New...</summary>
+                <ul dir="rtl">
+                    <li><a href="/claims/new-root">Root claim</a></li>
+                    <li><a href="/verbs/new">Verb</a></li>
+                    <li><a href="/queries/new">Query</a></li>
+                    <li><a href="/users/new">User</a></li>
+                </ul>
                 </details>
             </li>
             """
         elif context.user.can("write", "verb", ROOT):
             news = """
             <li>
-                <a href="/claims/new-root" id="add-button">+</a>
+                <details class="dropdown">
+                <summary>New...</summary>
+                <ul dir="rtl">
+                    <li><a href="/claims/new-root">Root claim</a></li>
+                    <li><a href="/verbs/new" disabled>Verb</a></li>
+                    <li><a href="/queries/new" disabled>Query</a></li>
+                    <li><a href="/users/new" disabled>User</a></li>
+                </ul>
+                </details>
             </li>
             """
         else:

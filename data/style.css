@@ -203,21 +203,6 @@ nav {
   margin: auto;
 }
 
-#add-button {
-  background-color: green;
-  border-radius: 200px;
-  width: 75px;
-  height: 75px;
-  box-shadow: 0 0 3px gray;
-  margin-right: 15px;
-  color: white;
-  text-align: center;
-}
-
-li:has(#add-button) {
-  height: 126px;
-}
-
 article {
   overflow: hidden;
   button, a.toolbutton[role=button] {
@@ -258,10 +243,9 @@ hr.date-today {
   border: 1px solid var(--lightgrey);
   border-radius: 10px;
   background-color: var(--lightgrey);
-}
-
-.ac-widget input {
-  margin-bottom: 0;
+  & input {
+    margin-bottom: 0;
+  }
 }
 
 .clickable.ac-result:nth-child(1) {
@@ -275,18 +259,17 @@ hr.date-today {
 
 header {
   position: relative;
-}
-
-header>.avatar {
-  width: 145px;
-  height: 145px;
-  border: 2px solid white;
-  border-radius: 100px;
-  outline: 2px solid var(--lightgrey);
-  position: absolute;
-  object-fit: cover;
-  top: 20px;
-  left: 20px;
+  &>.avatar {
+    width: 145px;
+    height: 145px;
+    border: 2px solid white;
+    border-radius: 100px;
+    outline: 2px solid var(--lightgrey);
+    position: absolute;
+    object-fit: cover;
+    top: 20px;
+    left: 20px;
+  }
 }
 
 .claim-link .avatar {

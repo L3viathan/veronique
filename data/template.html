@@ -45,16 +45,17 @@
                     {gotos}
                 </ul>
                 </details>
-                    <li><input
-                        id="q"
-                        name="q"
-                        type="search"
-                        hx-get="/search"
-                        hx-trigger="input changed delay:200ms, search"
-                        hx-select="#container"
-                        hx-target="#container"
-                        hx-push-url="true"
-                    >
+            </li>
+            <li><input
+                id="q"
+                name="q"
+                type="search"
+                hx-get="/search"
+                hx-trigger="input changed delay:200ms, search"
+                hx-select="#container"
+                hx-target="#container"
+                hx-push-url="true"
+                >
             </li>
             {user}
         </ul>
