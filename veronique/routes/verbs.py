@@ -121,12 +121,13 @@ async def view_verb(request, verb_id: int):
             more_results = True
         else:
             parts.append(f'<span class="row">{claim:svo}</span>')
-    parts.append("</article>")
-    return verb.label, "".join(parts) + pagination(
+    parts.append(pagination(
         f"/verbs/{verb_id}",
         page_no,
         more_results=more_results,
-    )
+    ))
+    parts.append("</article>")
+    return verb.label, "".join(parts)
 
 
 @verbs.get("/<verb_id>/edit")

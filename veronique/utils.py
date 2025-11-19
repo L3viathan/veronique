@@ -31,7 +31,7 @@ def pagination(url, page_no, *, more_results=True, allow_negative=False):
     if page_no == 1 and not more_results:
         return ""
     q = "&" if "?" in url else "?"
-    return f"""<br>
+    return f"""<footer>
         <a
             role="button"
             class="prev"
@@ -44,6 +44,7 @@ def pagination(url, page_no, *, more_results=True, allow_negative=False):
             href="{url}{q}page={page_no + 1}"
             {"disabled" if not more_results else ""}
         >&gt;</a>
+        </footer>
     """
 
 

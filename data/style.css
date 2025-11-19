@@ -1,5 +1,4 @@
 html {
-  font-size: 200%;
   --lightgrey: #f1f1f1;
 }
 a, .clickable {
@@ -199,8 +198,8 @@ nav {
 
 #container {
   padding: 1em;
-  max-width: fit-content;
-  min-width: 1450px;
+  max-width: 1450px;
+  /* min-width: 1450px; */
   margin: auto;
 }
 
@@ -227,15 +226,16 @@ article {
 }
 
 .prev {
-  float: left;
   margin-top: 25px;
   margin-bottom: 15px;
+  position: relative;
 }
 
 .next {
-  float: right;
+  right: 25px;
   margin-top: 25px;
   margin-bottom: 15px;
+  position: absolute;
 }
 
 .svo:has(.date-today) {
@@ -473,4 +473,8 @@ input.inline {
   height: 1em !important;
   text-align: center;
   margin: 5px !important;
+}
+
+footer {
+  position: relative;
 }
