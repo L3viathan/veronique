@@ -15,7 +15,7 @@ queries = Blueprint("queries", url_prefix="/queries")
 @page
 async def list_queries(request):
     page_no = int(request.args.get("page", 1))
-    parts = []
+    parts = ["<article>"]
     more_results = False
     for i, query in enumerate(
         O.Query.all(
@@ -26,12 +26,14 @@ async def list_queries(request):
         if i == S.page_size:
             more_results = True
         else:
-            parts.append(f"{query:full}")
-    return "Queries", "<br>".join(parts) + pagination(
+            parts.append(f'<span class="row">{query:full}</span>')
+    parts.append(pagination(
         "/queries",
         page_no,
         more_results=more_results,
-    )
+    ))
+    parts.append("</article>")
+    return "Queries", "".join(parts)
 
 
 def _queries_textarea(value=None):

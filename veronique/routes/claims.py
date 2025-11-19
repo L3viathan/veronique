@@ -356,7 +356,7 @@ async def move_claim(request, claim_id: int):
 @page
 async def list_labelled_claims(request):
     page_no = int(request.args.get("page", 1))
-    parts = []
+    parts = ["<article>"]
     more_results = False
     for i, claim in enumerate(
         O.Claim.all_labelled(
@@ -365,17 +365,17 @@ async def list_labelled_claims(request):
             page_size=S.page_size + 1,  # so we know if there would be more results
         )
     ):
-        if i:
-            parts.append("<br>")
         if i == S.page_size:
             more_results = True
         else:
-            parts.append(f"{claim:link}")
-    return "Claims", "".join(parts) + pagination(
+            parts.append(f'<span class="row">{claim:link}</span>')
+    parts.append(pagination(
         "/claims",
         page_no,
         more_results=more_results,
-    )
+    ))
+    parts.append("</article>")
+    return "Claims", "".join(parts)
 
 
 @claims.get("/<claim_id>")

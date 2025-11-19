@@ -33,12 +33,14 @@ async def list_users(request):
         else:
             parts.append(f"<tr><td>{user.id}</td>")
             parts.append(f"<td>{user:link}</td></tr>")
-    parts.append("</tbody></table></article>")
-    return "Users", "".join(parts) + pagination(
+    parts.append("</tbody></table>")
+    parts.append(pagination(
         "/users",
         page_no,
         more_results=more_results,
-    )
+    ))
+    parts.append("</article>")
+    return "Users", "".join(parts)
 
 
 def _user_form(*, password_input, endpoint, user=None):

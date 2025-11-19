@@ -25,7 +25,7 @@ async def delete_verb(request, verb_id: int):
 @page
 async def list_verbs(request):
     page_no = int(request.args.get("page", 1))
-    parts = []
+    parts = ["<article>"]
     more_results = False
     for i, verb in enumerate(
         O.Verb.all(
@@ -36,12 +36,14 @@ async def list_verbs(request):
         if i == S.page_size:
             more_results = True
         elif verb.id not in (ROOT, LABEL):
-            parts.append(f"{verb:full}")
-    return "Verbs", "<br>".join(parts) + pagination(
+            parts.append(f'<span class="row">{verb:full}</span>')
+    parts.append(pagination(
         "/verbs",
         page_no,
         more_results=more_results,
-    )
+    ))
+    parts.append("</article>")
+    return "Verbs", "".join(parts)
 
 
 @verbs.get("/new")
