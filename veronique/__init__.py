@@ -28,7 +28,7 @@ async def auth(request):
     """Ensure that each request is either authenticated or going to an explicitly allowed resource."""
     if request.route and (
         request.route.path == "login"
-        or request.route.path.endswith((".css", ".js", ".svg"))
+        or request.route.path.endswith((".css", ".js", ".svg", ".png"))
     ):
         # allow unauthenticated access to login page
         context.user = None

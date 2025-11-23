@@ -178,10 +178,6 @@ header small {
 
 nav {
   padding: 1em;
-  img {
-    width: 3em;
-    transform: scale(2);
-  }
 }
 
 .invalid {

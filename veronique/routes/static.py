@@ -41,3 +41,8 @@ async def prism_js(request):
 @static.get("/cytoscape.min.js")
 async def cytoscape_js(request):
     return await file("data/cytoscape.min.js", mime_type="text/javascript")
+
+
+@static.get("/veronique.png")
+async def veronique_png(request):
+    return await file("data/veronique.png", mime_type="image/png")
