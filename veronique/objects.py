@@ -949,6 +949,7 @@ class User(Model):
         "salt",
         "permissions",
         "generation",
+        "redact",
     )
 
     def populate(self):
@@ -956,7 +957,7 @@ class User(Model):
         row = cur.execute(
             """
                 SELECT
-                    id, name, hash, is_admin, salt, generation
+                    id, name, hash, is_admin, salt, generation, redact
                 FROM users
                 WHERE id = ?
             """,
@@ -968,6 +969,7 @@ class User(Model):
         self.hash = row["hash"]
         self.salt = row["salt"]
         self.is_admin = row["is_admin"]
+        self.redact = row["redact"]
         self.generation = row["generation"]
         if not self.is_admin:
             self.permissions = set()
@@ -1002,12 +1004,12 @@ class User(Model):
         return cls(row["id"])
 
     @classmethod
-    def new(cls, *, name, password, readable_verbs, writable_verbs, viewable_queries):
+    def new(cls, *, name, password, readable_verbs, writable_verbs, viewable_queries, redact):
         cur = db.conn.cursor()
         hash, salt = hash_password(password)
         cur.execute(
-            "INSERT INTO users (name, hash, salt, is_admin) VALUES (?, ?, ?, ?)",
-            (name, hash, salt, 0),
+            "INSERT INTO users (name, hash, salt, is_admin, redact) VALUES (?, ?, ?, ?, ?)",
+            (name, hash, salt, 0, redact),
         )
         u_id = cur.lastrowid
         for readable_verb in readable_verbs:
@@ -1028,9 +1030,9 @@ class User(Model):
         db.conn.commit()
         return cls(u_id)
 
-    def update(self, *, name, password, readable_verbs, writable_verbs, viewable_queries):
+    def update(self, *, name, password, readable_verbs, writable_verbs, viewable_queries, redact):
         cur = db.conn.cursor()
-        to_set, values = [], []
+        to_set, values = ["redact=?"], [redact]
         if name != self.name:
             to_set.append("name=?")
             values.append(name)

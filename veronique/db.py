@@ -631,6 +631,14 @@ def add_settings(cur):
     """)
 
 
+@migration(18)
+def add_redactions_to_users(cur):
+    cur.execute("""
+        ALTER TABLE users
+        ADD redact INT NOT NULL DEFAULT 0
+    """)
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 

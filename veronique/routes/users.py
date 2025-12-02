@@ -71,6 +71,10 @@ def _user_form(*, password_input, endpoint, user=None):
             method="POST"
         >
             <input name="name" placeholder="name" value="{user and user.name or ''}">
+            <label>
+                <input name="redact" type="checkbox" role="switch" {'checked' if user and user.redact else ''}>
+                Redact PII for this user
+            </label>
             {'' if user and user.is_admin else f'''
             <h3>Readable verbs</h3>
             <select name="verbs-readable" multiple size="10">
@@ -126,6 +130,7 @@ def _write_user(form, endpoint, user=None):
     writable_verbs = {int(v) for v in form["verbs-writable"]} if "verbs-writable" in form else set()
     readable_verbs = {int(v) for v in form["verbs-readable"]} if "verbs-readable" in form else set()
     viewable_queries = {int(v) for v in form["queries-viewable"]} if "queries-viewable" in form else set()
+    redact = "redact" in form
     if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
         return redirect(f"{endpoint}?err=When making the root verb writable, you also need to make category and label writable.")
     if any(v >= 0 for v in writable_verbs - readable_verbs):
@@ -138,6 +143,7 @@ def _write_user(form, endpoint, user=None):
             readable_verbs=readable_verbs,
             writable_verbs=writable_verbs,
             viewable_queries=viewable_queries,
+            redact=redact,
         )
     else:
         user = O.User.new(
@@ -146,6 +152,7 @@ def _write_user(form, endpoint, user=None):
             readable_verbs=readable_verbs,
             writable_verbs=writable_verbs,
             viewable_queries=viewable_queries,
+            redact=redact,
         )
     return redirect(f"/users/{user.id}")
 
@@ -179,6 +186,7 @@ async def view_user(request, user_id: int):
         </header>
         <table>
         <tr><th scope="row">Admin</th><td>{TYPES["boolean"].display_html(user.is_admin)}</td></tr>
+        <tr><th scope="row">Redact</th><td>{TYPES["boolean"].display_html(user.redact)}</td></tr>
         <tr><th scope="row">Readable verbs</th><td>{", ".join(str(O.Verb(v)) for v in (user.readable_verbs or []) if v >= 0)}</td></tr>
         <tr><th scope="row">Writable verbs</th><td>{", ".join(str(O.Verb(v)) for v in (user.writable_verbs or []))}</td></tr>
         <tr><th scope="row">Viewable queries</th><td>{", ".join(str(O.Query(q)) for q in (user.viewable_queries or []))}</td></tr>
