@@ -697,13 +697,15 @@ class Claim(Model):
         data = self.get_data()
         css_classes, remarks = self._get_remarks(data)
         if fmt == "label":
-            if LABEL in data:
+            if LABEL in data and not context.user.redact:
                 return data[LABEL][0].object.value
             else:
                 return f"Claim #{self.id}"
         elif fmt == "link" or not fmt:
-            if LABEL in data:
+            if LABEL in data and not context.user.redact:
                 return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatar}{data[LABEL][0].object.value}</a>'
+            elif self.verb.id == ROOT:
+                return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatar}Claim #{self.id}</a>'
             else:
                 return f"{self:svo}"
         elif fmt == "heading":
@@ -743,7 +745,11 @@ class Claim(Model):
             if LABEL in data:
                 if self.verb.id == ROOT:
                     label = data[LABEL][0]
-                    return f"""<h2>{label:handle}{label.object.value}{cat}</h2>{" ".join(buttons)}"""
+                    if context.user.redact:
+                        text = f"Claim #{self.id}"
+                    else:
+                        text = label.object.value
+                    return f"""<h2>{label:handle}{text}{cat}</h2>{" ".join(buttons)}"""
                 else:
                     # non-roots should still show their actual SVO
                     return f"""<h2>{label:handle}{label.object.value}{cat}<br>{self:svo}</h2>{" ".join(buttons)}"""
@@ -770,13 +776,19 @@ class Claim(Model):
                 hx-get="/claims/autocomplete/accept/{self.id}"
             >{self:label}</span>"""
         elif fmt == "avatar":
-            if AVATAR not in data:
+            if AVATAR not in data or context.user.redact:
                 return ""
             return f'<img src="{data[AVATAR][0].object.value}" class="avatar">'
         elif fmt == "raw":
+            if context.user.redact:
+                return f"Claim #{self.id}"
             return self.object.value
         elif fmt == "comment":
-            return f'<tr><td data-placement="right" data-tooltip="{self.created_at}" class="comment-author">{self.owner.name}:</td><td>{self:handle}</td><td class="comment-text">{self.object.value}</td></tr>'
+            if context.user.redact:
+                text = "..."
+            else:
+                text = self.object.value
+            return f'<tr><td data-placement="right" data-tooltip="{self.created_at}" class="comment-author">{self.owner.name}:</td><td>{self:handle}</td><td class="comment-text">{text}</td></tr>'
         return f"TODO: {fmt!r}"
 
     @property

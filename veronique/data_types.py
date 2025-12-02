@@ -9,6 +9,7 @@ from urllib.parse import quote_plus
 from markdown_it import MarkdownIt
 
 from veronique.nomnidate import NonOmniscientDate
+from veronique.context import context
 
 TYPES = {}
 TEXT_REF = re.compile(r"&lt;@(\d+)&gt;")
@@ -195,6 +196,8 @@ class inferred(DataType):
 
 class string(DataType):
     def display_html(self, value, **_):
+        if context.user.redact:
+            return '<span class="type-string">"..."</span>'
         return f'<span class="type-string">"{value}"</span>'
 
     def input_html(self, value=None, **_):
@@ -284,6 +287,8 @@ class boolean(DataType):
 
 class location(DataType):
     def display_html(self, value, **_):
+        if context.user.redact:
+            value = "Point Nemo"
         newline = "\n"
         return f"""<a
             href="https://www.openstreetmap.org/search?query={
@@ -311,7 +316,10 @@ class text(DataType):
         return f"{O.Claim(int(match.group(1))):link}"
 
     def display_html(self, value, **_):
-        value = self.md.render(value)
+        if context.user.redact:
+            value = "..."
+        else:
+            value = self.md.render(value)
         return f"""<span class="type-text">{re.sub(TEXT_REF, self._sub, value)}</span>"""
 
     def input_html(self, value=None, **_):
@@ -326,6 +334,8 @@ class text(DataType):
 
 class email(DataType):
     def display_html(self, value, **_):
+        if context.user.redact:
+            return '<span class="type-email"><a href="mailto:mail@example.com">mail@example.com</a></span>'
         return f'<span class="type-email"><a href="mailto:{value}">{value}</a></span>'
 
     def input_html(self, value=None, **_):
@@ -339,6 +349,8 @@ class email(DataType):
 
 class website(DataType):
     def display_html(self, value, **_):
+        if context.user.redact:
+            value = "https://example.com"
         return f'<span class="type-website"><a href="{value}">{value}</a></span>'
 
     def input_html(self, value=None, **_):
@@ -352,6 +364,8 @@ class website(DataType):
 
 class phonenumber(DataType):
     def display_html(self, value, **_):
+        if context.user.redact:
+            value = "+49 1234 56789"
         return f"""<span
             class="type-phonenumber"
         >
@@ -369,6 +383,8 @@ class phonenumber(DataType):
 
 class picture(DataType):
     def display_html(self, value, **_):
+        if context.user.redact:
+            return ""
         return f'<img class="type-picture" src="{value}">'
 
     def input_html(self, value=None, **_):
@@ -377,6 +393,8 @@ class picture(DataType):
 
 class social(DataType):
     def display_html(self, value, prop, **_):
+        if context.user.redact:
+            value = "someone"
         return f'<span class="type-social">{prop.extra.format(value)}</span>'
 
     def input_html(self, value=None, **_):
