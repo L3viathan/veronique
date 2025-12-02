@@ -131,6 +131,8 @@ def _write_user(form, endpoint, user=None):
     readable_verbs = {int(v) for v in form["verbs-readable"]} if "verbs-readable" in form else set()
     viewable_queries = {int(v) for v in form["queries-viewable"]} if "queries-viewable" in form else set()
     redact = "redact" in form
+    if writable_verbs and redact:
+        return redirect(f"{endpoint}?err=For now, users that can write can't have a redacted view.")
     if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
         return redirect(f"{endpoint}?err=When making the root verb writable, you also need to make category and label writable.")
     if any(v >= 0 for v in writable_verbs - readable_verbs):
