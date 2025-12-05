@@ -826,6 +826,7 @@ class Claim(Model):
                     "source": str(self.id),
                     "target": str(link.object.id),
                     "label": link.verb.label.replace('"', "'"),
+                    "type": "arrow" if link.verb.data_type.name == "directed_link" else "line",
                 }
             )
         return node, edges

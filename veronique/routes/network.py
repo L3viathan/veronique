@@ -128,7 +128,7 @@ async def show_network(request):
         parts.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: 3, color: "{colors[node["cat"]]}"}});\n')
 
     for edge in all_edges:
-        parts.append(f'graph.addEdge("{edge["source"]}", "{edge["target"]}", {{label: "{edge["label"]}", size: 1, color: "grey"}});\n')
+        parts.append(f'graph.addEdge("{edge["source"]}", "{edge["target"]}", {{label: "{edge["label"]}", size: 1, color: "grey", type: "{edge["type"]}"}});\n')
 
     parts.append("""
         var sig = new Sigma(graph, document.getElementById("cy"), {renderEdgeLabels: true, allowInvalidContainer: true});
