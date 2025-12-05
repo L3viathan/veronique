@@ -2,9 +2,10 @@ import random
 from collections import defaultdict
 from itertools import cycle
 
-from sanic import Blueprint
+from sanic import Blueprint, HTTPResponse
 
 import veronique.objects as O
+from veronique.context import context
 from veronique.utils import page
 from veronique.db import IS_A, ROOT
 
@@ -27,7 +28,13 @@ async def show_network(request):
     else:
         verbs = all_verbs
     if "query" in request.args:
-        query = O.Query(int(request.args.get("query")))
+        query_id = int(request.args.get("query"))
+        if not context.user.can("view", "query", query_id):
+            return HTTPResponse(
+                body="403 Forbidden",
+                status=403,
+            )
+        query = O.Query(query_id)
         result = query.run(
             page_no=0,
             page_size=9999,
