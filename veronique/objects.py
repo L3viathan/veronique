@@ -805,12 +805,11 @@ class Claim(Model):
         return f"{self:link}"
 
     def graph_elements(self, verbs=None):
+        data = self.get_data()
         node = {
-            "group": "nodes",
-            "data": {
-                "label": f"{self:label}",
-                "id": str(self.id),
-            },
+            "label": f"{self:label}".replace('"', "&quot;"),
+            "id": str(self.id),
+            "cat": data[IS_A][0].object.id if data.get(IS_A) else None,
         }
         edges = []
         for link in self.outgoing_claims():
@@ -824,12 +823,9 @@ class Claim(Model):
                 continue
             edges.append(
                 {
-                    "group": "edges",
-                    "data": {
-                        "source": str(self.id),
-                        "target": str(link.object.id),
-                        "label": link.verb.label,
-                    },
+                    "source": str(self.id),
+                    "target": str(link.object.id),
+                    "label": link.verb.label.replace('"', "'"),
                 }
             )
         return node, edges

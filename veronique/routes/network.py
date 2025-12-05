@@ -1,4 +1,6 @@
-import json
+import random
+from collections import defaultdict
+from itertools import cycle
 
 from sanic import Blueprint
 
@@ -30,19 +32,26 @@ async def show_network(request):
         if categories is None
         or ({cat.object for cat in c.get_data().get(IS_A, set())} & categories)
     )
-    node_ids = set()
-    elements, all_edges = [], []
+    nodes_seen, edges_seen = set(), set()
+    all_nodes, all_edges = [], []
     for c in claims:
         node, edges = c.graph_elements(verbs=verbs)
-        elements.append(node)
-        node_ids.add(node["data"]["id"])
-        all_edges.extend(edges)
-    for edge in all_edges:
-        if edge["data"]["source"] in node_ids and edge["data"]["target"] in node_ids:
-            elements.append(edge)
+        if node["id"] not in nodes_seen:
+            all_nodes.append(node)
+            nodes_seen.add(node["id"])
+        for edge in edges:
+            k = frozenset([edge["source"], edge["target"]])
+            if k not in edges_seen:
+                all_edges.append(edge)
+                edges_seen.add(k)
+    all_edges = [
+        edge
+        for edge in all_edges
+        if edge["source"] in nodes_seen
+        and edge["target"] in nodes_seen
+    ]
 
-    return "Network", f"""
-    <form id="networkform">
+    parts = [f"""<form id="networkform">
     <fieldset class="grid">
     <details class="dropdown">
       <summary>Select Categories...</summary>
@@ -95,38 +104,48 @@ async def show_network(request):
     </details>
     </fieldset>
     </form>
+    <button id="playpause" onclick="handlePlayPause()" style="position: fixed; z-index: 2;">■</button>
     <div id="cy"></div>
     <script>
-        var cy = cytoscape({{
-            container: document.getElementById("cy"),
-            elements: [
-            {",".join(json.dumps(element) for element in elements)}
-            ],
-            style: [
-                {{
-                    selector: 'node',
-                    style: {{
-                        'label': 'data(label)',
-                        'width': '5px',
-                        'height': '5px',
-                        'font-size': '5pt',
-                    }}
-                }},
-                {{
-                    selector: 'edge',
-                    style: {{
-                        'label': 'data(label)',
-                        'font-size': '4pt',
-                        'width': '1px',
-                        'line-opacity': 0.2,
-                    }}
-                }},
-            ],
-        }});
-        layout = cy.layout({{
-            name: 'cose',
-            initialTemp: 4000,
-        }});
-        layout.run();
+        var active = true;
+        function handlePlayPause() {{
+          if (active) {{
+              fa2Layout.stop();
+              document.getElementById("playpause").innerText = "▶\uFE0E";
+          }} else {{
+              fa2Layout.start();
+              document.getElementById("playpause").innerText = "■";
+          }}
+          active = !active;
+        }}
+        var graph = new graphology.Graph();
+        var fa2Layout = new graphologyLibrary.FA2Layout(graph);
+        var draggedNode = null;
+    """]
+
+    colors = defaultdict(cycle(["red", "green", "blue", "orange", "purple"]).__next__)
+    for node in all_nodes:
+        parts.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: 3, color: "{colors[node["cat"]]}"}});\n')
+
+    for edge in all_edges:
+        parts.append(f'graph.addEdge("{edge["source"]}", "{edge["target"]}", {{label: "{edge["label"]}", size: 1, color: "grey"}});\n')
+
+    parts.append("""
+        var sig = new Sigma(graph, document.getElementById("cy"), {renderEdgeLabels: true, allowInvalidContainer: true});
+        sig.on("downNode", (e) => {
+          draggedNode = e.node;
+        });
+        sig.on("moveBody", (e) => {
+          draggedNode = null;
+        });
+        sig.on("upNode", (e) => {
+          if (draggedNode) {
+            location.href = "/claims/" + draggedNode;
+          }
+        });
+
+        fa2Layout.start();
+        window.setTimeout(function(){{fa2Layout.stop();}}, 5000);
     </script>
-    """
+    """)
+    return "Network", "".join(parts)

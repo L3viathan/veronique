@@ -38,9 +38,19 @@ async def prism_js(request):
     return await file("data/prism.js", mime_type="text/javascript")
 
 
-@static.get("/cytoscape.min.js")
-async def cytoscape_js(request):
-    return await file("data/cytoscape.min.js", mime_type="text/javascript")
+@static.get("/sigma.min.js")
+async def sigma_js(request):
+    return await file("data/sigma.min.js", mime_type="text/javascript")
+
+
+@static.get("/graphology.umd.min.js")
+async def graphology_js(request):
+    return await file("data/graphology.umd.min.js", mime_type="text/javascript")
+
+
+@static.get("/graphology-library.min.js")
+async def graphology_library_js(request):
+    return await file("data/graphology-library.min.js", mime_type="text/javascript")
 
 
 @static.get("/veronique.png")
