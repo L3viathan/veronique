@@ -1,6 +1,6 @@
 import base64
 
-from sanic import Blueprint, HTTPResponse, redirect
+from sanic import Blueprint, HTTPResponse, redirect, raw
 
 import veronique.objects as O
 from veronique.utils import fragment, page, pagination, D
@@ -422,6 +422,22 @@ async def view_claim(request, claim_id: int):
         </footer>
         </article>
     """
+
+
+@claims.get("/<claim_id>/avatar")
+@page
+async def view_claim_avatar(request, claim_id: int):
+    claim = O.Claim(claim_id)
+    data = claim.get_data()
+    if AVATAR not in data or context.user.redact:
+        # black pixel
+        value = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQAAAAA3bvkkAAAACklEQVR4AWNgAAAAAgABc3UBGAAAAABJRU5ErkJggg==")
+    else:
+        value = data[AVATAR][0].object.value
+        mime = value[value.index(":"):value.index(";")]
+        value = base64.b64decode(value[value.index(","):])
+
+    return raw(value, content_type=mime)
 
 
 @claims.get("/comments")
