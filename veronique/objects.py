@@ -807,7 +807,7 @@ class Claim(Model):
     def graph_elements(self, verbs=None):
         data = self.get_data()
         node = {
-            "label": f"{self:label}".replace('"', "&quot;"),
+            "label": f"{self:label}".replace('"', "'"),
             "id": str(self.id),
             "cat": data[IS_A][0].object.id if data.get(IS_A) else None,
         }
