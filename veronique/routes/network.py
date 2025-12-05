@@ -80,6 +80,7 @@ async def show_network(request):
                   hx-swap="outerHTML"
                   hx-target="#container"
                   hx-select="#container"
+                  hx-push-url="true"
               />
               <label for="cat{cat.id}">{cat:label}</label></li>
               '''
@@ -104,6 +105,7 @@ async def show_network(request):
                   hx-swap="outerHTML"
                   hx-target="#container"
                   hx-select="#container"
+                  hx-push-url="true"
               />
               <label for="verb{verb.id}">{verb.label}</label></li>
               '''
