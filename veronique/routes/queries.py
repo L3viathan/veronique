@@ -121,7 +121,7 @@ for singular, plural, model in (
     )
 
 
-def display_query_result(result):
+def display_query_result(result, query_id=None):
     if result:
         header = dict(result[0]).keys()
         colmap = {}
@@ -131,11 +131,15 @@ def display_query_result(result):
                 colmap[col] = {"label": prefix, "display": SPECIAL_COL_NAMES[type_]}
             else:
                 colmap[col] = {"label": col, "display": str}
-        parts = [
-            "<table><thead><tr>",
-            *(f"<td>{colmap[col]['label']}</td>" for col in header),
-            "</tr></thead><tbody>",
-        ]
+        parts = ["<table><thead><tr>"]
+        for col in header:
+            print("col:", col)
+            if col.endswith("_c") and query_id is not None:
+                parts.append(f'<td>{colmap[col]["label"]} <a href="/network/?query={query_id}&col={col}">🖧</a></td>')
+            else:
+                parts.append(f"<td>{colmap[col]['label']}</td>")
+
+        parts.append("</tr></thead><tbody>")
         for row in result:
             parts.append("<tr>")
             for col in header:
@@ -212,7 +216,7 @@ async def view_query(request, query_id: int):
         more_results = False
     return query.label, f"""
         <article><header>
-        {query:heading}</header>{display_query_result(result)}
+        {query:heading}</header>{display_query_result(result, query_id=query_id)}
         {
             pagination(
                 f"/queries/{query_id}",

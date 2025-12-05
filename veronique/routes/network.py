@@ -26,12 +26,23 @@ async def show_network(request):
         verbs = [O.Verb(verb_id) for verb_id in ids]
     else:
         verbs = all_verbs
-    claims = (
-        c
-        for c in O.Claim.all_labelled(page_size=9999)
-        if categories is None
-        or ({cat.object for cat in c.get_data().get(IS_A, set())} & categories)
-    )
+    if "query" in request.args:
+        query = O.Query(int(request.args.get("query")))
+        result = query.run(
+            page_no=0,
+            page_size=9999,
+        )
+        claims = (
+            O.Claim(row[request.args.get("col" if "col" in request.args else "node_c")])
+            for row in result
+        )
+    else:
+        claims = (
+            c
+            for c in O.Claim.all_labelled(page_size=9999)
+            if categories is None
+            or ({cat.object for cat in c.get_data().get(IS_A, set())} & categories)
+        )
     nodes_seen, edges_seen = set(), set()
     all_nodes, all_edges = [], []
     for c in claims:
