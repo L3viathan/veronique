@@ -20,7 +20,7 @@ app.blueprint(index)
 app.blueprint(search)
 
 with open("data/login.html") as f:
-    LOGIN = f.read()
+    LOGIN = f.read().format
 
 
 @app.on_request
@@ -34,7 +34,10 @@ async def auth(request):
         context.user = None
         context.payload = None
         return
-    unauthorized = redirect("/login")
+    if request.method == "GET" and request.path != "/":
+        unauthorized = redirect(f"/login?then={request.path}")
+    else:
+        unauthorized = redirect("/login")
     if payload := security.unsign(request.cookies.get("session")):
         if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=30):
             return unauthorized
@@ -79,7 +82,11 @@ async def logout(request):
 
 @app.get("/login")
 async def login(request):
-    return html(LOGIN)
+    if "then" in request.args:
+        then = request.args.get("then")
+    else:
+        then = ""
+    return html(LOGIN(then=then))
 
 
 @app.post("/login")
@@ -95,7 +102,10 @@ async def do_login(request):
     except ValueError:
         return redirect("/login")
     if security.is_correct(password, user.hash, user.salt):
-        response = redirect("/")
+        if "then" in form:
+            response = redirect(form["then"])
+        else:
+            response = redirect("/")
         response.add_cookie(
             "session",
             security.sign(user.payload),
