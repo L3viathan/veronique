@@ -718,22 +718,22 @@ class Claim(Model):
                 if self.verb.id != ROOT:
                     buttons.append(f"""<a
                         hx-target="#edit-area"
-                        hx-get="/claims/{self.id}/edit"
-                        role="button"
-                        class="outline contrast"
-                    >✎ Edit</a>""")
-                    buttons.append(f"""<a
-                        hx-target="#edit-area"
                         hx-get="/claims/{self.id}/move"
                         role="button"
                         class="outline contrast"
-                    >→ Move</a>""")
+                    >→ Edit subject</a>""")
                     buttons.append(f"""<a
                         hx-target="#edit-area"
                         hx-get="/claims/{self.id}/reverb"
                         role="button"
                         class="outline contrast"
-                    >→ Reverb</a>""")
+                    >→ Edit verb</a>""")
+                    buttons.append(f"""<a
+                        hx-target="#edit-area"
+                        hx-get="/claims/{self.id}/edit"
+                        role="button"
+                        class="outline contrast"
+                    >✎ Edit object</a>""")
                 if self.deletable:
                     buttons.append(f"""<a
                         hx-target="#edit-area"
