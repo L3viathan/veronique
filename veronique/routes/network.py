@@ -1,5 +1,6 @@
 import random
-from collections import defaultdict
+import math
+from collections import defaultdict, Counter
 from itertools import cycle
 
 from sanic import Blueprint, HTTPResponse
@@ -52,6 +53,7 @@ async def show_network(request):
         )
     nodes_seen, edges_seen = set(), set()
     all_nodes, all_edges = [], []
+    link_count = Counter()
     for c in claims:
         node, edges = c.graph_elements(verbs=verbs)
         if node["id"] not in nodes_seen:
@@ -62,6 +64,8 @@ async def show_network(request):
             if k not in edges_seen:
                 all_edges.append(edge)
                 edges_seen.add(k)
+                link_count[edge["source"]] += 1
+                link_count[edge["target"]] += 1
     all_edges = [
         edge
         for edge in all_edges
@@ -145,7 +149,7 @@ async def show_network(request):
 
     colors = defaultdict(cycle(["red", "green", "blue", "orange", "purple"]).__next__)
     for node in all_nodes:
-        parts.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: 3, color: "{colors[node["cat"]]}"}});\n')
+        parts.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: {round(math.log(link_count[node["id"]] + 1)) + 1}, color: "{colors[node["cat"]]}"}});\n')
 
     for edge in all_edges:
         parts.append(f'graph.addEdge("{edge["source"]}", "{edge["target"]}", {{label: "{edge["label"]}", size: 1, color: "grey", type: "{edge["type"]}"}});\n')
