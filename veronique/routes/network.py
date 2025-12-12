@@ -169,7 +169,6 @@ async def show_network(request):
         });
 
         fa2Layout.start();
-        window.setTimeout(function(){{fa2Layout.stop();}}, 5000);
     </script>
     """)
     return "Network", "".join(parts)
