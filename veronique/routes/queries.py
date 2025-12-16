@@ -6,7 +6,7 @@ import veronique.objects as O
 from veronique.settings import settings as S
 from veronique.utils import fragment, page, admin_only, pagination, D
 from veronique.context import context
-from veronique.db import conn
+from veronique import db
 
 queries = Blueprint("queries", url_prefix="/queries")
 
@@ -160,12 +160,12 @@ async def preview_query(request):
     form = D(request.form)
     res = None
     try:
-        cur = conn.cursor()
+        cur = db.conn.cursor()
         res = cur.execute(form["sql"] + " LIMIT 10").fetchall()
     except (sqlite3.Warning, sqlite3.OperationalError) as e:
         return f"""<article class="error"><strong>Error:</strong> {e.args[0]}</article>"""
     finally:
-        conn.rollback()
+        db.conn.rollback()
     return display_query_result(res)
 
 

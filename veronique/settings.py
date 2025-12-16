@@ -1,6 +1,6 @@
 import typing
 
-from veronique.db import conn
+from veronique import db
 
 UNKNOWN = object()
 
@@ -13,7 +13,7 @@ class Setting:
 
     def __get__(self, _obj, _objtype=None):
         if self.value is UNKNOWN:
-            row = conn.execute("SELECT value FROM settings WHERE key=?", (self.name,)).fetchone()
+            row = db.conn.execute("SELECT value FROM settings WHERE key=?", (self.name,)).fetchone()
             if row is None:
                 self.value = self.default
             else:
@@ -24,12 +24,12 @@ class Setting:
         if value is None:
             value = self.default
         self.value = self.converter(value)
-        row = conn.execute("SELECT value FROM settings WHERE key=?", (self.name,)).fetchone()
+        row = db.conn.execute("SELECT value FROM settings WHERE key=?", (self.name,)).fetchone()
         if row is None:
-            conn.execute("INSERT INTO settings (key, value) VALUES (?, ?)", (self.name, value))
+            db.conn.execute("INSERT INTO settings (key, value) VALUES (?, ?)", (self.name, value))
         else:
-            conn.execute("UPDATE settings SET value=? WHERE key=?", (value, self.name))
-        conn.commit()
+            db.conn.execute("UPDATE settings SET value=? WHERE key=?", (value, self.name))
+        db.conn.commit()
 
     def __set_name__(self, owner, name):
         self.converter = typing.get_type_hints(owner).get(name, str)
