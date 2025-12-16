@@ -3,6 +3,7 @@ from pathlib import Path
 from hashlib import pbkdf2_hmac
 from secrets import token_bytes
 from hmac import compare_digest
+from base64 import b64decode
 
 
 key_path = Path(".veronique-key")
@@ -22,6 +23,8 @@ def sign(data):
 def unsign(data):
     if not data:
         return
+    if data.startswith("Digest "):
+        data = b64decode(data.removeprefix("Digest ")).decode()
     signature, _, payload = data.partition(".")
     if _hash_token(payload.encode(), key) == signature:
         return json.loads(payload)

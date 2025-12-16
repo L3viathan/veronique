@@ -38,7 +38,9 @@ async def auth(request):
         unauthorized = redirect(f"/login?then={request.path}")
     else:
         unauthorized = redirect("/login")
-    if payload := security.unsign(request.cookies.get("session")):
+    if payload := security.unsign(
+        request.cookies.get("session") or request.headers.get("Authorization"),
+    ):
         if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=30):
             return unauthorized
         user = O.User(payload["u"])
