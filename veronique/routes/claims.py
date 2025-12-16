@@ -207,7 +207,10 @@ async def new_claim(request, claim_id: int, direction: str):
             status=400,
         )
     else:
-        value = O.Plain.from_form(verb, form)
+        try:
+            value = O.Plain.from_form(verb, form)
+        except ValueError:
+            return redirect(f"/claims/{claim_id}")
     if direction == "incoming":
         O.Claim.new(value, verb, claim)
     else:

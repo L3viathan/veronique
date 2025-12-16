@@ -240,6 +240,8 @@ class color(DataType):
 
 
 class date(DataType):
+    pattern = re.compile("^[0-9?]{4}-[0-9?]{2}-[09-?]{2}$")
+
     def display_html(self, value, **_):
         d = NonOmniscientDate(value)
         today = datetime.date.today()
@@ -265,6 +267,12 @@ class date(DataType):
             pattern="([0-9?]{4}-[0-9?]{2}-[0-9?]{2}"
             name="value"{value}
         ></input>"""
+
+    def extract_value(self, form):
+        value = form.get("value")
+        if not date.pattern.match(value):
+            raise ValueError
+        return value
 
 
 class boolean(DataType):
