@@ -1,7 +1,10 @@
+from base64 import b64encode
 from sanic import Blueprint, redirect
 
 from veronique.settings import settings as S
-from veronique.utils import admin_only, page, D
+from veronique.utils import admin_only, page, D, fragment
+from veronique.context import context
+from veronique.security import sign
 
 settings = Blueprint("settings", url_prefix="/settings")
 
@@ -71,6 +74,7 @@ async def settings_form(request):
                 </fieldset>
                 <fieldset>
                 <a href="#" role="button" hx-swap="outerHTML" hx-post="/search/rebuild">Rebuild search index</a>
+                <a href="#" role="button" hx-swap="outerHTML" hx-post="/settings/generate-token">Issue API token</a>
                 </fieldset>
 
                 <input type="submit" value="Save">
@@ -93,3 +97,17 @@ async def save_settings(request):
     S.search_n = form.get("search_n")
     S.default_phone_region = form.get("default_phone_region")
     return redirect("/")
+
+
+@settings.post("/generate-token")
+@admin_only
+@fragment
+async def generate_token(request):
+    token = b64encode(sign(context.user.payload).encode()).decode()
+    return f"""
+        <fieldset role="group">
+        <input id="token" disabled value="{token}">
+        <input type="hidden" name="password" value="{token}">
+        <input type="button" value="copy" onclick="navigator.clipboard.writeText('{token}')">
+        </fieldset>
+    """
