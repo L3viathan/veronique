@@ -133,9 +133,8 @@ def display_query_result(result, query_id=None):
                 colmap[col] = {"label": col, "display": str}
         parts = ["<table><thead><tr>"]
         for col in header:
-            print("col:", col)
             if col.endswith("_c") and query_id is not None:
-                parts.append(f'<td>{colmap[col]["label"]} <a href="/network/?query={query_id}&col={col}">🖧</a></td>')
+                parts.append(f'<td>{colmap[col]["label"]} <a href="/network/?query={query_id}&col={col}"><small>[N]</small></a></td>')
             else:
                 parts.append(f"<td>{colmap[col]['label']}</td>")
 
