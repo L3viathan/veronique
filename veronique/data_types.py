@@ -240,7 +240,7 @@ class color(DataType):
 
 
 class date(DataType):
-    pattern = re.compile("^[0-9?]{4}-[0-9?]{2}-[09-?]{2}$")
+    pattern = re.compile("^[0-9?]{4}-[0-9?]{2}-[0-9?]{2}$")
 
     def display_html(self, value, **_):
         d = NonOmniscientDate(value)
