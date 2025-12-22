@@ -388,6 +388,9 @@ class phonenumber(DataType):
             value = ""
         return f"""<input type="tel" name="value"{value}></input>"""
 
+    def encode(self, value):
+        return str(value).replace(" ", "")
+
 
 class picture(DataType):
     def display_html(self, value, **_):

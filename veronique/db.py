@@ -639,6 +639,20 @@ def add_redactions_to_users(cur):
     """)
 
 
+@migration(19)
+def normalize_phone_numbers(cur):
+    # Python bundles an ancient version of SQLite that has no UPDATE FROM
+    cur.execute("""
+        UPDATE claims SET value = replace(value, ' ', '') WHERE EXISTS(
+            SELECT 1
+            FROM verbs
+            WHERE
+                claims.verb_id = verbs.id
+                AND verbs.data_type = 'phonenumber'
+        )
+    """)
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 
