@@ -45,6 +45,7 @@ async def show_network(request):
             for row in result
         )
     else:
+        query_id = None
         claims = (
             c
             for c in O.Claim.all_labelled(page_size=9999)
@@ -74,6 +75,8 @@ async def show_network(request):
     ]
 
     parts = [f"""<form id="networkform">
+    {f'<input type="hidden" name="query" value="{query_id}">' if query_id else ''}
+    {f'''<input type="hidden" name="col" value="{request.args.get('col')}">''' if "col" in request.args else ''}
     <fieldset class="grid">
     <details class="dropdown">
       <summary>Select Categories...</summary>
