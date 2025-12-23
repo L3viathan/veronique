@@ -44,6 +44,7 @@ async def show_network(request):
             O.Claim(row[request.args.get("col" if "col" in request.args else "node_c")])
             for row in result
         )
+        title = f"{query.label} [N]"
     else:
         query_id = None
         claims = (
@@ -52,6 +53,7 @@ async def show_network(request):
             if categories is None
             or ({cat.object for cat in c.get_data().get(IS_A, set())} & categories)
         )
+        title = "Network"
     nodes_seen, edges_seen = set(), set()
     all_nodes, all_edges = [], []
     link_count = Counter()
@@ -174,4 +176,4 @@ async def show_network(request):
         fa2Layout.start();
     </script>
     """)
-    return "Network", "".join(parts)
+    return title, "".join(parts)
