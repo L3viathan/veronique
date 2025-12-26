@@ -18,7 +18,7 @@ different tool.
 ## Development
 
 - Clone the repo
-- Install `sanic` (to a venv)
+- Install `sanic`, `phonenumber`, and `markdown-it-py[linkify]` (to a venv)
 - _Either_: Place a file called `veronique_initial_pw` containing a password in
   the working directory. This will be the password of the `admin` user.
 - _Or_: Run `python -m veronique.bootstrap` to fill the database with testing
