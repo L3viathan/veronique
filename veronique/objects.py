@@ -420,21 +420,23 @@ class Claim(Model):
         ).fetchall():
             yield cls(row["id"])
 
-    def comments(self):
+    def comments(self, page_no=0, page_size=20):
         cur = db.conn.cursor()
         for row in cur.execute(
-            """
+            f"""
             SELECT
                 c.id
             FROM claims c
             WHERE c.subject_id = ?
             AND c.verb_id = ?
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
             """,
             (self.id, COMMENT),
         ).fetchall():
             yield Claim(row["id"])
 
-    def incoming_claims(self):
+    def incoming_claims(self, page_no=0, page_size=20):
         cur = db.conn.cursor()
         if (verb_ids := context.user.readable_verbs) is not None:
             cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
@@ -450,12 +452,14 @@ class Claim(Model):
             WHERE c.object_id = ?
             AND v.data_type <> 'undirected_link'
             {cond}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
             """,
             (self.id,),
         ).fetchall():
             yield Claim(row["id"])
 
-    def incoming_mentions(self):
+    def incoming_mentions(self, page_no=0, page_size=20):
         cur = db.conn.cursor()
         if (verb_ids := context.user.readable_verbs) is not None:
             cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
@@ -469,12 +473,14 @@ class Claim(Model):
             LEFT JOIN verbs v
             ON c.verb_id = v.id
             WHERE c.value LIKE '%<@' || ? || '>%' {cond}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
             """,
             (self.id,),
         ).fetchall():
             yield Claim(row["id"])
 
-    def outgoing_claims(self):
+    def outgoing_claims(self, page_no=0, page_size=20):
         cur = db.conn.cursor()
         if (verb_ids := context.user.readable_verbs) is not None:
             cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
@@ -490,6 +496,8 @@ class Claim(Model):
             WHERE (c.subject_id = ?
             OR (v.data_type = 'undirected_link' AND c.object_id = ?))
             {cond}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
             """,
             (self.id, self.id),
         ).fetchall():

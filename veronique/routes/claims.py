@@ -385,14 +385,33 @@ async def list_labelled_claims(request):
 @claims.get("/<claim_id>")
 @page
 async def view_claim(request, claim_id: int):
+    page_no = int(request.args.get("page", 1))
     claim = O.Claim(claim_id)
     if not context.user.can("read", "verb", claim.verb.id):
         return HTTPResponse(
             body="403 Forbidden",
             status=403,
         )
-    incoming_mentions = list(claim.incoming_mentions())
-    comments = list(claim.comments())
+    incoming_mentions = list(claim.incoming_mentions(
+        page_no=page_no - 1,
+        page_size=S.page_size + 1,  # so we know if there would be more results
+    ))
+    comments = list(claim.comments(
+        page_no=page_no - 1,
+        page_size=S.page_size + 1,  # so we know if there would be more results
+    ))
+    incoming_claims = list(claim.incoming_claims(
+        page_no=page_no - 1,
+        page_size=S.page_size + 1,  # so we know if there would be more results
+    ))
+    outgoing_claims = list(claim.outgoing_claims(
+        page_no=page_no - 1,
+        page_size=S.page_size + 1,  # so we know if there would be more results
+    ))
+    if any(len(c) > S.page_size for c in (incoming_mentions, comments, incoming_claims, outgoing_claims)):
+        more_results = True
+    else:
+        more_results = False
     return f"{claim:label}", f"""
         <article>
             <header>{claim:heading}{claim:avatar}</header>
@@ -403,14 +422,14 @@ async def view_claim(request, claim_id: int):
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }
-        {"".join(f'<span class="row">{c:sv}</span>' for c in claim.incoming_claims())}
+        {"".join(f'<span class="row">{c:sv}</span>' for c in incoming_claims)}
         </td><td>
         {
             f'<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>'
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }
-        {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in claim.outgoing_claims() if c.verb.id not in (LABEL, IS_A, AVATAR, COMMENT))}
+        {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in outgoing_claims if c.verb.id not in (LABEL, IS_A, AVATAR, COMMENT))}
         {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in claim.outgoing_inferred_claims())}
         </td></tr></table>
         {"<hr><h3>Mentions</h3>" + "".join(f'<span class="row">{c:svo}</span>' for c in incoming_mentions) if incoming_mentions else ""}
@@ -424,6 +443,11 @@ async def view_claim(request, claim_id: int):
         </form>''' if context.user.can("write", "verb", COMMENT) else ""
         }
         </footer>
+        {pagination(
+            f"/claims/{claim_id}",
+            page_no,
+            more_results=more_results,
+        )}
         </article>
     """
 
