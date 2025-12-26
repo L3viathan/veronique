@@ -12,7 +12,7 @@ jobs:
         with:
           python-version: "3.9"
       - name: Install dependencies
-        run: python -m pip install --upgrade pip sanic pytest ruff sanic-testing pytest-asyncio markdown-it-py[linkify]
+        run: python -m pip install --upgrade pip sanic pytest ruff sanic-testing pytest-asyncio markdown-it-py[linkify] phonenumbers
       - name: Test
         run: python -m pytest
       - name: Lint
