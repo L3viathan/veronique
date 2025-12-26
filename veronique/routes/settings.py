@@ -27,6 +27,13 @@ async def settings_form(request):
                     <small>How many items to show in paginated pages.</small>
                     </label>
                 </fieldset>
+                <fieldset class="grid">
+                    <label>
+                    Default region
+                    <input name="default_phone_region" placeholder="DE" pattern="[A-Z]{{2}}" maxlength="2" value="{S.default_phone_region or ""}">
+                    <small>In phonenumber inputs, this will be assumed as the region, if none is specified via a + prefix.</small>
+                    </label>
+                </fieldset>
                 <h4>Index page</h4>
                     <select name="index_type">
                         <option value="recent_events" {"selected" if S.index_type == "recent_events" else ""}>Recent events</option>
@@ -65,4 +72,5 @@ async def save_settings(request):
     S.index_days_ahead = form.get("index_days_ahead")
     S.index_days_back = form.get("index_days_back")
     S.index_type = form.get("index_type")
+    S.default_phone_region = form.get("default_phone_region")
     return redirect("/")

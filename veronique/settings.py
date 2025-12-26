@@ -41,6 +41,7 @@ class Settings:
     index_type: str = Setting("recent_events")
     index_days_ahead: int = Setting(7)
     index_days_back: int = Setting(3)
+    default_phone_region: str = Setting("DE")
 
 
 settings = Settings()

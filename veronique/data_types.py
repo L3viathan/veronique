@@ -6,10 +6,12 @@ import unicodedata
 from datetime import date as dt_date, timedelta
 from urllib.parse import quote_plus
 
+import phonenumbers
 from markdown_it import MarkdownIt
 
 from veronique.nomnidate import NonOmniscientDate
 from veronique.context import context
+from veronique.settings import settings
 
 TYPES = {}
 TEXT_REF = re.compile(r"&lt;@(\d+)&gt;")
@@ -374,10 +376,24 @@ class phonenumber(DataType):
     def display_html(self, value, **_):
         if context.user.redact:
             value = "+49 1234 56789"
+        # no region: values from database should be normalized:
+        pn = phonenumbers.parse(value)
+        regions = phonenumbers.COUNTRY_CODE_TO_REGION_CODE.get(pn.country_code)
+        if regions and len(regions) == 1:
+            flag = "".join(
+                unicodedata.lookup(f"REGIONAL INDICATOR SYMBOL LETTER {c}")
+                for c in regions[0]
+            )
+        else:
+            flag = ""
+        display = phonenumbers.format_number(
+            pn,
+            phonenumbers.PhoneNumberFormat.INTERNATIONAL,
+        )
         return f"""<span
             class="type-phonenumber"
         >
-            <a href="tel:{value}">{value}</a>
+            {flag}<a href="tel:{value}">{display}</a>
         </span>"""
 
     def input_html(self, value=None, **_):
@@ -389,7 +405,8 @@ class phonenumber(DataType):
         return f"""<input type="tel" name="value"{value}></input>"""
 
     def encode(self, value):
-        return str(value).replace(" ", "")
+        pn = phonenumbers.parse(value, region=settings.default_phone_prefix)
+        return phonenumbers.format_number(pn, phonenumbers.PhoneNumberFormat.E164)
 
 
 class picture(DataType):
