@@ -379,16 +379,25 @@ class Claim(Model):
             LEFT JOIN verbs v ON c.verb_id = v.id
             WHERE {" AND ".join(conditions)}
         """
-        return [
-            cls(row[0])
-            for row in cur.execute(
-                query,
-                (
-                    VALID_FROM,
-                    VALID_UNTIL,
-                ),
-            )
-        ]
+        sort_key = {
+            f"{day:%m-%d}": i for i, day in enumerate(target_days)
+        }
+        def by_date_value(claim):
+            return sort_key.get(claim.object.value[5:], -1)
+
+        return sorted(
+            (
+                cls(row[0])
+                for row in cur.execute(
+                    query,
+                    (
+                        VALID_FROM,
+                        VALID_UNTIL,
+                    ),
+                )
+            ),
+            key=by_date_value,
+        )
 
     @classmethod
     def search(cls, q, *, page_size=20, page_no=0, category_id=None):

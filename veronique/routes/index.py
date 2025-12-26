@@ -21,13 +21,10 @@ def _recent_events_page(request):
     reference_date = date.today()
     if page_no != 1:
         reference_date += timedelta(days=(S.index_days_back+S.index_days_ahead+1)*(page_no-1))
-    for claim in sorted(
-        O.Claim.all_near_today(reference_date, days_back=S.index_days_back, days_ahead=S.index_days_ahead),
-        key=lambda c: (
-            # unspecified dates are always before everything else
-            coalesce((reference_date - NonOmniscientDate(c.object.value)).days, 99)
-        ),
-        reverse=True,
+    for claim in O.Claim.all_near_today(
+        reference_date,
+        days_back=S.index_days_back,
+        days_ahead=S.index_days_ahead,
     ):
         difference = coalesce(
             (reference_date - NonOmniscientDate(claim.object.value)).days,
