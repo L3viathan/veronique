@@ -4,8 +4,6 @@ import pytest
 
 from veronique.nomnidate import NonOmniscientDatedelta, NonOmniscientDate
 
-REFERENCE_DATE = date(2024, 10, 9)
-
 
 @pytest.mark.parametrize(
     ("datestring", "difference"),
@@ -24,7 +22,17 @@ REFERENCE_DATE = date(2024, 10, 9)
 )
 def test_nomnidate_delta(datestring, difference):
     nomnidate = NonOmniscientDate(datestring)
-    assert REFERENCE_DATE - nomnidate == difference
+    assert date(2024, 10, 9) - nomnidate == difference
+
+
+def test_nomnidate_delta_after_new_year():
+    nomnidate = NonOmniscientDate("1900-12-30")
+    assert date(2024, 1, 3) - nomnidate == NonOmniscientDatedelta(years=123, days=4)
+
+
+def test_nomnidate_delta_before_new_year():
+    nomnidate = NonOmniscientDate("1900-01-03")
+    assert date(2024, 12, 30) - nomnidate == NonOmniscientDatedelta(years=125, days=-4)
 
 
 @pytest.mark.parametrize(
@@ -53,6 +61,7 @@ def test_nomnidate_delta(datestring, difference):
         (NonOmniscientDatedelta(years=-3, days=None), "some day in 3 years"),
         (NonOmniscientDatedelta(years=0, days=None), "some day this year"),
         (NonOmniscientDatedelta(years=None, days=None), "some day"),
+        (NonOmniscientDatedelta(years=190, days=5), "190 years and 5 days ago"),
     ],
 )
 def test_datedelta_str(delta, output):

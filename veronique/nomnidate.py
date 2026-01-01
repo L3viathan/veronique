@@ -80,6 +80,13 @@ def subtract_years_and_days(dt1, dt2):
         days = (dt1_in_dt2_year - dt2).days
     else:
         days = -(dt2 - dt1_in_dt2_year).days
+    if abs(days) > 182:
+        if dt1_in_dt2_year > dt2:
+            days = -(dt2.replace(year=dt2.year+1)- dt1_in_dt2_year).days
+            years += 1
+        else:
+            days = (dt1_in_dt2_year.replace(year=dt1_in_dt2_year.year + 1) - dt2).days
+            years -= 1
     return years, days
 
 
