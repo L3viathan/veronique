@@ -6,8 +6,7 @@ from sanic import Blueprint
 import veronique.objects as O
 from veronique.settings import settings as S
 from veronique.context import context
-from veronique.utils import page, coalesce, pagination, _notice
-from veronique.nomnidate import NonOmniscientDate
+from veronique.utils import page, pagination, _notice
 from veronique.db import ROOT
 
 
@@ -17,7 +16,6 @@ index = Blueprint("index")
 def _recent_events_page(request):
     recent_events = []
     page_no = int(request.args.get("page", 1))
-    past_today = False
     reference_date = date.today()
     if page_no != 1:
         reference_date += timedelta(days=(S.index_days_back+S.index_days_ahead+1)*(page_no-1))
