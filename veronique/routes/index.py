@@ -21,23 +21,15 @@ def _recent_events_page(request):
     reference_date = date.today()
     if page_no != 1:
         reference_date += timedelta(days=(S.index_days_back+S.index_days_ahead+1)*(page_no-1))
-    for claim in O.Claim.all_near_today(
-        reference_date,
-        days_back=S.index_days_back,
-        days_ahead=S.index_days_ahead,
-    ):
-        difference = coalesce(
-            (reference_date - NonOmniscientDate(claim.object.value)).days,
-            99,
-        )
-        if difference == 0:
-            past_today = True
-        elif not past_today and (difference or 0) < 0 and page_no == 1:
+    target_days = [
+        f"{reference_date + timedelta(days=d):%m-%d}"
+        for d in range(-S.index_days_back, S.index_days_ahead+1)
+    ]
+    for d, claims in O.Claim.all_at_dates(target_days):
+        if d == f"{reference_date:%m-%d}" and not claims:
             recent_events.append('<hr class="date-today">')
-            past_today = True
-        recent_events.append(f'<span class="row">{claim:link}</span>')
-    if page_no == 1 and not past_today:
-        recent_events.append('<hr class="date-today">')
+        for claim in claims:
+            recent_events.append(f'<span class="row">{claim:link}</span>')
     heading = f"Events near {'today' if page_no == 1 else f'{reference_date:%m-%d}'}"
     return f"""
         <article><header>

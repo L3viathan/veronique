@@ -356,21 +356,22 @@ class Claim(Model):
             yield cls(row["id"])
 
     @classmethod
-    def all_near_today(cls, reference_date=None, days_back=3, days_ahead=10):
+    def all_at_dates(cls, target_dates):
+        """
+        Yields tuples of (date, claims) for each target date.
+
+        Target dates are strings of the shape "%m-%d", e.g. "05-01".
+        For every target date we guarantee that we return a response, even if
+        there are no claims.
+        """
         cur = db.conn.cursor()
-        if reference_date is None:
-            reference_date = date.today()
         conditions = [
             "v.id != ?",
             "v.id != ?",
             "v.data_type = 'date'",
         ]
-        target_days = [
-            reference_date + timedelta(days=d)
-            for d in range(-days_back, days_ahead+1)
-        ]
         conditions.append(
-            f"""({' OR '.join(f"c.value LIKE '%-{d:%m-%d}'" for d in target_days)})"""
+            f"""({' OR '.join(f"c.value LIKE '%-{d}'" for d in target_dates)})"""
         )
         if (verb_ids := context.user.readable_verbs) is not None:
             conditions.append(
@@ -383,25 +384,21 @@ class Claim(Model):
             LEFT JOIN verbs v ON c.verb_id = v.id
             WHERE {" AND ".join(conditions)}
         """
-        sort_key = {
-            f"{day:%m-%d}": i for i, day in enumerate(target_days)
+        results = {
+            d: [] for d in target_dates
         }
-        def by_date_value(claim):
-            return sort_key.get(claim.object.value[5:], -1)
-
-        return sorted(
+        for row in cur.execute(
+            query,
             (
-                cls(row[0])
-                for row in cur.execute(
-                    query,
-                    (
-                        VALID_FROM,
-                        VALID_UNTIL,
-                    ),
-                )
+                VALID_FROM,
+                VALID_UNTIL,
             ),
-            key=by_date_value,
-        )
+        ):
+            claim = cls(row[0])
+            results[claim.object.value[5:]].append(claim)
+
+        for d in target_dates:
+            yield d, results[d]
 
     @classmethod
     def search(cls, q, *, page_size=20, page_no=0, category_id=None):
