@@ -4,7 +4,8 @@ import veronique.objects as O
 from veronique.settings import settings as S
 from veronique.context import context
 from veronique.utils import page, pagination, D, admin_only, fragment
-from veronique.db import conn, make_search_key, rebuild_search_index
+from veronique.db import conn
+from veronique.search import rebuild_search_index, find
 
 
 search = Blueprint("search", url_prefix="/search")
@@ -16,15 +17,9 @@ async def perform_search(request):
     page_no = int(request.args.get("page", 1))
     query = D(request.args).get("q", "")
     cur = conn.cursor()
-    hits = cur.execute(
-        """
-            SELECT table_name, id
-            FROM search_index WHERE value LIKE '%' || ? || '%'
-            LIMIT ?
-            OFFSET ?
-        """,
-        (make_search_key(query), S.page_size + 1, S.page_size * (page_no - 1)),
-    ).fetchall()
+    hits = find(
+        cur, query, page_size=S.page_size + 1, page_no=page_no - 1
+    )
     parts = []
     more_results = False
     for i, hit in enumerate(hits):

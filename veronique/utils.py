@@ -1,5 +1,6 @@
 import functools
 from types import CoroutineType
+from time import monotonic
 
 from sanic import html, HTTPResponse
 
@@ -170,3 +171,28 @@ def admin_only(fn):
         return ret
 
     return wrapper
+
+
+def timed_cache(max_duration, *, key=None):
+    def decorator(fn):
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            if key is not None:
+                key_ = key(*args, **kwargs)
+            else:
+                key_ = None
+            if not hasattr(fn, "_cached"):
+                fn._cached = {}
+                fn._cache_time = {}
+            if (
+                key_ not in fn._cached
+                or monotonic() - fn._cache_time[key_] > max_duration
+            ):
+                result = fn(*args, **kwargs)
+                fn._cached[key_] = result
+                fn._cache_time[key_] = monotonic()
+            else:
+                result = fn._cached[key_]
+            return result
+        return wrapper
+    return decorator

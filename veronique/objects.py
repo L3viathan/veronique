@@ -9,7 +9,6 @@ from veronique.nomnidate import NonOmniscientDate
 from veronique.security import hash_password
 from veronique.context import context
 from veronique.db import (
-    make_search_key,
     LABEL,
     IS_A,
     AVATAR,
@@ -19,6 +18,7 @@ from veronique.db import (
     DATA_LABELS,
     COMMENT,
 )
+from veronique.search import update_index_for_doc
 
 SELF = object()
 UNSET = object()
@@ -141,10 +141,7 @@ class Verb(Model):
             ),
         )
         verb_id = cur.lastrowid
-        cur.execute(
-            "INSERT INTO search_index (table_name, id, value) VALUES ('verbs', ?, ?)",
-            (cur.lastrowid, make_search_key(label)),
-        )
+        update_index_for_doc(cur, "verbs", cur.lastrowid, label)
         db.conn.commit()
         if data_type.name == "inferred":
             cls.get_inferables.cache_clear()
@@ -400,23 +397,6 @@ class Claim(Model):
         for d in target_dates:
             yield d, results[d]
 
-    @classmethod
-    def search(cls, q, *, page_size=20, page_no=0, category_id=None):
-        cur = db.conn.cursor()
-        for row in cur.execute(
-            f"""
-            SELECT
-                id
-            FROM search_index
-            WHERE table_name = 'claims'
-            AND value LIKE '%' || ? || '%'
-            LIMIT {page_size}
-            OFFSET {page_no * page_size}
-            """,
-            (make_search_key(q),),
-        ).fetchall():
-            yield cls(row["id"])
-
     def comments(self, page_no=0, page_size=20):
         cur = db.conn.cursor()
         for row in cur.execute(
@@ -596,10 +576,7 @@ class Claim(Model):
                 ),
             )
             if self.verb.id == LABEL:
-                cur.execute(
-                    "UPDATE search_index SET value=? WHERE table_name=? AND id=?",
-                    (make_search_key(value.encode()), "claims", self.subject.id),
-                )
+                update_index_for_doc(cur, "claims", self.subject.id, value.encode())
         db.conn.commit()
         self.populate()
 
@@ -671,10 +648,7 @@ class Claim(Model):
             "INSERT INTO claims (subject_id, verb_id, value, owner_id) VALUES (?, ?, ?, ?)",
             (new_id, LABEL, name, context.user.id),
         )
-        cur.execute(
-            "INSERT INTO search_index (table_name, id, value) VALUES ('claims', ?, ?)",
-            (new_id, make_search_key(name)),
-        )
+        update_index_for_doc(cur, "claims", new_id, name)
         db.conn.commit()
         return Claim(new_id)
 
@@ -899,10 +873,7 @@ class Query(Model):
         cur = db.conn.cursor()
         cur.execute("INSERT INTO queries (label, sql) VALUES (?, ?)", (label, sql))
         q_id = cur.lastrowid
-        cur.execute(
-            "INSERT INTO search_index (table_name, id, value) VALUES ('queries', ?, ?)",
-            (q_id, make_search_key(label)),
-        )
+        update_index_for_doc(cur, "queries", q_id, label)
         db.conn.commit()
         return cls(q_id)
 
