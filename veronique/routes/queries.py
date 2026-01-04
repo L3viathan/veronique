@@ -235,8 +235,12 @@ async def remote_query(request):
     try:
         cur = db.conn.cursor()
         res = cur.execute(query, params).fetchall()
-    except (sqlite3.Warning, sqlite3.OperationalError) as e:
-        return f"""<article class="error"><strong>Error:</strong> {e.args[0]}</article>"""
+    except (sqlite3.Warning, sqlite3.OperationalError, sqlite3.ProgrammingError) as e:
+        print("E:", e.args[0], "for", query, "with", params)
+        return HTTPResponse(
+            body=e.args[0],
+            status=400,
+        )
     finally:
         db.conn.rollback()
     return json([dict(row) for row in res])

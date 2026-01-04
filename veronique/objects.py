@@ -19,6 +19,7 @@ from veronique.db import (
     COMMENT,
 )
 from veronique.search import update_index_for_doc, find
+from veronique.utils import timed_cache
 
 SELF = object()
 UNSET = object()
@@ -277,11 +278,16 @@ class Claim(Model):
     )
     table_name = "claims"
 
-    def populate(self):
+    @classmethod
+    def bulk_populate(cls, ids, deep=False):
+        ids = [id for id in ids if id not in cls._cache or not cls._cache[id]._populated]
+        if not ids:
+            return
         cur = db.conn.cursor()
-        row = cur.execute(
-            """
+        for row in cur.execute(
+            f"""
             SELECT
+                id,
                 subject_id,
                 verb_id,
                 value,
@@ -290,10 +296,52 @@ class Claim(Model):
                 owner_id
             FROM
                 claims
-            WHERE id = ?
+            WHERE id IN ({",".join("?"*len(ids))})
             """,
-            (self.id,),
-        ).fetchone()
+            tuple(ids),
+        ).fetchall():
+            instance = cls(row["id"])
+            instance.populate(row)
+            instance._populated = True
+
+        if deep:
+            data_claims = {}
+            data_ids = []
+
+            for row in cur.execute(
+                f"""
+                SELECT
+                    id, subject_id
+                FROM claims c
+                WHERE subject_id IN ({",".join("?"*len(ids))})
+                """,
+                tuple(ids),
+            ):
+                claim = cls(row["id"])
+                data_claims.setdefault(row["subject_id"], []).append(claim)
+                data_ids.append(row["id"])
+            cls.bulk_populate(data_ids, deep=False)
+            for claim_id, data in data_claims.items():
+                cls(claim_id).get_data(data)
+
+    def populate(self, row=None):
+        cur = db.conn.cursor()
+        if row is None:
+            row = cur.execute(
+                """
+                SELECT
+                    subject_id,
+                    verb_id,
+                    value,
+                    object_id,
+                    created_at,
+                    owner_id
+                FROM
+                    claims
+                WHERE id = ?
+                """,
+                (self.id,),
+            ).fetchone()
         if not row:
             raise ValueError("No Claim with this ID found")
         if row["subject_id"]:
@@ -663,9 +711,12 @@ class Claim(Model):
         db.conn.commit()
         return Claim(new_id)
 
-    def get_data(self):
+    @timed_cache(5*60, key=lambda self, *_, **__: self)
+    def get_data(self, claims=None):
         data = {}
-        for cl in Claim.all(subject_id=self.id):
+        if claims is None:
+            claims = Claim.all(subject_id=self.id)
+        for cl in claims:
             if cl.verb.id in DATA_LABELS:
                 data.setdefault(cl.verb.id, []).append(cl)
             data["has_claims"] = True

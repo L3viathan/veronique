@@ -21,6 +21,7 @@ class RemoteConnection:
             json={"q": query, "p": params or {}},
             headers={"Authorization": f"Digest {self.token}"},
         )
+        r.raise_for_status()
         return Fetchable(r.json())
 
 
@@ -30,6 +31,9 @@ class Fetchable:
 
     def fetchall(self):
         return self.rows
+
+    def __iter__(self):
+        return iter(self.fetchall())
 
     def fetchone(self):
         return self.rows[0] if self.rows else None
