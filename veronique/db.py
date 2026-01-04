@@ -3,7 +3,6 @@ import re
 import base64
 import sys
 import sqlite3
-import unicodedata
 from veronique.security import hash_password
 
 conn = sqlite3.connect(os.environ.get("VERONIQUE_DB", "veronique.db"))
@@ -142,25 +141,6 @@ def add_has_avatar(cur):
     )
 
 
-def make_search_key(name):
-    word = []
-    words = []
-    for char in unicodedata.normalize("NFKD", name):
-        cat = unicodedata.category(char)[0]
-        if cat == "L":  # letters
-            word.append(char)
-        elif cat in "ZP" and word:
-            # whitespace, punctuation
-            words.append("".join(word))
-            word = []
-        elif cat == "M":
-            # modifier: ignore
-            continue
-    if word:
-        words.append("".join(word))
-    return " ".join(words).casefold()
-
-
 @migration(4)
 def add_search_key(cur):
     cur.execute(
@@ -173,7 +153,7 @@ def add_search_key(cur):
     rows = cur.fetchall()
     cur.executemany(
         "UPDATE entities SET search_key=? WHERE id=?",
-        ((make_search_key(name), id) for id, name in rows),
+        (("nothing", id) for id, name in rows),
     )
 
 
@@ -315,27 +295,6 @@ def add_queries_table(cur):
             sql TEXT
         )
     """)
-
-
-def rebuild_search_index(cur):
-    cur.execute("DELETE FROM search_index")
-    for row in cur.execute(
-        "SELECT subject_id, value FROM claims WHERE verb_id = ?", (LABEL,)
-    ).fetchall():
-        cur.execute(
-            "INSERT INTO search_index (table_name, id, value) VALUES ('claims', ?, ?)",
-            (row["subject_id"], make_search_key(row["value"])),
-        )
-    for row in cur.execute("SELECT id, label FROM verbs").fetchall():
-        cur.execute(
-            "INSERT INTO search_index (table_name, id, value) VALUES ('verbs', ?, ?)",
-            (row["id"], make_search_key(row["label"])),
-        )
-    for row in cur.execute("SELECT id, label FROM queries").fetchall():
-        cur.execute(
-            "INSERT INTO search_index (table_name, id, value) VALUES ('queries', ?, ?)",
-            (row["id"], make_search_key(row["label"])),
-        )
 
 
 @migration(8)
@@ -519,7 +478,6 @@ def add_claims(cur):
             value TEXT
         )
     """)
-    rebuild_search_index(cur)
 
 
 @migration(9)
@@ -649,6 +607,27 @@ def normalize_phone_numbers(cur):
             WHERE
                 claims.verb_id = verbs.id
                 AND verbs.data_type = 'phonenumber'
+        )
+    """)
+
+
+@migration(20)
+def rework_search(cur):
+    cur.execute("""
+        DROP TABLE search_index
+    """)
+    cur.execute("""
+        CREATE TABLE inverted_index (  -- from ngrams to docs
+            table_name TEXT,
+            id INTEGER,
+            ngram TEXT
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE forward_index (  -- from docs to ngrams
+            table_name TEXT,
+            id INTEGER,
+            length INTEGER
         )
     """)
 
