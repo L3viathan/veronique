@@ -461,3 +461,22 @@ input.inline {
 footer {
   position: relative;
 }
+
+.map {
+  height: 400px;
+  min-width: 400px;
+  a {
+    padding: 0;
+    background: transparent;
+    border: none;
+  }
+}
+
+.leaflet-shadow-pane {
+  display: none;
+}
+
+.leaflet-marker-icon {
+  background: transparent !important;
+  border: none !important;
+}

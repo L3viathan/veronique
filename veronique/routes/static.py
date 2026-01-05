@@ -56,3 +56,18 @@ async def graphology_library_js(request):
 @static.get("/veronique.png")
 async def veronique_png(request):
     return await file("data/veronique.png", mime_type="image/png")
+
+
+@static.get("/leaflet.css")
+async def leaflet_css(request):
+    return await file("data/leaflet.css", mime_type="text/css")
+
+
+@static.get("/leaflet.js")
+async def leaflet_js(request):
+    return await file("data/leaflet.js", mime_type="text/javascript")
+
+
+@static.get("/images/marker-icon-2x.png")
+async def marker_png(request):
+    return await file("data/marker-icon-2x.png", mime_type="image/png")

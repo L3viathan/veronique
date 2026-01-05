@@ -2,6 +2,7 @@ import re
 import json
 import datetime
 from itertools import count
+from random import randint
 import unicodedata
 from datetime import date as dt_date, timedelta
 from urllib.parse import quote_plus
@@ -15,6 +16,7 @@ from veronique.settings import settings as S
 
 TYPES = {}
 TEXT_REF = re.compile(r"&lt;@(\d+)&gt;")
+COORDS = re.compile(r"^-?\d+(.\d+)?, ?-?\d+(.\d+)?$")
 
 
 def float_int(val):
@@ -300,20 +302,56 @@ class location(DataType):
         if context.user.redact:
             value = "Point Nemo"
         newline = "\n"
-        return f"""<a
-            href="https://www.openstreetmap.org/search?query={
-            quote_plus(value.replace(newline, ", "))
-        }"
-            class="type-location"
-        >{value.replace(newline, "<br>")}</a>"""
+        if COORDS.match(value):
+            rand = randint(1, 10000)
+            return f"""
+                <div id="map{rand}" class="map"></div>
+                <script>
+                    var map = L.map('map{rand}').setView([{value}], 13);
+                    L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+                        maxZoom: 19,
+                        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    }}).addTo(map);
+                    L.marker([{value}]).addTo(map);
+                </script>
+            """
+        else:
+            return f"""<a
+                href="https://www.openstreetmap.org/search?query={
+                quote_plus(value.replace(newline, ", "))
+            }"
+                class="type-location"
+            >{value.replace(newline, "<br>")}</a>"""
 
     def input_html(self, value=None, **_):
         if value:
             value = value.value
         else:
             value = ""
+        rand = randint(1, 10000)
+        if COORDS.match(value):
+            map_coords = value
+        else:
+            map_coords = "0, 0"
         return f"""
-            <textarea name="value">{value}</textarea>
+            <textarea name="value" id="input{rand}">{value}</textarea>
+            <div id="map{rand}" class="map"></div>
+            <script>
+                var map = L.map('map{rand}').setView([{map_coords}], 13);
+                L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                }}).addTo(map);
+                var marker = null;
+                function onMapClick(e) {{
+                    document.getElementById("input{rand}").value = e.latlng.lat + "," + e.latlng.lng;
+                    if (marker) {{
+                      marker.remove()
+                    }}
+                    marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+                }}
+                map.on('click', onMapClick);
+            </script>
         """
 
 
