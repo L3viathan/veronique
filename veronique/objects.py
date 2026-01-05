@@ -19,7 +19,6 @@ from veronique.db import (
     COMMENT,
 )
 from veronique.search import update_index_for_doc, find
-from veronique.utils import timed_cache
 
 SELF = object()
 UNSET = object()
