@@ -73,6 +73,7 @@ def find(cur, query, *, table=None, page_size=20, page_no=0):
             FROM inverted_index i
             LEFT JOIN forward_index f ON i.table_name=f.table_name AND i.id=f.id
             WHERE i.ngram IN ({",".join("?"*len(tokens))})
+            {f'AND i.table_name="{table}"' if table else ""}
             GROUP BY i.table_name, i.id, i.ngram
         )
         GROUP BY table_name, id

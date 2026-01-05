@@ -18,7 +18,8 @@ from veronique.db import (
     DATA_LABELS,
     COMMENT,
 )
-from veronique.search import update_index_for_doc
+from veronique.search import update_index_for_doc, find
+from veronique.utils import timed_cache
 
 SELF = object()
 UNSET = object()
@@ -310,6 +311,17 @@ class Claim(Model):
             self.object = None
         self.owner = User(row["owner_id"])
         self.created_at = row["created_at"]
+
+    @classmethod
+    def search(
+        cls,
+        *,
+        q,
+        page_size=20,
+    ):
+        cur = db.conn.cursor()
+        for hit in find(cur, q, table="claims", page_size=page_size):
+            yield cls(hit["id"])
 
     @classmethod
     def all(
