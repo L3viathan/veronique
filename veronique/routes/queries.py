@@ -1,6 +1,6 @@
 import sqlite3
 
-from sanic import Blueprint, HTTPResponse
+from sanic import Blueprint, HTTPResponse, json
 
 import veronique.objects as O
 from veronique.settings import settings as S
@@ -225,3 +225,22 @@ async def view_query(request, query_id: int):
         }
         </article>
     """
+
+
+@queries.post("/remote")
+@admin_only
+async def remote_query(request):
+    query = request.json["q"]
+    params = request.json.get("p", {})
+    try:
+        cur = db.conn.cursor()
+        res = cur.execute(query, params).fetchall()
+    except (sqlite3.Warning, sqlite3.OperationalError, sqlite3.ProgrammingError) as e:
+        print("E:", e.args[0], "for", query, "with", params)
+        return HTTPResponse(
+            body=e.args[0],
+            status=400,
+        )
+    finally:
+        db.conn.rollback()
+    return json([dict(row) for row in res])
