@@ -258,7 +258,7 @@ class Verb(Model):
         cur = db.conn.cursor()
         cur.execute("DELETE FROM verbs WHERE id = ?", (self.id,))
         cur.execute(
-            "DELETE FROM permissions WHERE id = ? AND permission LIKE '%-verb'",
+            "DELETE FROM permissions WHERE object = ? AND permission LIKE '%-verb'",
             (self.id,),
         )
         db.conn.commit()
