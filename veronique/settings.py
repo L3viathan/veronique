@@ -42,6 +42,9 @@ class Settings:
     index_days_ahead: int = Setting(7)
     index_days_back: int = Setting(3)
     default_phone_region: str = Setting("DE")
+    search_k_1: float = Setting(0.25)
+    search_b: float = Setting(0.75)
+    search_n: int = Setting(3)
 
 
 settings = Settings()

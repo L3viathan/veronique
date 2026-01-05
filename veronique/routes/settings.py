@@ -52,7 +52,23 @@ async def settings_form(request):
                     <small>How many days to look forwards for relevant events.</small>
                     </label>
                 </fieldset>
-                <h4>Maintenance</h4>
+                <h4>Indexing</h4>
+                <small>These weights influence the BM25 algorithm used for searching.</small>
+                <fieldset class="grid">
+                    <label>
+                    k<sub>1</sub>
+                    <input type="number" step="any" name="search_k_1" value="{S.search_k_1}">
+                    </label>
+                    <label>
+                    b
+                    <input type="number" step="any" name="search_b" value="{S.search_b}">
+                    </label>
+                    <label>
+                    n
+                    <input type="number" min=1 name="search_n" value="{S.search_n}">
+                    <small>This is the <em>n</em> in n-gram. We use character n-grams.</small>
+                    </label>
+                </fieldset>
                 <fieldset>
                 <a href="#" role="button" hx-swap="outerHTML" hx-post="/search/rebuild">Rebuild search index</a>
                 </fieldset>
@@ -72,5 +88,8 @@ async def save_settings(request):
     S.index_days_ahead = form.get("index_days_ahead")
     S.index_days_back = form.get("index_days_back")
     S.index_type = form.get("index_type")
+    S.search_k_1 = form.get("search_k_1")
+    S.search_b = form.get("search_b")
+    S.search_n = form.get("search_n")
     S.default_phone_region = form.get("default_phone_region")
     return redirect("/")

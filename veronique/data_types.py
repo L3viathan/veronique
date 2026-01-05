@@ -11,7 +11,7 @@ from markdown_it import MarkdownIt
 
 from veronique.nomnidate import NonOmniscientDate
 from veronique.context import context
-from veronique.settings import settings
+from veronique.settings import settings as S
 
 TYPES = {}
 TEXT_REF = re.compile(r"&lt;@(\d+)&gt;")
@@ -405,7 +405,7 @@ class phonenumber(DataType):
         return f"""<input type="tel" name="value"{value}></input>"""
 
     def encode(self, value):
-        pn = phonenumbers.parse(value, region=settings.default_phone_prefix)
+        pn = phonenumbers.parse(value, region=S.default_phone_prefix)
         return phonenumbers.format_number(pn, phonenumbers.PhoneNumberFormat.E164)
 
 

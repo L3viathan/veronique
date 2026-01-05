@@ -3,6 +3,7 @@ import unicodedata
 from veronique import db
 from veronique.db import LABEL
 from veronique.utils import timed_cache
+from veronique.settings import settings as S
 
 
 def update_index_for_doc(cur, table, id, name):
@@ -43,9 +44,9 @@ def rebuild_search_index(cur):
 
 
 
-def ngrams(string, n=3):
+def ngrams(string):
     sanitized = unicodedata.normalize("NFKD", string).casefold()
-    iterables = [iter(sanitized) for _ in range(n)]
+    iterables = [iter(sanitized) for _ in range(S.search_n)]
     for index, it in enumerate(iterables):
         for _ in range(index):
             next(it)
@@ -64,12 +65,10 @@ def find(cur, query, *, table=None, page_size=20, page_no=0):
     tokens = list(ngrams(query))
     # This is an attempt at implementing BM25 on a character ngram level.
     # k_1 is unusually low, but this seems to give better results.
-    k_1 = 0.25
-    b = 0.75
     avgdl = calculate_avgdl(cur)
     cur.execute(f"""
         SELECT table_name, id, SUM(t_score) FROM (
-            SELECT i.table_name, i.id, (count(1) * ({k_1} + 1))/(count(1) + {k_1} * (1 - {b} + {b} * (f.length / {avgdl}))) AS t_score
+            SELECT i.table_name, i.id, (count(1) * ({S.search_k_1} + 1))/(count(1) + {S.search_k_1} * (1 - {S.search_b} + {S.search_b} * (f.length / {avgdl}))) AS t_score
             FROM inverted_index i
             LEFT JOIN forward_index f ON i.table_name=f.table_name AND i.id=f.id
             WHERE i.ngram IN ({",".join("?"*len(tokens))})
