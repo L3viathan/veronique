@@ -797,7 +797,7 @@ class Claim(Model):
                     text = f"Claim #{self.id}"
                 else:
                     text = self.object.value
-                return f"""<h2>{self:handle}{text}{cat}</h2>{" ".join(buttons)}"""
+                return f"""<h2>{self:rename} {text}{cat}</h2>{" ".join(buttons)}"""
             else:
                 return f"""<h2>{self:svo}</h2>{" ".join(buttons)}"""
         elif fmt.startswith("vo:"):
@@ -834,6 +834,12 @@ class Claim(Model):
             else:
                 text = self.object.value
             return f'<tr><td data-placement="right" data-tooltip="{self.created_at}" class="comment-author">{self.owner.name}:</td><td>{self:handle}</td><td class="comment-text">{text}</td></tr>'
+        elif fmt == "rename":
+            return f'''<span
+                class="clickable rename"
+                hx-get="/claims/{self.id}/rename"
+                hx-target="closest h2"
+            >✎</span>'''
         return f"TODO: {fmt!r}"
 
     @property

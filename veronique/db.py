@@ -664,6 +664,12 @@ def merge_root_and_label(cur):
         """,
         (LABEL_DO_NOT_USE,),
     )
+    cur.execute(
+        """
+        UPDATE verbs SET data_type = 'string' WHERE id=?
+        """,
+        (ROOT,),
+    )
 
 
 if os.environ.get("VERONIQUE_READONLY"):

@@ -99,6 +99,9 @@ h2 {
   &>.svo>.handle {
     display: none;
   }
+  &:hover .rename {
+    display: inline;
+  }
 }
 
 header small {
@@ -418,4 +421,10 @@ footer {
 .leaflet-marker-icon {
   background: transparent !important;
   border: none !important;
+}
+
+.rename {
+  position: absolute;
+  transform: translateX(-40px);
+  display: none;
 }

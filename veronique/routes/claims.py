@@ -468,6 +468,39 @@ async def view_claim_avatar(request, claim_id: int):
     return raw(value, content_type=mime)
 
 
+@claims.get("/<claim_id>/rename")
+@fragment
+async def rename_root_claim_form(request, claim_id: int):
+    claim = O.Claim(claim_id)
+    return f"""
+        <form method="POST" action="/claims/{claim_id}/rename">
+        <fieldset role="group">
+            <input name="value" value="{claim.object.value}">
+            <input type="submit" value="›">
+        </fieldset>
+        </form>
+    """
+
+
+@claims.post("/<claim_id>/rename")
+@fragment
+async def rename_root_claim(request, claim_id: int):
+    claim = O.Claim(claim_id)
+    if not context.user.is_admin and claim.owner.id != context.user.id:
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
+    if claim.verb.id != ROOT:
+        return HTTPResponse(
+            body="400 Bad Request",
+            status=400,
+        )
+    value = O.Plain.from_form(claim.verb, request.form)
+    claim.set_value(value)
+    return redirect(f"/claims/{claim.id}")
+
+
 @claims.get("/comments")
 @page
 async def list_comments(request):
