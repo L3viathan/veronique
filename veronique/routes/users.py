@@ -6,7 +6,7 @@ import veronique.objects as O
 from veronique.utils import page, admin_only, pagination
 from veronique.settings import settings as S
 from veronique.data_types import TYPES
-from veronique.db import LABEL, IS_A, ROOT
+from veronique.db import IS_A, ROOT
 
 users = Blueprint("users", url_prefix="/users")
 
@@ -133,8 +133,8 @@ def _write_user(form, endpoint, user=None):
     redact = "redact" in form
     if writable_verbs and redact:
         return redirect(f"{endpoint}?err=For now, users that can write can't have a redacted view.")
-    if ROOT in writable_verbs and (IS_A not in writable_verbs or LABEL not in writable_verbs):
-        return redirect(f"{endpoint}?err=When making the root verb writable, you also need to make category and label writable.")
+    if ROOT in writable_verbs and IS_A not in writable_verbs:
+        return redirect(f"{endpoint}?err=When making the root verb writable, you also need to make category writable.")
     if any(v >= 0 for v in writable_verbs - readable_verbs):
         return redirect(f"{endpoint}?err=All writable verbs need to be readable.")
 

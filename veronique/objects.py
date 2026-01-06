@@ -9,7 +9,6 @@ from veronique.nomnidate import NonOmniscientDate
 from veronique.security import hash_password
 from veronique.context import context
 from veronique.db import (
-    LABEL,
     IS_A,
     AVATAR,
     ROOT,
@@ -558,9 +557,7 @@ class Claim(Model):
             SELECT
                 c.id AS id
             FROM claims c
-            LEFT JOIN claims l
-            ON l.subject_id = c.id
-            WHERE l.verb_id = {LABEL} {cond}
+            WHERE c.verb_id = {ROOT} {cond}
             ORDER BY {order_by}
             LIMIT {page_size}
             OFFSET {page_no * page_size}
@@ -634,8 +631,8 @@ class Claim(Model):
                     self.id,
                 ),
             )
-            if self.verb.id == LABEL:
-                update_index_for_doc(cur, "claims", self.subject.id, value.encode())
+            if self.verb.id == ROOT:
+                update_index_for_doc(cur, "claims", self.id, value.encode())
         db.conn.commit()
         self.populate()
 
@@ -701,12 +698,11 @@ class Claim(Model):
     @classmethod
     def new_root(cls, name):
         cur = db.conn.cursor()
-        cur.execute("INSERT INTO claims (verb_id, owner_id) VALUES (?, ?)", (ROOT, context.user.id))
-        new_id = cur.lastrowid
         cur.execute(
-            "INSERT INTO claims (subject_id, verb_id, value, owner_id) VALUES (?, ?, ?, ?)",
-            (new_id, LABEL, name, context.user.id),
+            "INSERT INTO claims (verb_id, value, owner_id) VALUES (?, ?, ?)",
+            (ROOT, name, context.user.id),
         )
+        new_id = cur.lastrowid
         update_index_for_doc(cur, "claims", new_id, name)
         db.conn.commit()
         return Claim(new_id)
@@ -751,13 +747,13 @@ class Claim(Model):
         data = self.get_data()
         css_classes, remarks = self._get_remarks(data)
         if fmt == "label":
-            if LABEL in data and not context.user.redact:
-                return data[LABEL][0].object.value
+            if self.verb.id == ROOT and not context.user.redact:
+                return self.object.value
             else:
                 return f"Claim #{self.id}"
         elif fmt == "link" or not fmt:
-            if LABEL in data and not context.user.redact:
-                return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatar}{data[LABEL][0].object.value}</a>'
+            if self.verb.id == ROOT and not context.user.redact:
+                return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatar}{self.object.value}</a>'
             elif self.verb.id == ROOT:
                 return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatar}Claim #{self.id}</a>'
             else:
@@ -796,17 +792,12 @@ class Claim(Model):
                         role="button"
                         class="outline contrast"
                     >\N{WASTEBASKET}\ufe0e Delete</a>""")
-            if LABEL in data:
-                if self.verb.id == ROOT:
-                    label = data[LABEL][0]
-                    if context.user.redact:
-                        text = f"Claim #{self.id}"
-                    else:
-                        text = label.object.value
-                    return f"""<h2>{label:handle}{text}{cat}</h2>{" ".join(buttons)}"""
+            if self.verb.id == ROOT:
+                if context.user.redact:
+                    text = f"Claim #{self.id}"
                 else:
-                    # non-roots should still show their actual SVO
-                    return f"""<h2>{label:handle}{label.object.value}{cat}<br>{self:svo}</h2>{" ".join(buttons)}"""
+                    text = self.object.value
+                return f"""<h2>{self:handle}{text}{cat}</h2>{" ".join(buttons)}"""
             else:
                 return f"""<h2>{self:svo}</h2>{" ".join(buttons)}"""
         elif fmt.startswith("vo:"):
@@ -849,9 +840,8 @@ class Claim(Model):
     def deletable(self):
         if list(self.outgoing_claims()) or list(self.incoming_claims()):
             return False
-        if self.verb.id == LABEL and self.subject.verb.id == ROOT:
-            # This means even if there are _several_ labels you can't delete any.
-            # Ideally we'd allow it in that case, but maybe don't multi-label things.
+        if self.verb.id == ROOT:
+            # For now, you can't delete roots.
             return False
         return True
 
