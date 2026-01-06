@@ -21,7 +21,7 @@ async def settings_form(request):
                 <fieldset class="grid">
                     <label>
                     Application name
-                    <input name="page_size" placeholder="Véronique">
+                    <input name="app_name" placeholder="Véronique">
                     <small>This will be shown as part of page titles.</small>
                     </label>
                     <label>
