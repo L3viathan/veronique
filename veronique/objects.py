@@ -837,8 +837,8 @@ class Claim(Model):
         elif fmt == "rename":
             return f'''<span
                 class="clickable rename"
-                hx-get="/claims/{self.id}/rename"
-                hx-target="closest h2"
+                hx-get="/claims/{self.id}/edit"
+                hx-target="#edit-area"
             >✎</span>'''
         return f"TODO: {fmt!r}"
 
