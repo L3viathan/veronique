@@ -9,7 +9,15 @@ conn = sqlite3.connect(os.environ.get("VERONIQUE_DB", "veronique.db"))
 conn.row_factory = sqlite3.Row
 orig_isolation_level, conn.isolation_level = conn.isolation_level, None
 
-DATA_LABELS = [ROOT, LABEL, IS_A, VALID_FROM, VALID_UNTIL, AVATAR, COMMENT] = range(-1, -8, -1)
+DATA_LABELS = [
+    ROOT,
+    LABEL_DO_NOT_USE,  # deprecated
+    IS_A,
+    VALID_FROM,
+    VALID_UNTIL,
+    AVATAR,
+    COMMENT,
+] = range(-1, -8, -1)
 
 
 try:
@@ -319,7 +327,7 @@ def add_claims(cur):
             'directed_link',
             TRUE
         ), (
-            {LABEL},
+            {LABEL_DO_NOT_USE},
             'label',
             'string',
             TRUE
@@ -391,7 +399,7 @@ def add_claims(cur):
         cat_map[cat["id"]] = cur.lastrowid
         cur.execute(
             "INSERT INTO claims (subject_id, verb_id, value) VALUES (?, ?, ?)",
-            (cur.lastrowid, LABEL, cat["name"]),
+            (cur.lastrowid, LABEL_DO_NOT_USE, cat["name"]),
         )
 
     entity_map = {}  # old -> new
@@ -404,7 +412,7 @@ def add_claims(cur):
         entity_map[entity["id"]] = new_id
         cur.execute(
             "INSERT INTO claims (subject_id, verb_id, value) VALUES (?, ?, ?)",
-            (new_id, LABEL, entity["name"]),
+            (new_id, LABEL_DO_NOT_USE, entity["name"]),
         )
         cur.execute(
             "INSERT INTO claims (subject_id, verb_id, object_id) VALUES (?, ?, ?)",
@@ -630,6 +638,37 @@ def rework_search(cur):
             length INTEGER
         )
     """)
+
+
+@migration(21)
+def merge_root_and_label(cur):
+    labels = cur.execute(
+        """
+        SELECT subject_id, value FROM claims WHERE verb_id = ?
+        """,
+        (LABEL_DO_NOT_USE,),
+    ).fetchall()
+    data = [(row["value"], row["subject_id"]) for row in labels]
+    cur.executemany(
+        """
+        UPDATE claims
+        SET value = ?
+        WHERE id = ?
+        """,
+        data,
+    )
+    cur.execute(
+        """
+        DELETE FROM claims WHERE verb_id = ?
+        """,
+        (LABEL_DO_NOT_USE,),
+    )
+    cur.execute(
+        """
+        UPDATE verbs SET data_type = 'string' WHERE id=?
+        """,
+        (ROOT,),
+    )
 
 
 if os.environ.get("VERONIQUE_READONLY"):

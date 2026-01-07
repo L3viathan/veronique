@@ -6,7 +6,7 @@ from veronique.context import context
 from veronique.utils import D
 from veronique.data_types import TYPES
 from veronique.settings import settings as S
-from veronique.db import LABEL, ROOT
+from veronique.db import ROOT
 
 verbs = Blueprint("verbs", url_prefix="/verbs")
 
@@ -35,7 +35,7 @@ async def list_verbs(request):
     ):
         if i == S.page_size:
             more_results = True
-        elif verb.id not in (ROOT, LABEL):
+        elif verb.id != ROOT:
             parts.append(f'<span class="row">{verb:full}</span>')
     parts.append(pagination(
         "/verbs",

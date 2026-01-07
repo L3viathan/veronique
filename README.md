@@ -50,10 +50,7 @@ or "Paul knows that [John loves Mary]".
 
 A subject is either another claim, or NULL. The latter is only possible when
 the verb is a special builtin one called `ROOT`. Root claims have no subject
-and no object and merely exist as markers for _something_; any kind of entity.
-
-When you create a root claim, you also automatically create a second internal
-claim of type `LABEL`, such that the thing you're creating has a name.
+and have their name as their object. They represent any kind of entity.
 
 Now that we bootstrapped the world with root claims, we can talk about other
 types of claims: They (non-root claims) always have a subject claim (which can
@@ -68,7 +65,7 @@ it a property or a predicate. A verb always has a label (what it's called, e.g.
 `"loves"`), and a data type (see below). There's also a few built-in verbs that
 get special treatment:
 
-- `ROOT` and `LABEL` (as described above)
+- `ROOT` (as described above)
 - `IS_A`: They have the data type `directed_link` and describe an is-a
   relation. You could for example create a root fact called `"human"` and link
   all people you create to it. There's special UI treatment for this relation

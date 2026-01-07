@@ -7,7 +7,7 @@ from veronique.utils import fragment, page, pagination, D
 from veronique.data_types import TYPES
 from veronique.settings import settings as S
 from veronique.context import context
-from veronique.db import LABEL, IS_A, ROOT, AVATAR, COMMENT
+from veronique.db import IS_A, ROOT, AVATAR, COMMENT
 
 claims = Blueprint("claims", url_prefix="/claims")
 
@@ -103,7 +103,7 @@ async def new_root_claim_form(request):
 async def new_root_claim(request):
     form = D(request.form)
     name = form["name"]
-    if not all((context.user.can("write", "verb", v) for v in (ROOT, LABEL))):
+    if not context.user.can("write", "verb", ROOT):
         return HTTPResponse(
             body="403 Forbidden",
             status=403,
@@ -429,7 +429,7 @@ async def view_claim(request, claim_id: int):
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }
-        {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in outgoing_claims if c.verb.id not in (LABEL, IS_A, AVATAR, COMMENT))}
+        {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in outgoing_claims if c.verb.id not in (IS_A, AVATAR, COMMENT))}
         {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in claim.outgoing_inferred_claims())}
         </td></tr></table>
         {"<hr><h3>Mentions</h3>" + "".join(f'<span class="row">{c:svo}</span>' for c in incoming_mentions) if incoming_mentions else ""}
