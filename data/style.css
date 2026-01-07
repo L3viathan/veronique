@@ -102,6 +102,14 @@ h2 {
   &:hover .rename {
     display: inline;
   }
+  & .cats {
+    & .new-cat {
+      display: none;
+    }
+    &:hover .new-cat {
+      display: inline;
+    }
+  }
 }
 
 header small {

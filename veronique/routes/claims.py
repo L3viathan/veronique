@@ -152,7 +152,7 @@ async def new_claim_form(request, claim_id: int, direction: str):
                                         value="{verb.id}"
                                     >{verb.label} ({verb.data_type})</option>'''
                         for verb in verbs
-                        if verb.id != ROOT and verb.data_type is not TYPES["inferred"]
+                        if verb.id >= 0 and verb.data_type is not TYPES["inferred"]
                     )
                 }
             </select>
@@ -171,9 +171,22 @@ async def new_claim_form_verb_input(request):
             status=403,
         )
     verb = O.Verb(int(args["verb"]))
-    return f"""
-        {verb.data_type.input_html(claim_id=args.get("claim_id"), direction=args.get("direction"), verb_id=verb.id)}
-        <button type="submit">»</button>
+    if args.get("standalone"):
+        return f"""
+        <form
+            action="/claims/new/{args.get("claim_id")}/{args.get("direction")}"
+            method="POST"
+            enctype="multipart/form-data"
+        >
+            <input type="hidden" name="verb" value="{verb.id}">
+            {verb.data_type.input_html(claim_id=args.get("claim_id"), direction=args.get("direction"), verb_id=verb.id)}
+            <button type="submit">»</button>
+        </form>
+        """
+    else:
+        return f"""
+            {verb.data_type.input_html(claim_id=args.get("claim_id"), direction=args.get("direction"), verb_id=verb.id)}
+            <button type="submit">»</button>
         """
 
 
@@ -458,8 +471,9 @@ async def view_claim_avatar(request, claim_id: int):
     claim = O.Claim(claim_id)
     data = claim.get_data()
     if AVATAR not in data or context.user.redact:
-        # black pixel
-        value = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQAAAAA3bvkkAAAACklEQVR4AWNgAAAAAgABc3UBGAAAAABJRU5ErkJggg==")
+        # transparent pixel
+        value = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
+        mime = "image/png"
     else:
         value = data[AVATAR][0].object.value
         mime = value[value.index(":"):value.index(";")]

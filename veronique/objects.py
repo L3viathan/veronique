@@ -671,6 +671,18 @@ class Claim(Model):
     @classmethod
     def new(cls, subject, verb, value_or_object):
         cur = db.conn.cursor()
+        if verb.id in DATA_LABELS:
+            fn = subject.get_data.__wrapped__
+            if hasattr(fn, "_cached"):
+                delattr(fn, "_cached")
+            if verb.id in (AVATAR, VALID_FROM, VALID_UNTIL):
+                cur.execute(
+                    """
+                        DELETE FROM claims
+                        WHERE subject_id = ? AND verb_id = ?
+                    """,
+                    (subject.id, verb.id),
+                )
         if verb.data_type.name.endswith("directed_link"):
             # "entity"
             cur.execute(
@@ -692,6 +704,7 @@ class Claim(Model):
                 """,
                 (subject.id, verb.id, value_or_object.encode(), context.user.id),
             )
+
         db.conn.commit()
         return Claim(cur.lastrowid)
 
@@ -762,16 +775,21 @@ class Claim(Model):
                 return f"Claim #{self.id}"
         elif fmt == "link" or not fmt:
             if self.verb.id == ROOT and not context.user.redact:
-                return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatar}{self.object.value}</a>'
+                return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatarsmall}{self.object.value}</a>'
             elif self.verb.id == ROOT:
-                return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatar}Claim #{self.id}</a>'
+                return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatarsmall}Claim #{self.id}</a>'
             else:
                 return f"{self:svo}"
         elif fmt == "heading":
+            new_cat = f"""<span
+                class="clickable new-cat"
+                hx-get="/claims/new/verb?verb={IS_A}&claim_id={self.id}&direction=outgoing&standalone=1"
+                hx-target="#edit-area"
+            >, +</span>"""
             if IS_A in data:
-                cat = f"""<br><small>&lt;{", ".join(f"<span>{c:handle}{c.object:link}</span>" for c in data[IS_A])}&gt;</small>"""
+                cat = f"""<br><small class="cats">&lt;{", ".join(f"<span>{c:handle}{c.object:link}</span>" for c in data[IS_A])}{new_cat}&gt;</small>"""
             else:
-                cat = ""
+                cat = f"""<br><small class="cats">&lt;{new_cat}&gt;</small>"""
             buttons = []
             if context.user.is_admin or self.owner.id == context.user.id:
                 if self.verb.id != ROOT:
@@ -793,6 +811,27 @@ class Claim(Model):
                         role="button"
                         class="outline contrast"
                     >✎ Edit object</a>""")
+                    if VALID_FROM not in data or VALID_UNTIL not in data:
+                        if VALID_FROM not in data:
+                            buttons.append(
+                                f"""<a
+                                    class="outline contrast"
+                                    role="button"
+                                    data-tooltip="Set valid from"
+                                    hx-get="/claims/new/verb?verb={VALID_FROM}&claim_id={self.id}&direction=outgoing&standalone=1"
+                                    hx-target="#edit-area"
+                                >⇤</a>"""
+                            )
+                        if VALID_UNTIL not in data:
+                            buttons.append(
+                                f"""<a
+                                    class="outline contrast"
+                                    role="button"
+                                    data-tooltip="Set valid until"
+                                    hx-get="/claims/new/verb?verb={VALID_UNTIL}&claim_id={self.id}&direction=outgoing&standalone=1"
+                                    hx-target="#edit-area"
+                                >⇥</a>"""
+                            )
                 if self.deletable:
                     buttons.append(f"""<a
                         hx-target="#edit-area"
@@ -829,10 +868,18 @@ class Claim(Model):
                 hx-swap="innerHTML"
                 hx-get="/claims/autocomplete/accept/{self.id}"
             >{self:label}</span>"""
-        elif fmt == "avatar":
+        elif fmt == "avatarsmall":
             if AVATAR not in data or context.user.redact:
                 return ""
-            return f'<img src="{data[AVATAR][0].object.value}" class="avatar">'
+            return f'<img src="/claims/{self.id}/avatar" class="avatar">'
+        elif fmt == "avatar":
+            return f"""<img
+                src="/claims/{self.id}/avatar"
+                class="avatar" alt="avatar"
+                hx-get="/claims/new/verb?verb={AVATAR}&claim_id={self.id}&direction=outgoing&standalone=1"
+                hx-target="#edit-area"
+                style="cursor: copy"
+            >"""
         elif fmt == "raw":
             if context.user.redact:
                 return f"Claim #{self.id}"
