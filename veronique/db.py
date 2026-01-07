@@ -642,7 +642,6 @@ def rework_search(cur):
 
 @migration(21)
 def merge_root_and_label(cur):
-    # FIXME: make sure this fails when there _are_ labelled non-roots
     labels = cur.execute(
         """
         SELECT subject_id, value FROM claims WHERE verb_id = ?
