@@ -28,67 +28,6 @@ a, .clickable {
 }
 
 
-#triangle {
-  font-size:135pt;
-  display: grid;
-  position: absolute;
-  top: 0;
-  span {
-    grid-column: 1;
-    grid-row: 1;
-    animation-duration: 3s;
-    animation-iteration-count: infinite;
-    animation-direction: alternate;
-    animation-timing-function: linear;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    &:nth-child(1) {
-      background-color: black;
-      opacity: 0.5;
-    }
-    &:nth-child(2) {
-      background-image: linear-gradient(0deg, #ff670f 0%, #ff670f 21%, #ffffff 56%, #0eea57 88%);
-      /* animation-duration: 17s; */
-      /* animation-name: foo; */
-    }
-    &:nth-child(3) {
-      background-image: linear-gradient(72deg,rgba(2, 0, 36, 1) 0%, rgba(9, 9, 121, 1) 35%, rgba(0, 212, 255, 1) 100%);
-      animation-duration: 13s;
-      animation-name: foo;
-    }
-    &:nth-child(4) {
-      background-image: linear-gradient(144deg,rgba(131, 58, 180, 1) 0%, rgba(253, 29, 29, 1) 50%, rgba(252, 176, 69, 1) 100%);
-      animation-duration: 11s;
-      animation-name: foo;
-    }
-    &:nth-child(5) {
-      background-image: linear-gradient(216deg,rgba(16, 40, 176, 1) 0%, rgba(219, 0, 62, 1) 50%, rgba(252, 218, 69, 1) 100%);
-      animation-duration: 7s;
-      animation-name: foo;
-    }
-    &:nth-child(6) {
-      background-image: linear-gradient(288deg,rgba(0, 242, 255, 1) 0%, rgba(255, 199, 79, 1) 100%);
-      animation-duration: 5s;
-      animation-name: foo;
-    }
-  }
-  &:hover {
-    text-decoration: none;
-  }
-}
-
-@keyframes foo {
-  0% {
-    opacity: 0.7;
-    }
-    50% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 0.8;
-    }
-}
-
 .new-item-placeholder {
   width: 100%;
   text-align: center;
