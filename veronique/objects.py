@@ -719,27 +719,36 @@ class Claim(Model):
         return data
 
     def _get_remarks(self, data):
-        today = date.today()
         remarks = []
         css_classes = set()
-        if (
-            VALID_FROM in data
-            and NonOmniscientDate(data[VALID_FROM][0].object.value).definitely_after(today)
-        ):
+        not_yet_valid, no_longer_valid = self._get_invalid(data)
+        if not_yet_valid:
             css_classes.add("invalid")
-            remarks.append(f"from {data[VALID_FROM][0].object.value}")
-        elif (
-            VALID_UNTIL in data
-            and NonOmniscientDate(data[VALID_UNTIL][0].object.value).definitely_before(today)
-        ):
+            remarks.append(f"from {not_yet_valid}")
+        elif no_longer_valid:
             css_classes.add("invalid")
-            remarks.append(f"until {data[VALID_UNTIL][0].object.value}")
+            remarks.append(f"until {no_longer_valid}")
 
         if remarks:
             remarks = f' data-tooltip="{", ".join(remarks)}"'
         else:
             remarks = ""
         return f" {' '.join(css_classes)}" if css_classes else "", remarks
+
+    def _get_invalid(self, data):
+        not_yet_valid = no_longer_valid = None
+        today = date.today()
+        if (
+            VALID_FROM in data
+            and NonOmniscientDate(data[VALID_FROM][0].object.value).definitely_after(today)
+        ):
+            not_yet_valid = data[VALID_FROM][0].object.value
+        elif (
+            VALID_UNTIL in data
+            and NonOmniscientDate(data[VALID_UNTIL][0].object.value).definitely_before(today)
+        ):
+            no_longer_valid = data[VALID_UNTIL][0].object.value
+        return not_yet_valid, no_longer_valid
 
     def __format__(self, fmt):
         if not context.user.can("read", "verb", self.verb.id):
@@ -862,7 +871,7 @@ class Claim(Model):
             "cat": data[IS_A][0].object.id if data.get(IS_A) else None,
         }
         edges = []
-        for link in self.outgoing_claims():
+        for link in self.outgoing_claims(page_size=999):
             if not link.verb.data_type.name.endswith("directed_link"):
                 continue
             if verbs and link.verb not in verbs:
@@ -870,6 +879,8 @@ class Claim(Model):
             if self.id == link.object.id:
                 continue
             if link.verb.id in (IS_A, ROOT):
+                continue
+            if any([*link._get_invalid(link.get_data())]):
                 continue
             edges.append(
                 {
