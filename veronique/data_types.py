@@ -6,6 +6,7 @@ from random import randint
 import unicodedata
 from datetime import date as dt_date, timedelta
 from urllib.parse import quote_plus
+from html import escape
 
 import phonenumbers
 from markdown_it import MarkdownIt
@@ -202,12 +203,11 @@ class string(DataType):
     def display_html(self, value, **_):
         if context.user.redact:
             return '<span class="type-string">"..."</span>'
-        return f'<span class="type-string">"{value}"</span>'
+        return f'<span class="type-string">"{escape(value)}"</span>'
 
     def input_html(self, value=None, **_):
         if value:
-            quot = '"'
-            value = f' value="{value.value.replace(quot, "&quot;")}"'
+            value = f' value="{escape(value.value)}"'
         else:
             value = ""
         return f"""<input type="text" name="value"{value}></input>"""
@@ -229,6 +229,8 @@ class number(DataType):
 
 
 class color(DataType):
+    pattern = re.compile("^#[0-9A-Fa-f]{6}$")
+
     def display_html(self, value, **_):
         return f"""
             <span style="color: {value}; text-shadow: 0 0 3px black;">&#9632;</span>
@@ -237,10 +239,16 @@ class color(DataType):
 
     def input_html(self, value=None, **_):
         if value:
-            value = f' value="{value.value}"'
+            value = f' value="{escape(value.value)}"'
         else:
             value = ""
         return f"""<input type="color" name="value"{value}></input>"""
+
+    def extract_value(self, form):
+        value = form.get("value")
+        if not color.pattern.match(value):
+            raise ValueError
+        return value
 
 
 class date(DataType):
@@ -321,7 +329,7 @@ class location(DataType):
                 quote_plus(value.replace(newline, ", "))
             }"
                 class="type-location"
-            >{value.replace(newline, "<br>")}</a>"""
+            >{escape(value).replace(newline, "<br>")}</a>"""
 
     def input_html(self, value=None, **_):
         if value:
@@ -367,7 +375,7 @@ class text(DataType):
         if context.user.redact:
             value = "..."
         else:
-            value = self.md.render(value)
+            value = self.md.render(escape(value))
         return f"""<span class="type-text">{re.sub(TEXT_REF, self._sub, value)}</span>"""
 
     def input_html(self, value=None, **_):
@@ -376,7 +384,7 @@ class text(DataType):
         else:
             value = ""
         return f"""
-            <textarea name="value">{value}</textarea>
+            <textarea name="value">{escape(value)}</textarea>
         """
 
 
@@ -384,12 +392,11 @@ class email(DataType):
     def display_html(self, value, **_):
         if context.user.redact:
             return '<span class="type-email"><a href="mailto:mail@example.com">mail@example.com</a></span>'
-        return f'<span class="type-email"><a href="mailto:{value}">{value}</a></span>'
+        return f'<span class="type-email"><a href="mailto:{escape(value)}">{escape(value)}</a></span>'
 
     def input_html(self, value=None, **_):
         if value:
-            quot = '"'
-            value = f' value="{value.value.replace(quot, "&quot;")}"'
+            value = f' value="{escape(value.value)}"'
         else:
             value = ""
         return f"""<input type="email" name="value"{value}></input>"""
@@ -399,7 +406,7 @@ class website(DataType):
     def display_html(self, value, **_):
         if context.user.redact:
             value = "https://example.com"
-        return f'<span class="type-website"><a href="{value}">{value}</a></span>'
+        return f'<span class="type-website"><a href="{escape(value)}">{escape(value)}</a></span>'
 
     def input_html(self, value=None, **_):
         if value:
@@ -461,12 +468,11 @@ class social(DataType):
     def display_html(self, value, prop, **_):
         if context.user.redact:
             value = "someone"
-        return f'<span class="type-social">{prop.extra.format(value)}</span>'
+        return f'<span class="type-social">{prop.extra.format(escape(value))}</span>'
 
     def input_html(self, value=None, **_):
         if value:
-            quot = '"'
-            value = f' value="{value.value.replace(quot, "&quot;")}"'
+            value = f' value="{escape(value.value)}"'
         else:
             value = ""
         return f"""<input name="value"{value}></input>"""
