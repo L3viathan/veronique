@@ -2,6 +2,7 @@ import json
 from datetime import date, datetime
 from functools import cached_property, cache
 from itertools import count, combinations
+from html import escape
 
 from veronique import db
 from veronique.data_types import TYPES
@@ -775,7 +776,7 @@ class Claim(Model):
                 return f"Claim #{self.id}"
         elif fmt == "link" or not fmt:
             if self.verb.id == ROOT and not context.user.redact:
-                return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatarsmall}{self.object.value}</a>'
+                return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatarsmall}{escape(self.object.value)}</a>'
             elif self.verb.id == ROOT:
                 return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatarsmall}Claim #{self.id}</a>'
             else:
@@ -844,7 +845,7 @@ class Claim(Model):
                 if context.user.redact:
                     text = f"Claim #{self.id}"
                 else:
-                    text = self.object.value
+                    text = escape(self.object.value)
                 return f"""<h2>{self:rename} {text}{cat}</h2>{" ".join(buttons)}"""
             else:
                 return f"""<h2>{self:svo}</h2>{" ".join(buttons)}"""
@@ -883,12 +884,12 @@ class Claim(Model):
         elif fmt == "raw":
             if context.user.redact:
                 return f"Claim #{self.id}"
-            return self.object.value
+            return escape(self.object.value)
         elif fmt == "comment":
             if context.user.redact:
                 text = "..."
             else:
-                text = self.object.value
+                text = escape(self.object.value)
             return f'<tr><td data-placement="right" data-tooltip="{self.created_at}" class="comment-author">{self.owner.name}:</td><td>{self:handle}</td><td class="comment-text">{text}</td></tr>'
         elif fmt == "rename":
             return f'''<span
