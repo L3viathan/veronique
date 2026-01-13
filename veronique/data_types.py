@@ -94,9 +94,6 @@ class undirected_link(directed_link):
 
 
 class inferred(DataType):
-    def display_html(self, value, **_):
-        return "TODO"
-
     def next_step(self, args):
         import veronique.objects as O
         hxall = 'hx-select="#autoform" hx-replace="outerHTML" hx-target="#autoform" hx-get="/verbs/new/steps" hx-include="closest form"'
@@ -501,9 +498,9 @@ class mtgcolors(DataType):
 
     def extract_value(self, form):
         return {
-            color: int(form[f"mana-{color}"])
+            color: int(form.get(f"mana-{color}"))
             for color in "wubrg"
-            if int(form[f"mana-{color}"]) != 0
+            if int(form.get(f"mana-{color}")) != 0
         }
 
     def input_html(self, value=None, **_):
@@ -566,7 +563,7 @@ class age(DataType):
     def extract_value(self, form):
         # value can be a plain number, or a range of numbers separated by dash,
         # optionally all prefixed by a date (defaulting to "today"
-        value = form["value"]
+        value = form.get("value")
         reference_date, _, value = value.rpartition(":")
         if reference_date:
             reference_date = dt_date.fromisoformat(reference_date)
@@ -608,3 +605,67 @@ class age(DataType):
             """
         else:
             return '<input name="value">'
+
+
+class choice(DataType):
+    def display_html(self, value, **_):
+        return f'<span class="type-choice">{escape(value)}</span>'
+
+    def next_step(self, args):
+        return """
+            <label>Enter possible choices. One choice per line.
+            <textarea name="choices"></textarea>
+            </label>
+            <button type="submit">Create</button>
+        """
+
+    def get_extra(self, args):
+        return json.dumps([choice for choice in args["choices"].split("\n") if choice])
+
+    def detail_for(self, verb):
+        choices = json.loads(verb.extra)
+        return f"""
+            <h4>Choices:</h4>
+            <ul>
+                {"".join(f"<li>{choice}</li>" for choice in choices)}
+            </ul>
+        """
+
+    def input_html(self, verb_id, value=None, **_):
+        import veronique.objects as O
+        choices = json.loads(O.Verb(verb_id).extra)
+        return f"""
+            <select name="value">
+                {"".join(f'<option name="{choice}" {"selected" if choice == value else ""}>{choice}</option>' for choice in choices)}
+            </select>
+        """
+
+class choices(choice):
+    def display_html(self, value, **_):
+        return ", ".join(f'<span class="type-choice">{escape(choice)}</span>' for choice in value)
+
+    def input_html(self, verb_id, value=None, **_):
+        import veronique.objects as O
+        choices = json.loads(O.Verb(verb_id).extra)
+        return f"""
+            <select name="value" multiple>
+                {"".join(f'<option name="{choice}" {"selected" if value and choice in value.value else ""}>{choice}</option>' for choice in choices)}
+            </select>
+        """
+
+    def extract_value(self, form):
+        """
+        Given a form object, extract the value in the form we want it.
+
+        Typically, this is just whatever is in the value field, but this can be
+        used to implement widgets with several <input>s.
+        """
+        return form["value"]
+
+    def encode(self, value):
+        """Encode how value should be represented in the DB."""
+        return json.dumps(value)
+
+    def decode(self, encoded):
+        """Decode from string in database to desired value."""
+        return json.loads(encoded)

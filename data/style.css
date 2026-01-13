@@ -436,3 +436,11 @@ footer {
   transform: translateX(-40px);
   display: none;
 }
+
+.type-choice {
+  border: 1px solid #c248bd;
+  background-color: #edabeb;
+  border-radius: 3px;
+  padding: 2px;
+  margin-right: 2px;
+}
