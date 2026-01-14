@@ -557,7 +557,11 @@ class alpha2(DataType):
 class age(DataType):
     def display_html(self, value, **_):
         earliest, latest = value
-        return f"{self.possible_ages(value)} years old <small>({earliest}–{latest})</small>"
+        if earliest == latest:
+            date_range = earliest
+        else:
+            date_range = f"{earliest}–{latest}"
+        return f"{self.possible_ages(value)} years old <small>({date_range})</small>"
 
     def encode(self, value):
         return "--".join(dt.isoformat() for dt in value)
@@ -585,7 +589,7 @@ class age(DataType):
         earliest = [tomorrow.replace(year=tomorrow.year - (int(max_age) + 1))]
 
         if "previous" in form:
-            prev_earliest, prev_latest = form["previous"].split("--")
+            prev_earliest, prev_latest = form.get("previous").split("--")
             latest.append(dt_date.fromisoformat(prev_latest))
             earliest.append(dt_date.fromisoformat(prev_earliest))
 
