@@ -11,6 +11,16 @@ a, .clickable {
   margin: 3px;
   border: 1px solid #adf;
   border-radius: 2px;
+  & .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 15px;
+    vertical-align: middle;
+    margin-bottom: 6px;
+    display: inline;
+    margin-left: 5px;
+    object-fit: cover;
+  }
 }
 
 .handle {
@@ -74,6 +84,10 @@ table.claims td {
   margin: 3px;
   border: 1px solid #fda;
   border-radius: 2px;
+  &:has(.date-today) {
+    box-shadow: green 0px 0px 10px;
+    border: 4px solid green;
+  }
 }
 
 .verb {
@@ -117,13 +131,15 @@ header small {
   color: #2889be;
 }
 
-.type-text, a.type-location {
+.type-text {
   display: inline-block;
   background-color: var(--lightgrey);
-  text-decoration: none;
   color: inherit;
   vertical-align: top;
   max-width: 25em;
+}
+.type-location a {
+  text-decoration: none;
 }
 
 nav {
@@ -169,11 +185,6 @@ article {
   position: absolute;
 }
 
-.svo:has(.date-today) {
-  box-shadow: green 0px 0px 10px;
-  border: 4px solid green;
-}
-
 hr.date-today {
   border-top: 4px solid green;
   box-shadow: green 0px 0px 10px;
@@ -216,17 +227,6 @@ header {
     top: 20px;
     left: 20px;
   }
-}
-
-.claim-link .avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 15px;
-  vertical-align: middle;
-  margin-bottom: 6px;
-  display: inline;
-  margin-left: 5px;
-  object-fit: cover;
 }
 
 .avatar+h2 {

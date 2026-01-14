@@ -321,12 +321,11 @@ class location(DataType):
                 </script>
             """
         else:
-            return f"""<a
+            return f"""<span class="type-location">{escape(value).replace(newline, "<br>")} <a
                 href="https://www.openstreetmap.org/search?query={
                 quote_plus(value.replace(newline, ", "))
             }"
-                class="type-location"
-            >{escape(value).replace(newline, "<br>")}</a>"""
+            >🌍</a>"""
 
     def input_html(self, value=None, **_):
         if value:
