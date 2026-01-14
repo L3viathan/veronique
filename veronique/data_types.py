@@ -28,6 +28,8 @@ def float_int(val):
 
 
 class DataType:
+    can_turn_into = ()
+
     def __init_subclass__(cls):
         TYPES[cls.__name__] = cls()
 
@@ -69,6 +71,10 @@ class DataType:
     @property
     def name(self):
         return type(self).__name__
+
+    @property
+    def compatible_types(self):
+        return {self.name, *self.can_turn_into}
 
 
 class directed_link(DataType):
@@ -197,6 +203,7 @@ class inferred(DataType):
 
 
 class string(DataType):
+    can_turn_into = ("text",)
     def display_html(self, value, **_):
         if context.user.redact:
             return '<span class="type-string">"..."</span>'
@@ -360,6 +367,7 @@ class location(DataType):
 
 
 class text(DataType):
+    can_turn_into = ("string",)
     def __init__(self):
         self.md = MarkdownIt("gfm-like")
 
@@ -638,6 +646,12 @@ class choice(DataType):
                 {"".join(f'<option name="{choice}" {"selected" if choice == value else ""}>{choice}</option>' for choice in choices)}
             </select>
         """
+
+    @property
+    def compatible_types(self):
+        # choice and choices can't be reverbed (not even to verbs of the same
+        # data type), because other verbs will have different choices
+        return ()
 
 class choices(choice):
     def display_html(self, value, **_):

@@ -268,6 +268,11 @@ class Verb(Model):
     def __str__(self):
         return f"{self}"
 
+    def can_turn_into(self, other):
+        dt_name1 = type(self.data_type).__name__
+        dt_name2 = type(other.data_type).__name__
+        return dt_name2 in TYPES[dt_name1].compatible_types
+
 
 class Claim(Model):
     fields = (

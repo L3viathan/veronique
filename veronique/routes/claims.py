@@ -280,7 +280,8 @@ async def reverb_claim_form(request, claim_id: int):
             body="403 Forbidden",
             status=403,
         )
-    verbs = O.Verb.all(data_type=claim.verb.data_type.name)
+    verbs = O.Verb.all(page_size=9999)
+    verbs = [v for v in verbs if v.id >= 0 and claim.verb.can_turn_into(v)]
     parts = [
         f"""
         <form
