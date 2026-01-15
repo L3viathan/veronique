@@ -293,7 +293,7 @@ async def reverb_claim_form(request, claim_id: int):
     ]
     for verb in verbs:
         parts.append(f"""
-            <option value="{verb.id}" {"selected" if verb.id == claim.verb.id else ""}>{verb}</option>
+            <option value="{verb.id}" {"selected" if verb.id == claim.verb.id else ""}>{verb} ({verb.data_type})</option>
         """)
     parts.append(
         """
