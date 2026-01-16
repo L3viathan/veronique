@@ -642,6 +642,8 @@ def rework_search(cur):
 
 @migration(21)
 def merge_root_and_label(cur):
+    # this is actually somewhat broken: It leaves broken claims if there are
+    # any claims _about labels_
     labels = cur.execute(
         """
         SELECT subject_id, value FROM claims WHERE verb_id = ?
@@ -668,6 +670,17 @@ def merge_root_and_label(cur):
         UPDATE verbs SET data_type = 'string' WHERE id=?
         """,
         (ROOT,),
+    )
+
+
+@migration(22)
+def delete_label_verb(cur):
+    cur.execute(
+        """
+        DELETE FROM verbs
+        WHERE id=?
+        """,
+        (LABEL_DO_NOT_USE,),
     )
 
 
