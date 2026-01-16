@@ -787,11 +787,14 @@ class Claim(Model):
             else:
                 return f"{self:svo}"
         elif fmt == "heading":
-            new_cat = f"""<span
-                class="clickable new-cat"
-                hx-get="/claims/new/verb?verb={IS_A}&claim_id={self.id}&direction=outgoing&standalone=1"
-                hx-target="#edit-area"
-            >, +</span>"""
+            if context.user.can("write", "verb", IS_A):
+                new_cat = f"""<span
+                    class="clickable new-cat"
+                    hx-get="/claims/new/verb?verb={IS_A}&claim_id={self.id}&direction=outgoing&standalone=1"
+                    hx-target="#edit-area"
+                >, +</span>"""
+            else:
+                new_cat = ""
             if IS_A in data:
                 cat = f"""<br><small class="cats">&lt;{", ".join(f"<span>{c:handle}{c.object:link}</span>" for c in data[IS_A])}{new_cat}&gt;</small>"""
             else:
@@ -897,11 +900,14 @@ class Claim(Model):
                 text = escape(self.object.value)
             return f'<tr><td data-placement="right" data-tooltip="{self.created_at}" class="comment-author">{self.owner.name}:</td><td>{self:handle}</td><td class="comment-text">{text}</td></tr>'
         elif fmt == "rename":
-            return f'''<span
-                class="clickable rename"
-                hx-get="/claims/{self.id}/edit"
-                hx-target="#edit-area"
-            >✎</span>'''
+            if context.user.is_admin or self.owner.id == context.user.id:
+                return f'''<span
+                    class="clickable rename"
+                    hx-get="/claims/{self.id}/edit"
+                    hx-target="#edit-area"
+                >✎</span>'''
+            else:
+                return ""
         return f"TODO: {fmt!r}"
 
     @property

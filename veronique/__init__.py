@@ -47,7 +47,11 @@ async def auth(request):
         if user.generation > payload.get("g", 0):
             # this is to support proper logouts, see logout()
             return unauthorized
-        context.user = user
+        if impersonatee := request.cookies.get("impersonate"):
+            context.user = O.User(int(impersonatee))
+            context.impersonator = user
+        else:
+            context.user = user
         context.payload = payload
         return
     return unauthorized

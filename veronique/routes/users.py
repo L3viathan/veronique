@@ -1,6 +1,6 @@
 from secrets import token_urlsafe
 
-from sanic import Blueprint, redirect
+from sanic import Blueprint, redirect, html
 
 import veronique.objects as O
 from veronique.utils import page, admin_only, pagination
@@ -18,7 +18,7 @@ async def list_users(request):
     page_no = int(request.args.get("page", 1))
     parts = [
         "<article><header><h3>Users</h3></header><table>",
-        '<thead><tr><th scope="col">ID</th><th scope="col">Name</th></tr></thead>',
+        '<thead><tr><th scope="col">ID</th><th scope="col">Name</th></th scope="col">Impersonate</th></tr></thead>',
         "<tbody>",
     ]
     more_results = False
@@ -32,7 +32,9 @@ async def list_users(request):
             more_results = True
         else:
             parts.append(f"<tr><td>{user.id}</td>")
-            parts.append(f"<td>{user:link}</td></tr>")
+            parts.append(f"<td>{user:link}</td>")
+            parts.append(f'<td><button hx-post="/users/{user.id}/impersonate" class="danger">Impersonate</button></td>')
+            parts.append("</tr>")
     parts.append("</tbody></table>")
     parts.append(pagination(
         "/users",
@@ -170,6 +172,30 @@ async def edit_user(request, user_id: int):
 @admin_only
 async def new_user(request):
     return _write_user(request.form, endpoint="/users/new")
+
+
+@users.post("/<user_id>/impersonate")
+@admin_only
+async def impersonate_user(request, user_id):
+    response = html(f"""
+        <meta http-equiv="refresh" content="0; url=/">
+    """)
+    response.add_cookie(
+        "impersonate",
+        user_id,
+        httponly=True,
+    )
+    return response
+
+
+@users.post("/stop-impersonating")
+async def stop_impersonating(request):
+    redirect_url = request.headers.get("hx-current-url") or "/"
+    response = html(f"""
+        <meta http-equiv="refresh" content="0; url={redirect_url}">
+    """)
+    response.delete_cookie("impersonate")
+    return response
 
 
 @users.get("/<user_id>")

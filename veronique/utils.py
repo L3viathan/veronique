@@ -127,6 +127,10 @@ def page(fn):
             <details class="dropdown">
                 <summary>{context.user.name}</summary>
                 <ul dir="rtl">
+                    {
+                    '<li><a href="#" hx-post="/users/stop-impersonating">Stop impersonation</a></li>'
+                    if context.impersonator else ''
+                    }
                     {'<li><a href="/settings">Settings</a></li>' if context.user.is_admin else ""}
                     <li><a href="/logout">Logout</a></li>
                 </ul>

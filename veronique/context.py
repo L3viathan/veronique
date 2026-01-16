@@ -23,3 +23,4 @@ class Variable:
 class context:
     user = Variable()
     payload = Variable()
+    impersonator = Variable()
