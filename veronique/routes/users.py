@@ -177,7 +177,7 @@ async def new_user(request):
 @users.post("/<user_id>/impersonate")
 @admin_only
 async def impersonate_user(request, user_id):
-    response = html(f"""
+    response = html("""
         <meta http-equiv="refresh" content="0; url=/">
     """)
     response.add_cookie(
