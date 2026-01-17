@@ -454,7 +454,7 @@ class phonenumber(DataType):
         return f"""<input type="tel" name="value"{value}></input>"""
 
     def encode(self, value):
-        pn = phonenumbers.parse(value, region=S.default_phone_prefix)
+        pn = phonenumbers.parse(value, region=S.default_phone_region)
         return phonenumbers.format_number(pn, phonenumbers.PhoneNumberFormat.E164)
 
 
