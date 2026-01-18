@@ -18,7 +18,7 @@ async def list_users(request):
     page_no = int(request.args.get("page", 1))
     parts = [
         "<article><header><h3>Users</h3></header><table>",
-        '<thead><tr><th scope="col">ID</th><th scope="col">Name</th></th scope="col">Impersonate</th></tr></thead>',
+        '<thead><tr><th scope="col">ID</th><th scope="col">Name</th><th scope="col">Impersonate</th></tr></thead>',
         "<tbody>",
     ]
     more_results = False
