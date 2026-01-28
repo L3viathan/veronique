@@ -68,6 +68,9 @@ class DataType:
     def __str__(self):
         return f"<em>{self.name}</em>"
 
+    def format(self, claim, fmt):
+        return str(claim)
+
     @property
     def name(self):
         return type(self).__name__
@@ -390,6 +393,12 @@ class text(DataType):
         return f"""
             <textarea name="value">{escape(value)}</textarea>
         """
+
+    def format(self, claim, fmt):
+        ret = str(claim)
+        if fmt == "short" and len(ret) > 100:
+            return f"{ret[:100]}[...]"
+        return ret
 
 
 class email(DataType):

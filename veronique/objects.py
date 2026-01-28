@@ -856,7 +856,7 @@ class Claim(Model):
                     text = escape(self.object.value)
                 return f"""<h2>{self:rename} {text}{cat}</h2>{" ".join(buttons)}"""
             else:
-                return f"""<h2>{self:svo}</h2>{" ".join(buttons)}"""
+                return f"""<h2>{self:svoheading}</h2>{" ".join(buttons)}"""
         elif fmt.startswith("vo:"):
             subj_id = int(fmt[3:])
             # Handle undirected links properly (always display the _other_ claim)
@@ -868,6 +868,10 @@ class Claim(Model):
             return f'<span{remarks} class="sv{css_classes}">{self:handle}{self.subject:link} {self.verb:link}</span>'
         elif fmt == "svo":
             return f'<span{remarks} class="svo{css_classes}">{self:handle}{self.subject:link} {self.verb:link} {self.object:link}</span>'
+        elif fmt == "svoheading":
+            return f'<span{remarks} class="svo{css_classes}">{self:handle}{self.subject:link} {self.verb:link} {self.object:short}</span>'
+        elif fmt == "short":
+            return f"{self:link}"
         elif fmt == "handle":
             return f'<a class="handle{" more" if "has_claims" in data else ""}" href="/claims/{self.id}">↱</a>'
         elif fmt == "ac-result":
@@ -1265,7 +1269,7 @@ class Plain:
         return self.prop.data_type.encode(self.value)
 
     def __format__(self, fmt):
-        return str(self)
+        return self.prop.data_type.format(self, fmt)
 
     def __str__(self):
         return self.prop.data_type.display_html(self.value, prop=self.prop)
