@@ -68,9 +68,6 @@ class DataType:
     def __str__(self):
         return f"<em>{self.name}</em>"
 
-    def format(self, claim, fmt):
-        return str(claim)
-
     @property
     def name(self):
         return type(self).__name__
@@ -378,7 +375,9 @@ class text(DataType):
         import veronique.objects as O
         return f"{O.Claim(int(match.group(1))):link}"
 
-    def display_html(self, value, **_):
+    def display_html(self, value, fmt=None, **_):
+        if len(value) > 100 and fmt == "short":
+            value = f"{value[:100]}[...]"
         if context.user.redact:
             value = "..."
         else:
@@ -393,12 +392,6 @@ class text(DataType):
         return f"""
             <textarea name="value">{escape(value)}</textarea>
         """
-
-    def format(self, claim, fmt):
-        ret = str(claim)
-        if fmt == "short" and len(ret) > 100:
-            return f"{ret[:100]}[...]"
-        return ret
 
 
 class email(DataType):

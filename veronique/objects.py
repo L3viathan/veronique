@@ -1269,7 +1269,7 @@ class Plain:
         return self.prop.data_type.encode(self.value)
 
     def __format__(self, fmt):
-        return self.prop.data_type.format(self, fmt)
+        return self.prop.data_type.display_html(self.value, prop=self.prop, fmt=fmt)
 
     def __str__(self):
         return self.prop.data_type.display_html(self.value, prop=self.prop)
