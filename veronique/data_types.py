@@ -520,7 +520,7 @@ class mtgcolors(DataType):
         return "".join(
             f"""
             <label><span class="mana s{color} medium"></span>
-                <input type="range" name="mana-{color}" min="0" max="5" value="{value[color]}">
+                <input type="range" name="mana-{color}" min="0" max="5" value="{value.get(color, 0)}">
             </label>
             """
             for color in "wubrg"
