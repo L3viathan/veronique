@@ -68,6 +68,7 @@ async def leaflet_js(request):
     return await file("data/leaflet.js", mime_type="text/javascript")
 
 
-@static.get("/images/marker-icon-2x.png")
+@static.get("/images/marker-icon-2x.png", name="marker_2x")
+@static.get("/images/marker-icon.png", name="marker_1x")
 async def marker_png(request):
     return await file("data/marker-icon-2x.png", mime_type="image/png")
