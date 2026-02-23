@@ -221,7 +221,7 @@ async def new_claim(request, claim_id: int, direction: str):
         )
     else:
         try:
-            value = O.Plain.from_form(verb, request.form)
+            value = O.Plain.from_form(verb, form)
         except ValueError:
             return redirect(f"/claims/{claim_id}")
     if direction == "incoming":
@@ -244,6 +244,7 @@ async def edit_claim_form(request, claim_id: int):
         <form
             action="/claims/{claim_id}/edit"
             method="POST"
+            enctype="multipart/form-data"
         >
             {claim.verb.data_type.input_html(value=claim.object, verb_id=claim.verb.id)}
             <button type="submit">»</button>
@@ -337,7 +338,7 @@ async def edit_claim(request, claim_id: int):
     if claim.verb.data_type.name.endswith("directed_link"):
         value = O.Claim(int(value))
     else:
-        value = O.Plain.from_form(claim.verb, request.form)
+        value = O.Plain.from_form(claim.verb, form)
     claim.set_value(value)
     return redirect(f"/claims/{claim_id}")
 
