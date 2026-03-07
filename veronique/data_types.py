@@ -256,7 +256,9 @@ class color(DataType):
 
 
 class date(DataType):
-    pattern = re.compile("^[0-9?]{4}-[0-9?]{2}-[0-9?]{2}$")
+    full_pattern = re.compile("^[0-9?]{4}-[0-9?]{2}-[0-9?]{2}$")
+    year_pattern = re.compile("^[0-9?]{4}$")
+    month_day_pattern = re.compile("^[0-9?]{2}-[0-9?]{2}$")
 
     def display_html(self, value, **_):
         d = NonOmniscientDate(value)
@@ -270,6 +272,10 @@ class date(DataType):
             class_ = "date-tomorrow"
         else:
             class_ = ""
+        if value == "????-??-??":
+            value = "unknown"
+        else:
+            value = value.removeprefix("????-").removesuffix("-??-??")
         return f"""<span class="{class_}">🗓️{value} <em>({td})</em></span>"""
 
     def input_html(self, value=None, **_):
@@ -286,9 +292,13 @@ class date(DataType):
 
     def extract_value(self, form):
         value = form.get("value")
-        if not date.pattern.match(value):
-            raise ValueError
-        return value
+        if date.full_pattern.match(value):
+            return value
+        if date.year_pattern.match(value):
+            return f"{value}-??-??"
+        if date.month_day_pattern.match(value):
+            return f"????-{value}"
+        raise ValueError
 
 
 class boolean(DataType):
