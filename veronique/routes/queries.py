@@ -6,6 +6,7 @@ import veronique.objects as O
 from veronique.settings import settings as S
 from veronique.utils import fragment, page, admin_only, pagination, D
 from veronique.context import context
+from veronique.data_types import TYPES
 from veronique import db
 
 queries = Blueprint("queries", url_prefix="/queries")
@@ -120,6 +121,9 @@ for singular, plural, model in (
         str(model(int(part))) for part in value.split(",")
     )
 
+for dt_name, data_type in TYPES.items():
+    SPECIAL_COL_NAMES[dt_name] = lambda value, dt=data_type: dt.display_html(value)
+
 
 def display_query_result(result, query_id=None):
     if result:
@@ -127,7 +131,7 @@ def display_query_result(result, query_id=None):
         colmap = {}
         for col in header:
             prefix, _, type_ = col.rpartition("_")
-            if type_ in SPECIAL_COL_NAMES:
+            if type_ in SPECIAL_COL_NAMES and prefix:
                 colmap[col] = {"label": prefix, "display": SPECIAL_COL_NAMES[type_]}
             else:
                 colmap[col] = {"label": col, "display": str}
