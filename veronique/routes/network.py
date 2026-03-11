@@ -49,7 +49,7 @@ async def show_network(request):
         query_id = None
         title = "Network"
         claim_ids = [int(claim_id) for claim_id in request.args.get("claims").split(",")]
-        claims = []
+        claims = set()
         for a_id, b_id in combinations(claim_ids, 2):
             a = O.Claim(a_id)
             queue = deque([(a, [])])
@@ -67,7 +67,8 @@ async def show_network(request):
                     else:
                         queue.append((r, p_))
             if results:
-                claims.extend(results)
+                claims.add(a)
+                claims.update(results)
     else:
         query_id = None
         claims = (
