@@ -1,7 +1,7 @@
 import random
 import math
-from collections import defaultdict, Counter
-from itertools import cycle
+from collections import defaultdict, Counter, deque
+from itertools import cycle, combinations
 
 from sanic import Blueprint, HTTPResponse
 
@@ -45,6 +45,29 @@ async def show_network(request):
             for row in result
         )
         title = f"{query.label} [N]"
+    elif "claims" in request.args:
+        query_id = None
+        title = "Network"
+        claim_ids = [int(claim_id) for claim_id in request.args.get("claims").split(",")]
+        claims = []
+        for a_id, b_id in combinations(claim_ids, 2):
+            a = O.Claim(a_id)
+            queue = deque([(a, [])])
+            results = None
+            while queue and not results:
+                t, p = queue.popleft()
+                for link in t.all_links(page_size=999):
+                    r_id = link.subject.id if link.subject.id != t.id else link.object.id
+                    if r_id in (pe.id for pe in p):
+                        continue
+                    r = O.Claim(r_id)
+                    p_ = [*p, r]
+                    if r_id == b_id:
+                        results = p_
+                    else:
+                        queue.append((r, p_))
+            if results:
+                claims.extend(results)
     else:
         query_id = None
         claims = (
@@ -154,7 +177,7 @@ async def show_network(request):
 
     colors = defaultdict(cycle(["red", "green", "blue", "orange", "purple"]).__next__)
     for node in all_nodes:
-        parts.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: {round(math.log(link_count[node["id"]] + 1)) + 1}, color: "{colors[node["cat"]]}"}});\n')
+        parts.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: {round(math.log(link_count[node["id"]] + 1)) + 2}, color: "{colors[node["cat"]]}"}});\n')
 
     for edge in all_edges:
         parts.append(f'graph.addEdge("{edge["source"]}", "{edge["target"]}", {{label: "{edge["label"]}", size: 1, color: "grey", type: "{edge["type"]}"}});\n')

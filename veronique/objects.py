@@ -544,6 +544,28 @@ class Claim(Model):
         ).fetchall():
             yield Claim(row["id"])
 
+    def all_links(self, page_no=0, page_size=20):
+        cur = db.conn.cursor()
+        if (verb_ids := context.user.readable_verbs) is not None:
+            cond = f"AND v.id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
+        else:
+            cond = ""
+        for row in cur.execute(
+            f"""
+            SELECT
+            c.id
+            FROM claims c
+            LEFT JOIN verbs v
+            ON c.verb_id = v.id
+            WHERE v.data_type LIKE '%directed_link'
+            AND v.id != {IS_A}
+            AND (c.subject_id = ? OR c.object_id = ?)
+            {cond}
+            """,
+            (self.id, self.id),
+        ).fetchall():
+            yield Claim(row["id"])
+
     def outgoing_inferred_claims(self):
         inferables = Verb.get_inferables()
         for inferable in inferables:
