@@ -440,7 +440,7 @@ class phonenumber(DataType):
         # no region: values from database should be normalized:
         pn = phonenumbers.parse(value)
         regions = phonenumbers.COUNTRY_CODE_TO_REGION_CODE.get(pn.country_code)
-        if regions and len(regions) == 1:
+        if regions:
             flag = "".join(
                 unicodedata.lookup(f"REGIONAL INDICATOR SYMBOL LETTER {c}")
                 for c in regions[0]
