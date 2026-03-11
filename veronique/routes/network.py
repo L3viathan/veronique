@@ -28,6 +28,7 @@ async def show_network(request):
         verbs = [O.Verb(verb_id) for verb_id in ids]
     else:
         verbs = all_verbs
+    colormap = None
     if "query" in request.args:
         query_id = int(request.args.get("query"))
         if not context.user.can("view", "query", query_id):
@@ -49,6 +50,9 @@ async def show_network(request):
         query_id = None
         title = "Network"
         claim_ids = [int(claim_id) for claim_id in request.args.get("claims").split(",")]
+        colormap = defaultdict(lambda: 0)
+        for claim_id in claim_ids:
+            colormap[str(claim_id)] = 1
         claims = set()
         for a_id, b_id in combinations(claim_ids, 2):
             a = O.Claim(a_id)
@@ -178,7 +182,7 @@ async def show_network(request):
 
     colors = defaultdict(cycle(["red", "green", "blue", "orange", "purple"]).__next__)
     for node in all_nodes:
-        parts.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: {round(math.log(link_count[node["id"]] + 1)) + 2}, color: "{colors[node["cat"]]}"}});\n')
+        parts.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: {round(math.log(link_count[node["id"]] + 1)) + 2}, color: "{colors[node["cat"] if not colormap else colormap[node["id"]]]}"}});\n')
 
     for edge in all_edges:
         parts.append(f'graph.addEdge("{edge["source"]}", "{edge["target"]}", {{label: "{edge["label"]}", size: 1, color: "grey", type: "{edge["type"]}"}});\n')
