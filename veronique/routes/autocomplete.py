@@ -1,7 +1,6 @@
 from sanic import Blueprint
 
 from veronique.utils import fragment, D
-from veronique.context import context
 from veronique.autocomplete import AUTOCOMPLETES
 
 autocomplete = Blueprint("autocomplete", url_prefix="/autocomplete")

@@ -1,11 +1,6 @@
-from sanic import Blueprint, HTTPResponse, redirect, raw
+from sanic import Blueprint, redirect
 
-import veronique.objects as O
-from veronique.utils import fragment, page, pagination, D
-from veronique.data_types import TYPES
-from veronique.settings import settings as S
-from veronique.context import context
-from veronique.db import IS_A, ROOT, AVATAR, COMMENT
+from veronique.utils import page
 from veronique.autocomplete import AUTOCOMPLETES
 
 tools = Blueprint("tools", url_prefix="/tools")
