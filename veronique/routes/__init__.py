@@ -8,3 +8,4 @@ from .search import search as search
 from .static import static as static
 from .index import index as index
 from .autocomplete import autocomplete as autocomplete
+from .tools import tools as tools

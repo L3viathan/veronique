@@ -6,7 +6,7 @@ import veronique.objects as O
 import veronique.security as security
 from veronique.context import context
 from veronique.utils import D
-from veronique.routes import claims, verbs, queries, users, settings, network, static, index, search, autocomplete
+from veronique.routes import claims, verbs, queries, users, settings, network, static, index, search, tools, autocomplete
 
 app = Sanic("Veronique")
 app.blueprint(claims)
@@ -18,6 +18,7 @@ app.blueprint(network)
 app.blueprint(static)
 app.blueprint(index)
 app.blueprint(search)
+app.blueprint(tools)
 app.blueprint(autocomplete)
 
 with open("data/login.html") as f:

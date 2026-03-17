@@ -13,7 +13,7 @@ class link(Autocomplete):
                 <input
                     name="ac-query"
                     placeholder="Start typing..."
-                    hx-get="/autocomplete/link/query/{data or ''}"
+                    hx-get="/autocomplete/link/query/{data}"
                     hx-target="next .ac-results"
                     hx-swap="innerHTML"
                     hx-trigger="input changed delay:200ms, search"
@@ -21,13 +21,6 @@ class link(Autocomplete):
                 <div class="ac-results">
                 </div>
             </div>
-        """
-
-    def result(self, value, swap):
-        return f"""
-        <span hx-swap-oob="{swap}">
-        <input type="hidden" name="value" value="{value}">
-        </span>
         """
 
     def get_results(self, query, connect):
@@ -50,6 +43,50 @@ class link(Autocomplete):
             <em>Create</em> {query} <em> claim...</em>
         </a>''' if connect is not None else ''}
         """
+
+    def accept(self, claim_id):
+        import veronique.objects as O
+        claim = O.Claim(int(claim_id))
+        return f"""
+        <span class="ac-result">{claim}</span>
+        <input type="hidden" name="value" value="{claim_id}">
+        """
+
+
+class connections(Autocomplete):
+    def widget(self, data=None):
+        return f"""
+            <div class="ac-widget">
+                <input
+                    name="ac-query"
+                    placeholder="Start typing..."
+                    hx-get="/autocomplete/connections/query/{data}"
+                    hx-target="next .ac-results"
+                    hx-swap="innerHTML"
+                    hx-trigger="input changed delay:200ms, search"
+                >
+                <div class="ac-results">
+                </div>
+            </div>
+            <div class="ac-hits">
+            </div>
+        """
+
+    def get_results(self, query, connect):
+        import veronique.objects as O
+        if not query:
+            return ""
+        claims = O.Claim.search(
+            q=query,
+            page_size=5,
+        )
+        return "".join(f'''<a
+            class="clickable ac-result"
+            hx-target="next .ac-hits"
+            hx-swap="beforeend"
+            hx-get="/autocomplete/connections/accept/{claim.id}"
+        >{claim:label}</a>
+        ''' for claim in claims)
 
     def accept(self, claim_id):
         import veronique.objects as O

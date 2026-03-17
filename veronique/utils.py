@@ -87,6 +87,7 @@ def page(fn):
             ("network", False),
             ("queries", False),
             ("users", True),
+            ("tools/connections", False),
         ]:
             if restricted and not context.user.is_admin:
                 gotos.append(f'<li><a href="#" disabled>{page_name.title()}</a></li>')
