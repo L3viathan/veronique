@@ -13,8 +13,9 @@ async def get_connections_form(request):
     return f"""
     <h2>What connects these claims?</h2>
     <form
-        hx-post="/tools/connections"
-        hx-encoding="multipart/form-data"
+        action="/tools/connections"
+        method="POST"
+        enctype="multipart/form-data"
     >
         {widget}
         <button type="submit">Find connections</button>
