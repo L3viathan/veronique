@@ -12,46 +12,6 @@ from veronique.db import IS_A, ROOT, AVATAR, COMMENT
 claims = Blueprint("claims", url_prefix="/claims")
 
 
-@claims.get("/autocomplete")
-@fragment
-async def autocomplete_claims(request):
-    args = D(request.args)
-    query = args.get("ac-query", "")
-    connect = args.get("connect", None)
-    if not query:
-        return ""
-    claims = O.Claim.search(
-        q=query,
-        page_size=5,
-    )
-    return f"""
-    {"".join(f"{claim:ac-result}" for claim in claims if context.user.can("read", "verb", claim.verb.id))}
-    {f'''<a class="clickable" href="/claims/new-root?connect={connect}&name={query}">
-        <em>Create</em> {query} <em> claim...</em>
-    </a>''' if connect is not None else ''}
-    """
-
-
-@claims.get("/autocomplete/accept/<claim_id>")
-@fragment
-async def autocomplete_claims_accept(request, claim_id: int):
-    claim = O.Claim(claim_id)
-    return f"""
-        <input
-            name="ac-query"
-            placeholder="Start typing..."
-            hx-get="/claims/autocomplete?claim={claim_id}"
-            hx-target="next .ac-results"
-            hx-swap="innerHTML"
-            hx-trigger="input changed delay:200ms, search"
-            value="{claim:label}"
-        >
-        <input type="hidden" name="value" value="{claim.id}"
-        <div class="ac-results">
-        </div>
-    """
-
-
 @claims.get("/new-root")
 @page
 async def new_root_claim_form(request):

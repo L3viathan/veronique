@@ -373,7 +373,9 @@ class Claim(Model):
     ):
         cur = db.conn.cursor()
         for hit in find(cur, q, table="claims", page_size=page_size):
-            yield cls(hit["id"])
+            claim = cls(hit["id"])
+            if context.user.can("read", "verb", claim.verb.id):
+                yield claim
 
     @classmethod
     def all(
@@ -896,13 +898,6 @@ class Claim(Model):
             return f"{self:link}"
         elif fmt == "handle":
             return f'<a class="handle{" more" if "has_claims" in data else ""}" href="/claims/{self.id}">↱</a>'
-        elif fmt == "ac-result":
-            return f"""<span
-                class="clickable ac-result"
-                hx-target="closest .ac-widget"
-                hx-swap="innerHTML"
-                hx-get="/claims/autocomplete/accept/{self.id}"
-            >{self:label}</span>"""
         elif fmt == "avatarsmall":
             if AVATAR not in data or context.user.redact:
                 return ""

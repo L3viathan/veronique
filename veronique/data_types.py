@@ -14,6 +14,7 @@ from markdown_it import MarkdownIt
 from veronique.nomnidate import NonOmniscientDate
 from veronique.context import context
 from veronique.settings import settings as S
+from veronique.autocomplete import AUTOCOMPLETES
 
 TYPES = {}
 TEXT_REF = re.compile(r"&lt;@(\d+)&gt;")
@@ -79,20 +80,9 @@ class DataType:
 
 class directed_link(DataType):
     def input_html(self, value=None, claim_id=None, direction=None, verb_id=None, allow_connect=True, **_):
-        return f"""
-            <div class="ac-widget">
-                <input
-                    name="ac-query"
-                    placeholder="Start typing..."
-                    hx-get="/claims/autocomplete{f"?connect={claim_id}:{direction}:{verb_id}" if allow_connect else ""}"
-                    hx-target="next .ac-results"
-                    hx-swap="innerHTML"
-                    hx-trigger="input changed delay:200ms, search"
-                >
-                <div class="ac-results">
-                </div>
-            </div>
-        """
+        return AUTOCOMPLETES["link"].widget(
+            data=f"{claim_id}:{direction}:{verb_id}" if allow_connect else None
+        )
 
 
 class undirected_link(directed_link):
