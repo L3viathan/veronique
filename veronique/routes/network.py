@@ -2,8 +2,9 @@ import random
 import math
 from collections import defaultdict, Counter, deque
 from itertools import cycle, combinations
+from time import monotonic
 
-from sanic import Blueprint, HTTPResponse
+from sanic import Blueprint, HTTPResponse, redirect
 
 import veronique.objects as O
 from veronique.context import context
@@ -54,6 +55,7 @@ async def show_network(request):
         for claim_id in claim_ids:
             colormap[str(claim_id)] = 1
         claims = set()
+        t_start = monotonic()
         for a_id, b_id in combinations(claim_ids, 2):
             a = O.Claim(a_id)
             queue = deque([(a, [])])
@@ -70,6 +72,9 @@ async def show_network(request):
                         results = p_
                     else:
                         queue.append((r, p_))
+                if monotonic() - t_start > 5:
+                    return redirect("/")
+
             if results:
                 claims.add(a)
                 claims.update(results)
