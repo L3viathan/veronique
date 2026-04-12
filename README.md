@@ -38,7 +38,7 @@ Missing migrations are automatically applied when restarting the app.
 
 ## Concepts
 
-The datatype starts mostly empty, only a few internal verbs are added during
+The database starts mostly empty, only a few internal verbs are added during
 the initial migration. There's also a fixed list of _data types_, since they
 need supporting Python code.
 
