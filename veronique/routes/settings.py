@@ -10,9 +10,9 @@ settings = Blueprint("settings", url_prefix="/settings")
 
 
 @settings.get("/")
-@admin_only
 @page
 async def settings_form(request):
+    d = "" if context.user.is_admin else " disabled"
     return "Settings", f"""
         <article>
             <header><h2>Settings</h2></header>
@@ -21,7 +21,7 @@ async def settings_form(request):
                 <fieldset class="grid">
                     <label>
                     Application name
-                    <input name="app_name" placeholder="Véronique">
+                    <input name="app_name" placeholder="Véronique"{d}>
                     <small>This will be shown as part of page titles.</small>
                     </label>
                     <label>
@@ -33,7 +33,7 @@ async def settings_form(request):
                 <fieldset class="grid">
                     <label>
                     Default region
-                    <input name="default_phone_region" placeholder="DE" pattern="[A-Z]{{2}}" maxlength="2" value="{S.default_phone_region or ""}">
+                    <input name="default_phone_region" placeholder="DE" pattern="[A-Z]{{2}}" maxlength="2" value="{S.default_phone_region or ""}"{d}>
                     <small>In phonenumber inputs, this will be assumed as the region, if none is specified via a + prefix.</small>
                     </label>
                 </fieldset>
@@ -60,22 +60,24 @@ async def settings_form(request):
                 <fieldset class="grid">
                     <label>
                     k<sub>1</sub>
-                    <input type="number" step="any" name="search_k_1" value="{S.search_k_1}">
+                    <input type="number" step="any" name="search_k_1" value="{S.search_k_1}"{d}>
                     </label>
                     <label>
                     b
-                    <input type="number" step="any" name="search_b" value="{S.search_b}">
+                    <input type="number" step="any" name="search_b" value="{S.search_b}"{d}>
                     </label>
                     <label>
                     n
-                    <input type="number" min=1 name="search_n" value="{S.search_n}">
+                    <input type="number" min=1 name="search_n" value="{S.search_n}"{d}>
                     <small>This is the <em>n</em> in n-gram. We use character n-grams.</small>
                     </label>
                 </fieldset>
+                {'''
                 <fieldset>
                 <a href="#" role="button" hx-swap="outerHTML" hx-post="/search/rebuild">Rebuild search index</a>
                 <a href="#" role="button" hx-swap="outerHTML" hx-post="/settings/generate-token">Issue API token</a>
                 </fieldset>
+                ''' if context.user.is_admin else ""}
 
                 <input type="submit" value="Save">
             </form>
@@ -84,18 +86,18 @@ async def settings_form(request):
 
 
 @settings.post("/")
-@admin_only
 async def save_settings(request):
     form = D(request.form)
-    S.app_name = form.get("app_name")
     S.page_size = form.get("page_size")
+    S.default_phone_region = form.get("default_phone_region")
     S.index_days_ahead = form.get("index_days_ahead")
     S.index_days_back = form.get("index_days_back")
     S.index_type = form.get("index_type")
-    S.search_k_1 = form.get("search_k_1")
-    S.search_b = form.get("search_b")
-    S.search_n = form.get("search_n")
-    S.default_phone_region = form.get("default_phone_region")
+    if context.user.is_admin:
+        S.app_name = form.get("app_name")
+        S.search_k_1 = form.get("search_k_1")
+        S.search_b = form.get("search_b")
+        S.search_n = form.get("search_n")
     return redirect("/")
 
 
