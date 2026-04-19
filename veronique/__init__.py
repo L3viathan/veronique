@@ -8,7 +8,12 @@ from veronique.context import context
 from veronique.utils import D
 from veronique.routes import claims, verbs, queries, users, settings, network, static, index, search, tools, autocomplete
 
+WEBDAV_METHODS = ["COPY", "LOCK", "MKCOL", "MOVE", "PROPFIND", "PROPPATCH", "UNLOCK"]
+
 app = Sanic("Veronique")
+
+app.router.ALLOWED_METHODS = [*app.router.ALLOWED_METHODS, *WEBDAV_METHODS]
+
 app.blueprint(claims)
 app.blueprint(verbs)
 app.blueprint(queries)
