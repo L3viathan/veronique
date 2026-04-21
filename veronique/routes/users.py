@@ -7,6 +7,7 @@ from veronique.utils import page, admin_only, pagination
 from veronique.settings import settings as S
 from veronique.data_types import TYPES
 from veronique.db import IS_A, ROOT
+from veronique.context import context
 
 users = Blueprint("users", url_prefix="/users")
 
@@ -195,6 +196,7 @@ async def stop_impersonating(request):
         <meta http-equiv="refresh" content="0; url={redirect_url}">
     """)
     response.delete_cookie("impersonate")
+    del context.impersonator
     return response
 
 
