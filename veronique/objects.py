@@ -419,7 +419,7 @@ class Claim(Model):
             yield cls(row["id"])
 
     @classmethod
-    def all_at_dates(cls, target_dates):
+    def all_at_dates(cls, target_dates, include_validity=False):
         """
         Yields tuples of (date, claims) for each target date.
 
@@ -429,10 +429,13 @@ class Claim(Model):
         """
         cur = db.conn.cursor()
         conditions = [
-            "v.id != ?",
-            "v.id != ?",
             "v.data_type = 'date'",
         ]
+        if not include_validity:
+            conditions.extend([
+                "v.id != ?",
+                "v.id != ?",
+            ])
         conditions.append(
             f"""({' OR '.join(f"c.value LIKE '%-{d}'" for d in target_dates)})"""
         )
@@ -452,7 +455,7 @@ class Claim(Model):
         }
         for row in cur.execute(
             query,
-            (
+            () if include_validity else (
                 VALID_FROM,
                 VALID_UNTIL,
             ),

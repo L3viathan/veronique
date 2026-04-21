@@ -13,7 +13,7 @@ from veronique.db import ROOT
 index = Blueprint("index")
 
 
-def _recent_events_page(request):
+def _recent_events_page(request, include_validity=False):
     recent_events = []
     page_no = int(request.args.get("page", 1))
     reference_date = date.today()
@@ -23,7 +23,7 @@ def _recent_events_page(request):
         f"{reference_date + timedelta(days=d):%m-%d}"
         for d in range(-S.index_days_back, S.index_days_ahead+1)
     ]
-    for d, claims in O.Claim.all_at_dates(target_days):
+    for d, claims in O.Claim.all_at_dates(target_days, include_validity=include_validity):
         if d == f"{reference_date:%m-%d}" and not claims:
             recent_events.append('<hr class="date-today">')
         for claim in claims:
@@ -72,6 +72,7 @@ def _newest_claims(request, only_root=True):
 async def homepage(request):
     return {
         "recent_events": _recent_events_page,
+        "all_recent_events": functools.partial(_recent_events_page, include_validity=True),
         "newest_claims": functools.partial(_newest_claims, only_root=False),
         "newest_root_claims": _newest_claims,
     }[S.index_type](request)
