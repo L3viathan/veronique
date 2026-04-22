@@ -31,7 +31,7 @@ def _recent_events_page(request, include_validity=False):
             years = re.search(r"(\d+|last|next) years?", str(claim))
             if years:
                 years = 1 if years.group(1) in ("last", "next") else int(years.group(1))
-            if not years or years % S.index_recent_events_mod == 0:
+            if not years or years % S.index_recent_events_mod(years) == 0:
                 recent_events.append(f'<span class="row">{claim:link}</span>')
     heading = f"Events near {'today' if page_no == 1 else f'{reference_date:%m-%d}'}"
     return f"""

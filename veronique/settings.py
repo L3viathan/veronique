@@ -1,9 +1,45 @@
+import ast
+import operator
 import typing
 
 from veronique import db
 from veronique.context import context
 
 UNKNOWN = object()
+
+class ConditionalInt:
+    """
+    <10:1,<100:5,10
+
+    meaning: if the given number is less than 10, 1. If it's less than 100, 5.
+             otherwise 10.
+    """
+    def __init__(self, value):
+        self._repr = str(value)
+        self.checks = []
+        for part in self._repr.split(","):
+            cond, _, val = part.rpartition(":")
+            val = int(val)
+            def check(x, cond=cond):
+                if cond:
+                    op, checkval = cond[0], cond[1:]
+                    return {
+                        "<": operator.lt,
+                        ">": operator.gt,
+                        "=": operator.eq,
+                    }[op](x, int(checkval))
+                    return ast.literal_eval(f"{x}{cond}")
+                return True
+            self.checks.append((check, val))
+
+    def __str__(self):
+        return self._repr
+
+    def __call__(self, value):
+        for cond, res in self.checks:
+            if cond(value):
+                return res
+
 
 class Setting:
     def __init__(self, default, user_settable=False):
@@ -31,9 +67,9 @@ class Setting:
         self.value = self.converter(value)
         row = db.conn.execute("SELECT value FROM settings WHERE key=?", (self.key,)).fetchone()
         if row is None:
-            db.conn.execute("INSERT INTO settings (key, value) VALUES (?, ?)", (self.key, value))
+            db.conn.execute("INSERT INTO settings (key, value) VALUES (?, ?)", (self.key, str(value)))
         else:
-            db.conn.execute("UPDATE settings SET value=? WHERE key=?", (value, self.key))
+            db.conn.execute("UPDATE settings SET value=? WHERE key=?", (str(value), self.key))
         db.conn.commit()
 
     def __set_name__(self, owner, name):
@@ -52,7 +88,7 @@ class Settings:
     index_type: str = Setting("recent_events", user_settable=True)
     index_days_ahead: int = Setting(7, user_settable=True)
     index_days_back: int = Setting(3, user_settable=True)
-    index_recent_events_mod: int = Setting(1, user_settable=True)
+    index_recent_events_mod: ConditionalInt = Setting(1, user_settable=True)
     default_phone_region: str = Setting("DE", user_settable=True)
     search_k_1: float = Setting(0.25)
     search_b: float = Setting(0.75)

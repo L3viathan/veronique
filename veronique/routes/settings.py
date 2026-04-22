@@ -57,7 +57,7 @@ async def settings_form(request):
                     </label>
                     <label>
                     Roundness
-                    <input type="number" name="index_recent_events_mod" min=1 value="{S.index_recent_events_mod}">
+                    <input type="text" name="index_recent_events_mod" value="{S.index_recent_events_mod}">
                     <small>How significant anniversaries have to be (e.g. 5 for only anniversaries ending in 5 and 0)</small>
                     </label>
                 </fieldset>
