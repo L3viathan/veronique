@@ -52,6 +52,7 @@ class Settings:
     index_type: str = Setting("recent_events", user_settable=True)
     index_days_ahead: int = Setting(7, user_settable=True)
     index_days_back: int = Setting(3, user_settable=True)
+    index_recent_events_mod: int = Setting(1, user_settable=True)
     default_phone_region: str = Setting("DE", user_settable=True)
     search_k_1: float = Setting(0.25)
     search_b: float = Setting(0.75)

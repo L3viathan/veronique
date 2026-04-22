@@ -1,4 +1,5 @@
 import functools
+import re
 from datetime import date, timedelta
 
 from sanic import Blueprint
@@ -27,7 +28,11 @@ def _recent_events_page(request, include_validity=False):
         if d == f"{reference_date:%m-%d}" and not claims:
             recent_events.append('<hr class="date-today">')
         for claim in claims:
-            recent_events.append(f'<span class="row">{claim:link}</span>')
+            years = re.search(r"(\d+|last|next) years?", str(claim))
+            if years:
+                years = 1 if years.group(1) in ("last", "next") else int(years.group(1))
+            if not years or years % S.index_recent_events_mod == 0:
+                recent_events.append(f'<span class="row">{claim:link}</span>')
     heading = f"Events near {'today' if page_no == 1 else f'{reference_date:%m-%d}'}"
     return f"""
         <article><header>

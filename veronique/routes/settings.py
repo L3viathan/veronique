@@ -55,6 +55,11 @@ async def settings_form(request):
                     <input type="number" name="index_days_ahead" min=1 value="{S.index_days_ahead}">
                     <small>How many days to look forwards for relevant events.</small>
                     </label>
+                    <label>
+                    Roundness
+                    <input type="number" name="index_recent_events_mod" min=1 value="{S.index_recent_events_mod}">
+                    <small>How significant anniversaries have to be (e.g. 5 for only anniversaries ending in 5 and 0)</small>
+                    </label>
                 </fieldset>
                 <h4>Indexing</h4>
                 <small>These weights influence the BM25 algorithm used for searching.</small>
@@ -94,6 +99,7 @@ async def save_settings(request):
     S.index_days_ahead = form.get("index_days_ahead")
     S.index_days_back = form.get("index_days_back")
     S.index_type = form.get("index_type")
+    S.index_recent_events_mod = form.get("index_recent_events_mod")
     if context.user.is_admin:
         S.app_name = form.get("app_name")
         S.search_k_1 = form.get("search_k_1")
