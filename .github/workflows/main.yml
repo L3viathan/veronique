@@ -17,3 +17,5 @@ jobs:
         run: python -m pytest
       - name: Lint
         run: ruff check
+    permissions:
+      contents: read
