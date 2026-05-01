@@ -638,6 +638,8 @@ class Claim(Model):
         # evict deleted claim from cache:
         db.conn.commit()
         self._cache.pop(self.id)
+        if self.subject and hasattr(Claim.get_data.__wrapped__, "_cached"):
+            Claim.get_data.__wrapped__._cached.pop(self.subject.id, None)
 
     def set_value(self, value):
         cur = db.conn.cursor()
@@ -754,7 +756,7 @@ class Claim(Model):
         db.conn.commit()
         return Claim(new_id)
 
-    @timed_cache(5*60, key=lambda self, *_, **__: self)
+    @timed_cache(5*60, key=lambda self, *_, **__: self.id)
     def get_data(self, claims=None):
         data = {}
         if claims is None:
