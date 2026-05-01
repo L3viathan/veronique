@@ -444,3 +444,7 @@ footer {
   padding: 2px;
   margin-right: 2px;
 }
+
+.dim {
+  opacity: 0.5;
+}

@@ -417,6 +417,7 @@ async def view_claim(request, claim_id: int):
             <input type="submit" hidden>
         </form>''' if context.user.can("write", "verb", COMMENT) else ""
         }
+        <small class="dim">Created at: {claim.created_at}</small>
         </footer>
         {pagination(
             f"/claims/{claim_id}",
