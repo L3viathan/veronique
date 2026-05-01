@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import date, datetime
 from functools import cached_property, cache
 from itertools import count, combinations
@@ -974,6 +975,30 @@ class Claim(Model):
                 }
             )
         return node, edges
+
+    def merge(self, other):
+        cur = db.conn.cursor()
+        cur.execute(
+            """
+            UPDATE claims
+            SET subject_id=?
+            WHERE subject_id = ?
+            """,
+            (self.id, other.id),
+        )
+        cur.execute(
+            """
+            UPDATE claims
+            SET object_id=?
+            WHERE object_id = ?
+            """,
+            (self.id, other.id),
+        )
+        for mention in other.incoming_mentions(page_size=999):
+            value = mention.object
+            value.value = re.sub(rf"<@{other.id}>", f"<@{self.id}>", value.value)
+            mention.set_value(value)
+        db.conn.commit()
 
 
 class Query(Model):
