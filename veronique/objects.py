@@ -1000,6 +1000,13 @@ class Claim(Model):
             value = mention.object
             value.value = re.sub(rf"<@{other.id}>", f"<@{self.id}>", value.value)
             mention.set_value(value)
+        cur.execute(
+            """
+            DELETE claims
+            WHERE id = ?
+            """,
+            (other.id,),
+        )
         db.conn.commit()
 
 
