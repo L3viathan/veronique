@@ -299,6 +299,7 @@ class Claim(Model):
                 value,
                 object_id,
                 created_at,
+                updated_at,
                 owner_id
             FROM
                 claims
@@ -341,6 +342,7 @@ class Claim(Model):
                     value,
                     object_id,
                     created_at,
+                    updated_at,
                     owner_id
                 FROM
                     claims
@@ -364,6 +366,7 @@ class Claim(Model):
             self.object = None
         self.owner = User(row["owner_id"])
         self.created_at = row["created_at"]
+        self.updated_at = row["updated_at"]
 
     @classmethod
     def search(
