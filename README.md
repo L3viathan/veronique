@@ -28,8 +28,10 @@ different tool.
 
 ## Deployment
 
-Running in production mostly means removing the `--dev` flag. Maybe set up a
-systemd service for it and point a reverse proxy at it or something. I
+For a production environment you can directly install the `veronique` package,
+which will get you the latest released version. If you want to be very
+up-to-date, you can also do the above and just remove the `--dev` flag. Maybe
+set up a systemd service for it and point a reverse proxy at it or something. I
 personally [use
 ansible](https://github.com/L3viathan/ansibly/blob/master/roles/mainserver/tasks/veronique.yml)
 for deploying new versions.
