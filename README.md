@@ -18,10 +18,10 @@ different tool.
 ## Development
 
 - Clone the repo
-- Install `sanic`, `phonenumbers`, and `markdown-it-py[linkify]` (to a venv)
+- Install its dependencies to a venv, e.g. via `pip install -e .`
 - _Either_: Place a file called `veronique_initial_pw` containing a password in
   the working directory. This will be the password of the `admin` user.
-- _Or_: Run `python -m veronique.bootstrap` to fill the database with testing
+- _Or_: Run `veronique-bootstrap` to fill the database with testing
   data. The password of the admin user will be "admin". **This irrevocably
   overwrites any existing db you may have.**
 - Run `sanic veronique:app --dev`

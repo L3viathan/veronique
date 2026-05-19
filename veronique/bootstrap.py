@@ -11,7 +11,7 @@ def make(name, *relations, category="human"):
     return person
 
 
-if __name__ == "__main__":
+def cli():
     if os.path.exists("veronique.db"):
         print(
             "Can't bootstrap, DB already exists. Delete veronique.db and run this again.",
@@ -102,3 +102,6 @@ if __name__ == "__main__":
     make("Joe Quimby", (birthdate, "1945-??-??"))
     make("Nelson Muntz", (birthdate, "1979-10-30"))
     make("Waylon Smithers", (birthdate, "1953-12-25"), (works_at, snpp))
+
+if __name__ == "__main__":
+    cli()
