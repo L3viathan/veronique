@@ -1,15 +1,6 @@
 import sys
 import os
 
-def make(name, *relations, category="human"):
-    person = O.Claim.new_root(name)
-    O.Claim.new(person, O.Verb(veronique.db.IS_A), categories[category])
-    for verb, obj in relations:
-        if not isinstance(obj, O.Claim):
-            obj = O.Plain(obj, verb)
-        O.Claim.new(person, verb, obj)
-    return person
-
 
 def cli():
     if os.path.exists("veronique.db"):
@@ -24,6 +15,16 @@ def cli():
     import veronique.db  # noqa
     import veronique.objects as O
     from veronique.context import context
+
+    def make(name, *relations, category="human"):
+        person = O.Claim.new_root(name)
+        O.Claim.new(person, O.Verb(veronique.db.IS_A), categories[category])
+        for verb, obj in relations:
+            if not isinstance(obj, O.Claim):
+                obj = O.Plain(obj, verb)
+            O.Claim.new(person, verb, obj)
+        return person
+
     context.user = O.User(0)
     categories = {}
     for category in ["human", "place", "event", "company"]:
@@ -76,8 +77,15 @@ def cli():
         (child_of, marge),
         (birthdate, "1979-02-23"),
     )
-    make("Lisa Simpson", (child_of, homer), (child_of, marge), (birthdate, "1981-05-09"))
-    make("Maggie Simpson", (child_of, homer), (child_of, marge), (birthdate, "1988-01-14"))
+    make(
+        "Lisa Simpson", (child_of, homer), (child_of, marge), (birthdate, "1981-05-09")
+    )
+    make(
+        "Maggie Simpson",
+        (child_of, homer),
+        (child_of, marge),
+        (birthdate, "1988-01-14"),
+    )
     make("Ned Flanders", (birthdate, "1929-??-??"))
     make("Lenny Leonard", (birthdate, "1950-04-13"), (works_at, snpp))
     make("Carl Carlson", (birthdate, "1950-04-20"), (works_at, snpp))
@@ -87,7 +95,7 @@ def cli():
     wiggum = make("Clancy Wiggum", (birthdate, "1946-04-28"))
     make("Ralph Wiggum", (child_of, wiggum))
     make("Charles Montgomery Burns", (birthdate, "1900-09-15"), (works_at, snpp))
-    make("Herschel \"Krusty\" Krustofski", (birthdate, "1941-06-15"))
+    make('Herschel "Krusty" Krustofski', (birthdate, "1941-06-15"))
     make("Moe Szyslak", (birthdate, "1948-11-24"))
     make("Jimbo Jones", (birthdate, "1973-10-26"))
     make("Kearney Zzyzwicz", (birthdate, "1960-10-09"))
@@ -102,6 +110,7 @@ def cli():
     make("Joe Quimby", (birthdate, "1945-??-??"))
     make("Nelson Muntz", (birthdate, "1979-10-30"))
     make("Waylon Smithers", (birthdate, "1953-12-25"), (works_at, snpp))
+
 
 if __name__ == "__main__":
     cli()
