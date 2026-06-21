@@ -704,10 +704,11 @@ def clean_up_choices(cur):
         """,
     ).fetchall()
     for id, value in claims:
-        cur.execute(
-            "UPDATE claims SET value = ? WHERE id = ?",
-            (json.dumps([val.strip() for val in json.loads(value)]), id),
-        )
+        if value:
+            cur.execute(
+                "UPDATE claims SET value = ? WHERE id = ?",
+                (json.dumps([val.strip() for val in json.loads(value)]), id),
+            )
 
 
 if os.environ.get("VERONIQUE_READONLY"):
