@@ -143,6 +143,7 @@ async def edit_verb_form(request, verb_id: int):
             method="POST"
         >
             <input name="label" value="{verb.label}">
+            {verb:edit}
             <button type="submit">»</button>
         </form>
         """
@@ -153,6 +154,8 @@ async def edit_verb_form(request, verb_id: int):
 async def edit_verb(request, verb_id: int):
     form = D(request.form)
     verb = O.Verb(verb_id)
-    value = form.get("label")
+    value = form.pop("label")
     verb.rename(value)
+    if form:
+        verb.edit(form)
     return redirect(f"/verbs/{verb_id}")

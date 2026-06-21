@@ -684,6 +684,31 @@ def delete_label_verb(cur):
     )
 
 
+@migration(23)
+def clean_up_choices(cur):
+    verbs = cur.execute(
+        "SELECT id, extra FROM verbs WHERE data_type LIKE 'choice%'"
+    ).fetchall()
+    for id, extra in verbs:
+        cur.execute(
+            "UPDATE verbs SET extra = ? WHERE id = ?",
+            (json.dumps([val.strip() for val in json.loads(extra)]), id),
+        )
+    claims = cur.execute(
+        """
+        SELECT c.id, c.value
+        FROM claims c
+        LEFT JOIN verbs v ON c.verb_id = v.id
+        WHERE v.data_type LIKE 'choice%'
+        """,
+    ).fetchall()
+    for id, value in claims:
+        cur.execute(
+            "UPDATE claims SET value = ? WHERE id = ?",
+            (json.dumps([val.strip() for val in json.loads(value)]), id),
+        )
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 

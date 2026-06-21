@@ -40,6 +40,9 @@ class DataType:
     def input_html(self, value=None, **_):
         return f"placeholder, not implemented for data type {type(self).__name__}."
 
+    def edit_verb(self, verb):
+        return ""
+
     def next_step(self, args):
         return None
 
@@ -633,7 +636,7 @@ class choice(DataType):
         """
 
     def get_extra(self, args):
-        return json.dumps([choice for choice in args["choices"].split("\n") if choice])
+        return json.dumps([choice.strip() for choice in args["choices"].split("\n") if choice.strip()])
 
     def detail_for(self, verb):
         choices = json.loads(verb.extra)
@@ -658,6 +661,23 @@ class choice(DataType):
         # choice and choices can't be reverbed (not even to verbs of the same
         # data type), because other verbs will have different choices
         return ()
+
+    def edit_verb_form(self, verb):
+        choices = [c.strip() for c in json.loads(verb.extra)]
+        newline = "\n"
+        return f"""
+            <label>Enter possible choices. One choice per line.
+            <textarea name="choices">{newline.join(choices)}</textarea>
+            </label>
+        """
+
+    def edit_verb(self, verb, form):
+        new_extra = self.get_extra(form)
+        new = set(json.loads(new_extra))
+        old = set(json.loads(verb.extra))
+        if old - new:
+            raise ValueError(f"Can't remove values from choice(s): {set(json.loads(new_extra)) - set(verb.extra)} (old: {old}, new: {new})")
+        verb.extra = new_extra
 
 class choices(choice):
     def display_html(self, value, **_):

@@ -236,11 +236,26 @@ class Verb(Model):
             return f"""<h2>{self.label}</h2>{" ".join(buttons)}"""
         elif fmt == "detail":
             return self.data_type.detail_for(self)
+        elif fmt == "edit":
+            return self.data_type.edit_verb_form(self)
         else:
             return f"""<a
                 class="clickable verb"
                 href="/verbs/{self.id}"
             >{self.label}</a>"""
+
+    def edit(self, form):
+        self.data_type.edit_verb(self, form)
+        cur = db.conn.cursor()
+        cur.execute(
+            """
+            UPDATE verbs
+            SET extra=?
+            WHERE id = ?
+            """,
+            (self.extra, self.id),
+        )
+        db.conn.commit()
 
     def rename(self, name):
         cur = db.conn.cursor()
