@@ -253,7 +253,7 @@ class date(DataType):
     year_pattern = re.compile("^[0-9?]{4}$")
     month_day_pattern = re.compile("^[0-9?]{2}-[0-9?]{2}$")
 
-    def display_html(self, value, **_):
+    def display_html(self, value, prop, **_):
         d = NonOmniscientDate(value)
         today = datetime.date.today()
         td = today - d
@@ -265,11 +265,40 @@ class date(DataType):
             class_ = "date-tomorrow"
         else:
             class_ = ""
+        astro = ""
+        if "s" in (prop.extra or "") and "?" not in value[-5:]:
+            # we have day and month and want zodiac signs
+            if (astronum := int(value[-5:].replace("-", ""))) < 120 or astronum > 1221:
+                astro = '<span data-tooltip="Capricorn">♑︎</span>'
+            elif astronum < 219:
+                astro = '<span data-tooltip="Aquarius">♒︎</span>'
+            elif astronum < 321:
+                astro = '<span data-tooltip="Pisces">♓︎</span>'
+            elif astronum < 420:
+                astro = '<span data-tooltip="Aries">♈︎</span>'
+            elif astronum < 521:
+                astro = '<span data-tooltip="Taurus">♉︎</span>'
+            elif astronum < 622:
+                astro = '<span data-tooltip="Gemini">♊︎</span>'
+            elif astronum < 723:
+                astro = '<span data-tooltip="Cancer">♋︎</span>'
+            elif astronum < 823:
+                astro = '<span data-tooltip="Leo">♌︎</span>'
+            elif astronum < 923:
+                astro = '<span data-tooltip="Virgo">♍︎</span>'
+            elif astronum < 1024:
+                astro = '<span data-tooltip="Libra">♎︎</span>'
+            elif astronum < 1122:
+                astro = '<span data-tooltip="Scorpio">♏︎</span>'
+            elif astronum < 1222:
+                astro = '<span data-tooltip="Sagittarius">♐︎</span>'
+            else:
+                raise RuntimeError("Unexpected date")
         if value == "????-??-??":
             value = "unknown"
         else:
             value = value.removeprefix("????-").removesuffix("-??-??")
-        return f"""<span class="{class_}">🗓️{value} <em>({td})</em></span>"""
+        return f"""<span class="{class_}">🗓️{value}{astro} <em>({td})</em></span>"""
 
     def input_html(self, value=None, **_):
         if value:
@@ -292,6 +321,23 @@ class date(DataType):
         if date.month_day_pattern.match(value):
             return f"????-{value}"
         raise ValueError
+
+    def get_extra(self, args):
+        return "s" if "starsign" in args else ""
+
+    def edit_verb_form(self, verb):
+        flags = verb.extra or ""
+        newline = "\n"
+        return f"""
+            <label>
+              <input type="checkbox" name="starsign" {"checked" if "s" in flags else ""} />
+              Show star sign when possible
+            </label>
+        """
+
+    def edit_verb(self, verb, form):
+        new_extra = self.get_extra(form)
+        verb.extra = new_extra
 
 
 class boolean(DataType):

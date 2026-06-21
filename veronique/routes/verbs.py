@@ -156,6 +156,5 @@ async def edit_verb(request, verb_id: int):
     verb = O.Verb(verb_id)
     value = form.pop("label")
     verb.rename(value)
-    if form:
-        verb.edit(form)
+    verb.edit(form)
     return redirect(f"/verbs/{verb_id}")
