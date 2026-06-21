@@ -707,7 +707,7 @@ def clean_up_choices(cur):
         if value:
             cur.execute(
                 "UPDATE claims SET value = ? WHERE id = ?",
-                (json.dumps([val.strip() for val in json.loads(value)]), id),
+                (value.strip(), id),
             )
 
 
