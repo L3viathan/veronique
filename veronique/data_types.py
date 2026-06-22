@@ -254,7 +254,7 @@ class date(DataType):
     month_day_pattern = re.compile("^[0-9?]{2}-[0-9?]{2}$")
 
     def display_html(self, value, prop, **_):
-        d = NonOmniscientDate(value)
+        d = NonOmniscientDate(value, negating_days_allowed="a" not in (prop.extra or ""))
         today = datetime.date.today()
         td = today - d
         if td.days == 0:
@@ -294,11 +294,12 @@ class date(DataType):
                 astro = '<span data-tooltip="Sagittarius">♐︎</span>'
             else:
                 raise RuntimeError("Unexpected date")
+        fmt_flags = "a" if "a" in (prop.extra or "") else ""
         if value == "????-??-??":
             value = "unknown"
         else:
             value = value.removeprefix("????-").removesuffix("-??-??")
-        return f"""<span class="{class_}">🗓️{value}{astro} <em>({td})</em></span>"""
+        return f"""<span class="{class_}">🗓️{value}{astro} <em>({td:{fmt_flags}})</em></span>"""
 
     def input_html(self, value=None, **_):
         if value:
@@ -323,16 +324,25 @@ class date(DataType):
         raise ValueError
 
     def get_extra(self, args):
-        return "s" if "starsign" in args else ""
+        return "".join(
+            name[0] for name in ("starsign", "age") if name in args
+        )
 
     def edit_verb_form(self, verb):
         flags = verb.extra or ""
-        newline = "\n"
         return f"""
+            <fieldset>
+            <legend>Options</legend>
             <label>
               <input type="checkbox" name="starsign" {"checked" if "s" in flags else ""} />
               Show star sign when possible
             </label>
+            <label>
+              <input type="checkbox" name="age" {"checked" if "a" in flags else ""} />
+              Show as age
+            </label>
+              <small>Will always show correct age when possible, never e.g. "5 years ago, in 3 days".</small>
+            </fieldset>
         """
 
     def edit_verb(self, verb, form):

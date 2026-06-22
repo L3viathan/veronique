@@ -7,8 +7,18 @@ class NonOmniscientDatedelta:
     years: int = None
     days: int = None
 
-    def __str__(self):
+    def __format__(self, flags):
         # this assumes this is in reference to "today" (whatever that is)
+        if "a" in flags and self.years is not None and self.years > 0:
+            # special case: this is an age. We show no negative days and always
+            # the full amount of years. We never show things like "3 years old,
+            # in 5 days".
+            years = self.years
+            if self.days is None or self.days == 0:
+                d_part = ""
+            else:
+                d_part = f" and {self.days} days"
+            return f"{years} years{d_part} old"
         if self.years is None:
             y_part = "some year"
         elif self.years > 0:
@@ -72,7 +82,7 @@ class NonOmniscientDatedelta:
             return d_part
 
 
-def subtract_years_and_days(dt1, dt2):
+def subtract_years_and_days(dt1, dt2, negating_days_allowed=True):
     years = dt1.year - dt2.year
 
     dt1_in_dt2_year = dt1.replace(year=dt2.year)
@@ -80,7 +90,10 @@ def subtract_years_and_days(dt1, dt2):
         days = (dt1_in_dt2_year - dt2).days
     else:
         days = -(dt2 - dt1_in_dt2_year).days
-    if abs(days) > 182:
+    if days < 0 and not negating_days_allowed:
+        years -= 1
+        days = (dt1_in_dt2_year.replace(dt1_in_dt2_year.year+1) - dt2).days
+    elif abs(days) > 182 and negating_days_allowed:
         if dt1_in_dt2_year > dt2:
             days = -(dt2.replace(year=dt2.year+1)- dt1_in_dt2_year).days
             years += 1
@@ -91,9 +104,10 @@ def subtract_years_and_days(dt1, dt2):
 
 
 class NonOmniscientDate:
-    def __init__(self, representation):
+    def __init__(self, representation, negating_days_allowed=True):
         self.year, self.month, self.day = representation.split("-")
         self.is_omniscient = "?" not in representation
+        self.negating_days_allowed = negating_days_allowed
 
     def __rsub__(self, other):
         assert isinstance(other, datetime.date)
@@ -103,7 +117,11 @@ class NonOmniscientDate:
                 int(self.month),
                 int(self.day),
             )
-            years, days = subtract_years_and_days(other, d)
+            years, days = subtract_years_and_days(
+                other,
+                d,
+                negating_days_allowed=self.negating_days_allowed,
+            )
             return NonOmniscientDatedelta(
                 years=years,
                 days=days,
