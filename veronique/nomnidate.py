@@ -7,6 +7,9 @@ class NonOmniscientDatedelta:
     years: int = None
     days: int = None
 
+    def __str__(self):
+        return f"{self}"
+
     def __format__(self, flags):
         # this assumes this is in reference to "today" (whatever that is)
         if "a" in flags and self.years is not None and self.years > 0:
