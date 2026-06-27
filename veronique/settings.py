@@ -4,6 +4,18 @@ import typing
 
 from veronique import db
 from veronique.context import context
+from veronique.constants import (
+    SEARCH_DEFAULT_K1,
+    SEARCH_DEFAULT_B,
+    SEARCH_DEFAULT_N,
+    INDEX_DEFAULT_TYPE,
+    INDEX_DEFAULT_DAYS_AHEAD,
+    INDEX_DEFAULT_DAYS_BACK,
+    INDEX_DEFAULT_RECENT_EVENTS_MOD,
+    DEFAULT_PHONE_REGION,
+    DEFAULT_APP_NAME,
+    DEFAULT_PAGE_SIZE,
+)
 
 UNKNOWN = object()
 
@@ -83,16 +95,16 @@ class Setting:
         return self.name
 
 class Settings:
-    app_name: str = Setting("Véronique")
-    page_size: int = Setting(20, user_settable=True)
-    index_type: str = Setting("recent_events", user_settable=True)
-    index_days_ahead: int = Setting(7, user_settable=True)
-    index_days_back: int = Setting(3, user_settable=True)
-    index_recent_events_mod: ConditionalInt = Setting(1, user_settable=True)
-    default_phone_region: str = Setting("DE", user_settable=True)
-    search_k_1: float = Setting(0.25)
-    search_b: float = Setting(0.75)
-    search_n: int = Setting(3)
+    app_name: str = Setting(DEFAULT_APP_NAME)
+    page_size: int = Setting(DEFAULT_PAGE_SIZE, user_settable=True)
+    index_type: str = Setting(INDEX_DEFAULT_TYPE, user_settable=True)
+    index_days_ahead: int = Setting(INDEX_DEFAULT_DAYS_AHEAD, user_settable=True)
+    index_days_back: int = Setting(INDEX_DEFAULT_DAYS_BACK, user_settable=True)
+    index_recent_events_mod: ConditionalInt = Setting(INDEX_DEFAULT_RECENT_EVENTS_MOD, user_settable=True)
+    default_phone_region: str = Setting(DEFAULT_PHONE_REGION, user_settable=True)
+    search_k_1: float = Setting(SEARCH_DEFAULT_K1)
+    search_b: float = Setting(SEARCH_DEFAULT_B)
+    search_n: int = Setting(SEARCH_DEFAULT_N)
 
 
 settings = Settings()

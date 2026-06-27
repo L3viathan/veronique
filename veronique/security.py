@@ -5,10 +5,12 @@ from secrets import token_bytes
 from hmac import compare_digest
 from base64 import b64decode
 
+from veronique.constants import SECURITY_KEY_SIZE, SECURITY_SALT_SIZE, SECURITY_PBKDF2_HMAC_ROUNDS
+
 
 key_path = Path(".veronique-key")
 if not key_path.exists():
-    key = token_bytes(16)
+    key = token_bytes(SECURITY_KEY_SIZE)
     key_path.write_text(f"{key.hex()}\n")
 else:
     key = bytes.fromhex(key_path.read_text().strip())
@@ -44,13 +46,13 @@ def _hash_pwd(password, salt):
         "sha256",
         password,
         salt,
-        500_000,
+        SECURITY_PBKDF2_HMAC_ROUNDS,
     ).hex()
 
 
 def hash_password(password, salt=None):
     if salt is None:
-        salt = token_bytes(16)
+        salt = token_bytes(SECURITY_SALT_SIZE)
     return _hash_pwd(password.encode(), salt), salt.hex()
 
 

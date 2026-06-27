@@ -1,7 +1,7 @@
 import unicodedata
 
 from veronique import db
-from veronique.constants import SEARCH_AVGDL_CACHE_TIME
+from veronique.constants import SEARCH_AVGDL_CACHE_TIME, SEARCH_AVGDL_FALLBACK
 from veronique.db import ROOT
 from veronique.utils import timed_cache
 from veronique.settings import settings as S
@@ -58,7 +58,7 @@ def ngrams(string):
 def calculate_avgdl(cur):
     row = cur.execute("SELECT AVG(length) AS avgdl FROM forward_index").fetchone()
     if not row:
-        return 15  # just some semi-realistic value
+        return SEARCH_AVGDL_FALLBACK
     return row["avgdl"]
 
 
