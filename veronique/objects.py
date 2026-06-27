@@ -790,12 +790,13 @@ class Claim(Model):
         remarks = []
         css_classes = set()
         not_yet_valid, no_longer_valid = self._get_invalid(data)
-        if not_yet_valid:
+        if not_yet_valid or no_longer_valid:
             css_classes.add("invalid")
-            remarks.append(f"from {not_yet_valid}")
-        elif no_longer_valid:
-            css_classes.add("invalid")
-            remarks.append(f"until {no_longer_valid}")
+
+        if VALID_FROM in data:
+            remarks.append(f"from {data[VALID_FROM][0].object.value}")
+        if VALID_UNTIL in data:
+            remarks.append(f"until {data[VALID_UNTIL][0].object.value}")
 
         if remarks:
             remarks = f' data-tooltip="{", ".join(remarks)}"'
