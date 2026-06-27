@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from sanic import Sanic, html, file, redirect
 
 import veronique.objects as O
