@@ -5,6 +5,7 @@ from sanic import Sanic, html, file, redirect
 import veronique.objects as O
 import veronique.security as security
 from veronique.context import context
+from veronique.constants import SESSION_MAX_AGE, SESSION_REFRESH_AFTER
 from veronique.utils import D
 from veronique.routes import claims, verbs, queries, users, settings, network, static, index, search, tools, autocomplete
 
@@ -43,7 +44,7 @@ async def auth(request):
     if payload := security.unsign(
         request.cookies.get("session") or request.headers.get("Authorization"),
     ):
-        if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=30):
+        if (datetime.now() - datetime.fromisoformat(payload["t"])) > SESSION_MAX_AGE:
             return unauthorized
         user = O.User(payload["u"])
         if user.generation > payload.get("g", 0):
@@ -64,16 +65,8 @@ async def refresh_session(request, response):
     """If authenticated requests have overly old payloads, refresh them."""
     if not (payload := context.payload):
         return
-    if (datetime.now() - datetime.fromisoformat(payload["t"])) > timedelta(days=7):
-        response.add_cookie(
-            "session",
-            security.sign(context.user.payload),
-            secure=True,
-            httponly=True,
-            samesite="Strict",
-            # roughly one month (afterwards it will anyways be invalid):
-            max_age=60 * 60 * 24 * 31,
-        )
+    if (datetime.now() - datetime.fromisoformat(payload["t"])) > SESSION_REFRESH_AFTER:
+        context.user.make_session(response)
 
 
 @app.get("/logout")
@@ -114,15 +107,7 @@ async def do_login(request):
             response = redirect(form["then"])
         else:
             response = redirect("/")
-        response.add_cookie(
-            "session",
-            security.sign(user.payload),
-            secure=True,
-            httponly=True,
-            samesite="Strict",
-            # roughly one month (afterwards it will anyways be invalid):
-            max_age=60 * 60 * 24 * 31,
-        )
+        user.make_session(response)
         return response
     return redirect("/login")
 

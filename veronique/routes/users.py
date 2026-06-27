@@ -19,7 +19,7 @@ async def list_users(request):
     page_no = int(request.args.get("page", 1))
     parts = [
         "<article><header><h3>Users</h3></header><table>",
-        '<thead><tr><th scope="col">ID</th><th scope="col">Name</th><th scope="col">Impersonate</th></tr></thead>',
+        '<thead><tr><th scope="col">ID</th><th scope="col">Name</th><th scope="col">Session</th><th scope="col">Impersonate</th></tr></thead>',
         "<tbody>",
     ]
     more_results = False
@@ -34,6 +34,7 @@ async def list_users(request):
         else:
             parts.append(f"<tr><td>{user.id}</td>")
             parts.append(f"<td>{user:link}</td>")
+            parts.append(f"<td>{user:session}</td>")
             parts.append(f'<td><button hx-post="/users/{user.id}/impersonate" class="danger">Impersonate</button></td>')
             parts.append("</tr>")
     parts.append("</tbody></table>")
@@ -215,6 +216,7 @@ async def view_user(request, user_id: int):
         <h3>{user:heading}</h3>
         </header>
         <table>
+        <tr><th scope="row">Session</th><td>{user:session}</td></tr>
         <tr><th scope="row">Admin</th><td>{TYPES["boolean"].display_html(user.is_admin)}</td></tr>
         <tr><th scope="row">Redact</th><td>{TYPES["boolean"].display_html(user.redact)}</td></tr>
         <tr><th scope="row">Readable verbs</th><td>{", ".join(str(O.Verb(v)) for v in (user.readable_verbs or []) if v >= 0)}</td></tr>

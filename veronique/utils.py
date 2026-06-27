@@ -192,7 +192,7 @@ def timed_cache(max_duration, *, key=None):
                 fn._cache_time = {}
             if (
                 key_ not in fn._cached
-                or monotonic() - fn._cache_time[key_] > max_duration
+                or monotonic() - fn._cache_time[key_] > max_duration.total_seconds()
             ):
                 result = fn(*args, **kwargs)
                 fn._cached[key_] = result

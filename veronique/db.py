@@ -711,6 +711,14 @@ def clean_up_choices(cur):
             )
 
 
+@migration(24)
+def add_last_session_to_users(cur):
+    cur.execute("""
+        ALTER TABLE users
+        ADD last_session_at DATETIME
+    """)
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 

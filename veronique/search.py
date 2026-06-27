@@ -1,6 +1,7 @@
 import unicodedata
 
 from veronique import db
+from veronique.constants import SEARCH_AVGDL_CACHE_TIME
 from veronique.db import ROOT
 from veronique.utils import timed_cache
 from veronique.settings import settings as S
@@ -53,7 +54,7 @@ def ngrams(string):
     yield from ("".join(e) for e in zip(*iterables))
 
 
-@timed_cache(60*60)
+@timed_cache(SEARCH_AVGDL_CACHE_TIME)
 def calculate_avgdl(cur):
     row = cur.execute("SELECT AVG(length) AS avgdl FROM forward_index").fetchone()
     if not row:

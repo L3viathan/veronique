@@ -1,14 +1,15 @@
 import json
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from functools import cached_property, cache
 from itertools import count, combinations
 from html import escape
 
 from veronique import db
+from veronique.constants import SESSION_MAX_AGE, CLAIM_DATA_CACHE_TIME
 from veronique.data_types import TYPES
 from veronique.nomnidate import NonOmniscientDate
-from veronique.security import hash_password
+from veronique.security import hash_password, sign
 from veronique.context import context
 from veronique.db import (
     IS_A,
@@ -774,7 +775,7 @@ class Claim(Model):
         db.conn.commit()
         return Claim(new_id)
 
-    @timed_cache(5*60, key=lambda self, *_, **__: self.id)
+    @timed_cache(CLAIM_DATA_CACHE_TIME, key=lambda self, *_, **__: self.id)
     def get_data(self, claims=None):
         data = {}
         if claims is None:
@@ -1152,6 +1153,7 @@ class User(Model):
         "permissions",
         "generation",
         "redact",
+        "last_session_at",
     )
 
     def populate(self):
@@ -1159,7 +1161,7 @@ class User(Model):
         row = cur.execute(
             """
                 SELECT
-                    id, name, hash, is_admin, salt, generation, redact
+                    id, name, hash, is_admin, salt, generation, redact, last_session_at
                 FROM users
                 WHERE id = ?
             """,
@@ -1173,6 +1175,10 @@ class User(Model):
         self.is_admin = row["is_admin"]
         self.redact = row["redact"]
         self.generation = row["generation"]
+        if row["last_session_at"]:
+            self.last_session_at = datetime.fromisoformat(row["last_session_at"])
+        else:
+            self.last_session_at = None
         if not self.is_admin:
             self.permissions = set()
             for row in cur.execute(
@@ -1278,6 +1284,22 @@ class User(Model):
     def __format__(self, fmt):
         if fmt == "link":
             return f'<a href="/users/{self.id}">{self.name}</a>'
+        elif fmt == "session":
+            if not self.last_session_at:
+                return "no active session"
+            else:
+                delta = datetime.now() - self.last_session_at
+                if delta.days == 0:
+                    if delta > timedelta(hours=1):
+                        diff = f"{round(delta / timedelta(hours=1))} hours ago"
+                    else:
+                        diff = f"{round(delta / timedelta(minutes=1))} minutes ago"
+                else:
+                    diff = date.today() - NonOmniscientDate(str(self.last_session_at.date()))
+                if delta > SESSION_MAX_AGE:
+                    delta = f"{delta} (expired)"
+                return f"last refreshed {diff}"
+            return str(type(self.last_session_at).__name__) + str(self.last_session_at)
         return self.name
 
     def __str__(self):
@@ -1322,6 +1344,23 @@ class User(Model):
         if self.is_admin:
             return None
         return {query_id for perm, query_id in self.permissions if perm == "view-query"}
+
+    def make_session(self, response):
+        response.add_cookie(
+            "session",
+            sign(self.payload),
+            secure=True,
+            httponly=True,
+            samesite="Strict",
+            max_age=int(SESSION_MAX_AGE.total_seconds()),
+        )
+        cur = db.conn.cursor()
+        cur.execute(
+            "UPDATE users SET last_session_at = ? WHERE id = ?",
+            (datetime.now(), self.id),
+        )
+        db.conn.commit()
+        self.populate()
 
 
 class Plain:
