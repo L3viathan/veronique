@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 import datetime
 
@@ -107,7 +108,21 @@ def subtract_years_and_days(dt1, dt2, negating_days_allowed=True):
 
 
 class NonOmniscientDate:
+    full_pattern = re.compile("^[0-9?]{4}-[0-9?]{2}-[0-9?]{2}$")
+    year_pattern = re.compile("^[0-9?]{4}$")
+    month_day_pattern = re.compile("^[0-9?]{2}-[0-9?]{2}$")
+
     def __init__(self, representation, negating_days_allowed=True):
+        if NonOmniscientDate.full_pattern.match(representation):
+            pass
+        elif NonOmniscientDate.year_pattern.match(representation):
+            representation = f"{representation}-??-??"
+        elif NonOmniscientDate.month_day_pattern.match(representation):
+            representation = f"????-{representation}"
+        elif representation == "?":
+            representation = "????-??-??"
+        else:
+            raise ValueError
         self.year, self.month, self.day = representation.split("-")
         self.is_omniscient = "?" not in representation
         self.negating_days_allowed = negating_days_allowed

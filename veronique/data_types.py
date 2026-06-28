@@ -249,10 +249,6 @@ class color(DataType):
 
 
 class date(DataType):
-    full_pattern = re.compile("^[0-9?]{4}-[0-9?]{2}-[0-9?]{2}$")
-    year_pattern = re.compile("^[0-9?]{4}$")
-    month_day_pattern = re.compile("^[0-9?]{2}-[0-9?]{2}$")
-
     def display_html(self, value, prop, **_):
         d = NonOmniscientDate(value, negating_days_allowed="a" not in (prop.extra or ""))
         today = datetime.date.today()
@@ -312,18 +308,6 @@ class date(DataType):
             pattern="([0-9?]{4}-[0-9?]{2}-[0-9?]{2}"
             name="value"{value}
         ></input>"""
-
-    def extract_value(self, form):
-        value = form.get("value")
-        if date.full_pattern.match(value):
-            return value
-        if date.year_pattern.match(value):
-            return f"{value}-??-??"
-        if date.month_day_pattern.match(value):
-            return f"????-{value}"
-        if value == "?":
-            return "????-??-??"
-        raise ValueError
 
     def get_extra(self, args):
         return "".join(
