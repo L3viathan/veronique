@@ -321,6 +321,8 @@ class date(DataType):
             return f"{value}-??-??"
         if date.month_day_pattern.match(value):
             return f"????-{value}"
+        if value == "?":
+            return "????-??-??"
         raise ValueError
 
     def get_extra(self, args):
