@@ -789,8 +789,7 @@ class Claim(Model):
     def _get_remarks(self, data):
         remarks = []
         css_classes = set()
-        not_yet_valid, no_longer_valid = self._get_invalid(data)
-        if not_yet_valid or no_longer_valid:
+        if self._is_invalid(data):
             css_classes.add("invalid")
 
         if VALID_FROM in data:
@@ -804,20 +803,26 @@ class Claim(Model):
             remarks = ""
         return f" {' '.join(css_classes)}" if css_classes else "", remarks
 
-    def _get_invalid(self, data):
+    def _is_invalid(self, data):
         not_yet_valid = no_longer_valid = None
         today = date.today()
         if (
             VALID_FROM in data
-            and NonOmniscientDate(data[VALID_FROM][0].object.value).definitely_after(today)
+            and (
+                NonOmniscientDate(data[VALID_FROM][0].object.value).definitely_after(today)
+                or data[VALID_FROM][0].object.value == "????-??-??"
+            )
         ):
-            not_yet_valid = data[VALID_FROM][0].object.value
+            return True
         elif (
             VALID_UNTIL in data
-            and NonOmniscientDate(data[VALID_UNTIL][0].object.value).definitely_before(today)
+            and (
+                NonOmniscientDate(data[VALID_UNTIL][0].object.value).definitely_before(today)
+                or data[VALID_UNTIL][0].object.value == "????-??-??"
+            )
         ):
-            no_longer_valid = data[VALID_UNTIL][0].object.value
-        return not_yet_valid, no_longer_valid
+            return True
+        return False
 
     def __format__(self, fmt):
         if not context.user.can("read", "verb", self.verb.id):
