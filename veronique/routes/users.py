@@ -35,7 +35,10 @@ async def list_users(request):
             parts.append(f"<tr><td>{user.id}</td>")
             parts.append(f"<td>{user:link}</td>")
             parts.append(f"<td>{user:session}</td>")
-            parts.append(f'<td><button hx-post="/users/{user.id}/impersonate" class="danger">Impersonate</button></td>')
+            if context.user.id != user.id:
+                parts.append(f'<td><button hx-post="/users/{user.id}/impersonate" class="danger">Impersonate</button></td>')
+            else:
+                parts.append("<td></td>")
             parts.append("</tr>")
     parts.append("</tbody></table>")
     parts.append(pagination(
