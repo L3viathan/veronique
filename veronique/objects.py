@@ -804,7 +804,6 @@ class Claim(Model):
         return f" {' '.join(css_classes)}" if css_classes else "", remarks
 
     def _is_invalid(self, data):
-        not_yet_valid = no_longer_valid = None
         today = date.today()
         if (
             VALID_FROM in data
