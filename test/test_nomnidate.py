@@ -18,6 +18,11 @@ from veronique.nomnidate import NonOmniscientDatedelta, NonOmniscientDate
         ("2023-??-??", NonOmniscientDatedelta(years=1, days=None)),
         ("2023-12-??", NonOmniscientDatedelta(years=1, days=None)),
         ("20??-12-??", NonOmniscientDatedelta(years=None, days=None)),
+        ("?", NonOmniscientDatedelta(years=None, days=None)),
+        ("10-01", NonOmniscientDatedelta(years=None, days=8)),
+        ("2023", NonOmniscientDatedelta(years=1, days=None)),
+        ("10-??", NonOmniscientDatedelta(years=None, days=None)),
+        ("??-02", NonOmniscientDatedelta(years=None, days=None)),
     ],
 )
 def test_nomnidate_delta(datestring, difference):
