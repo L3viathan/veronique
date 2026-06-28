@@ -809,12 +809,18 @@ class Claim(Model):
         today = date.today()
         if (
             VALID_FROM in data
-            and NonOmniscientDate(data[VALID_FROM][0].object.value).definitely_after(today)
+            and (
+                data[VALID_FROM][0].object.value == "????-??-??"
+                or NonOmniscientDate(data[VALID_FROM][0].object.value).definitely_after(today)
+            )
         ):
             not_yet_valid = data[VALID_FROM][0].object.value
         elif (
             VALID_UNTIL in data
-            and NonOmniscientDate(data[VALID_UNTIL][0].object.value).definitely_before(today)
+            and (
+                data[VALID_UNTIL][0].object.value == "????-??-??"
+                or NonOmniscientDate(data[VALID_UNTIL][0].object.value).definitely_before(today)
+            )
         ):
             no_longer_valid = data[VALID_UNTIL][0].object.value
         return not_yet_valid, no_longer_valid
