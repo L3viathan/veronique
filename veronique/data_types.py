@@ -82,9 +82,9 @@ class DataType:
 
 
 class directed_link(DataType):
-    def input_html(self, value=None, claim_id=None, direction=None, verb_id=None, allow_connect=True, **_):
+    def input_html(self, value=None, claim_ids=None, direction=None, verb_id=None, allow_connect=True, **_):
         return AUTOCOMPLETES["link"].widget(
-            data=f"{claim_id}:{direction}:{verb_id}" if allow_connect else None
+            data=f"{claim_ids}:{direction}:{verb_id}" if allow_connect else None
         )
 
 

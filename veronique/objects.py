@@ -990,7 +990,7 @@ class Claim(Model):
                 continue
             if link.verb.id in (IS_A, ROOT):
                 continue
-            if any([*link._get_invalid(link.get_data())]):
+            if link._is_invalid(link.get_data()):
                 continue
             edges.append(
                 {

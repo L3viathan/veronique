@@ -104,6 +104,7 @@ def page(fn):
                     <li><a href="/verbs/new">Verb</a></li>
                     <li><a href="/queries/new">Query</a></li>
                     <li><a href="/users/new">User</a></li>
+                    <li><a href="/tools/multiclaims">Multiclaim</a></li>
                 </ul>
                 </details>
             </li>
@@ -118,6 +119,7 @@ def page(fn):
                     <li><a href="/verbs/new" disabled>Verb</a></li>
                     <li><a href="/queries/new" disabled>Query</a></li>
                     <li><a href="/users/new" disabled>User</a></li>
+                    <li><a href="/tools/multiclaims">Multiclaim</a></li>
                 </ul>
                 </details>
             </li>

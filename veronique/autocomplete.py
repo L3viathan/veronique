@@ -53,14 +53,14 @@ class link(Autocomplete):
         """
 
 
-class connections(Autocomplete):
+class multiselect(Autocomplete):
     def widget(self, data=None):
         return f"""
             <div class="ac-widget">
                 <input
                     name="ac-query"
                     placeholder="Start typing..."
-                    hx-get="/autocomplete/connections/query/{data}"
+                    hx-get="/autocomplete/multiselect/query/{data}"
                     hx-target="next .ac-results"
                     hx-swap="innerHTML"
                     hx-trigger="input changed delay:200ms, search"
@@ -84,7 +84,7 @@ class connections(Autocomplete):
             class="clickable ac-result"
             hx-target="next .ac-hits"
             hx-swap="beforeend"
-            hx-get="/autocomplete/connections/accept/{claim.id}"
+            hx-get="/autocomplete/multiselect/accept/{claim.id}"
         >{claim:label}</a>
         ''' for claim in claims)
 

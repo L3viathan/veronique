@@ -87,21 +87,23 @@ async def new_root_claim(request):
     return redirect(f"/claims/{claim.id}")
 
 
-@claims.get("/new/<claim_id>/<direction:incoming|outgoing>")
+@claims.get("/new/<claim_ids>/<direction:incoming|outgoing>")
 @fragment
-async def new_claim_form(request, claim_id: int, direction: str):
+async def new_claim_form(request, claim_ids: list[int], direction: str):
+    if isinstance(claim_ids, list):
+        claim_ids = ",".join(claim_ids)
     verbs = O.Verb.all(
         page_size=9999, data_type="directed_link" if direction == "incoming" else None, only_writable=True
     )
     return f"""
         <form
-            action="/claims/new/{claim_id}/{direction}"
+            action="/claims/new/{claim_ids}/{direction}"
             method="POST"
             enctype="multipart/form-data"
         >
             <select
                 name="verb"
-                hx-get="/claims/new/verb?claim_id={claim_id}&direction={direction}"
+                hx-get="/claims/new/verb?claim_ids={claim_ids}&direction={direction}"
                 hx-target="#valueinput"
                 hx-swap="innerHTML"
             >
@@ -134,60 +136,61 @@ async def new_claim_form_verb_input(request):
     if args.get("standalone"):
         return f"""
         <form
-            action="/claims/new/{args.get("claim_id")}/{args.get("direction")}"
+            action="/claims/new/{args.get("claim_ids")}/{args.get("direction")}"
             method="POST"
             enctype="multipart/form-data"
         >
             <input type="hidden" name="verb" value="{verb.id}">
-            {verb.data_type.input_html(claim_id=args.get("claim_id"), direction=args.get("direction"), verb_id=verb.id)}
+            {verb.data_type.input_html(claim_ids=args.get("claim_ids"), direction=args.get("direction"), verb_id=verb.id)}
             <button type="submit">»</button>
         </form>
         """
     else:
         return f"""
-            {verb.data_type.input_html(claim_id=args.get("claim_id"), direction=args.get("direction"), verb_id=verb.id)}
+            {verb.data_type.input_html(claim_ids=args.get("claim_ids"), direction=args.get("direction"), verb_id=verb.id)}
             <button type="submit">»</button>
         """
 
 
-@claims.post("/new/<claim_id>/<direction:incoming|outgoing>")
-async def new_claim(request, claim_id: int, direction: str):
-    claim = O.Claim(claim_id)
-    form = D(request.form)
-    if not (
-        context.user.can("read", "verb", claim.verb.id)
-        and context.user.can("write", "verb", int(form["verb"]))
-    ):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
-    if "value" in request.files:
-        f = request.files["value"][0]
-        form["value"] = f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
-    verb = O.Verb(int(form["verb"]))
-    value = form.get("value")
-    if verb.data_type.name.endswith("directed_link"):
-        value = O.Claim(int(value))
-        if not context.user.can("read", "verb", value.verb.id):
+@claims.post("/new/<claim_ids>/<direction:incoming|outgoing>")
+async def new_claims(request, claim_ids: list[int], direction: str):
+    for claim_id in claim_ids.split(","):
+        claim = O.Claim(int(claim_id))
+        form = D(request.form)
+        if not (
+            context.user.can("read", "verb", claim.verb.id)
+            and context.user.can("write", "verb", int(form["verb"]))
+        ):
             return HTTPResponse(
                 body="403 Forbidden",
                 status=403,
             )
-    elif verb.data_type.name == "inferred":
-        return HTTPResponse(
-            body="400 Bad Request",
-            status=400,
-        )
-    else:
-        try:
-            value = O.Plain.from_form(verb, form)
-        except ValueError:
-            return redirect(f"/claims/{claim_id}")
-    if direction == "incoming":
-        O.Claim.new(value, verb, claim)
-    else:
-        O.Claim.new(claim, verb, value)
+        if "value" in request.files:
+            f = request.files["value"][0]
+            form["value"] = f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
+        verb = O.Verb(int(form["verb"]))
+        value = form.get("value")
+        if verb.data_type.name.endswith("directed_link"):
+            value = O.Claim(int(value))
+            if not context.user.can("read", "verb", value.verb.id):
+                return HTTPResponse(
+                    body="403 Forbidden",
+                    status=403,
+                )
+        elif verb.data_type.name == "inferred":
+            return HTTPResponse(
+                body="400 Bad Request",
+                status=400,
+            )
+        else:
+            try:
+                value = O.Plain.from_form(verb, form)
+            except ValueError:
+                return redirect(f"/claims/{claim_id}")
+        if direction == "incoming":
+            O.Claim.new(value, verb, claim)
+        else:
+            O.Claim.new(claim, verb, value)
     return redirect(f"/claims/{claim_id}")
 
 
