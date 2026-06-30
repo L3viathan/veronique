@@ -305,9 +305,10 @@ class date(DataType):
         return f"""<input
             type="text"
             size=10
-            pattern="([0-9?]{4}-[0-9?]{2}-[0-9?]{2}"
+            pattern="[0-9?]{4}-[0-9?]{2}-[0-9?]{2}|[0-9?]{4}|[0-9?]{2}-[0-9?]|[?]"
             name="value"{value}
-        ></input>"""
+        ><small>Possible formats: <tt>YYYY-mm-dd</tt>, <tt>YYYY</tt>, <tt>mm-dd</tt>, <tt>?</tt>. Any digit can also be replaced by a question mark.</small>
+        """
 
     def get_extra(self, args):
         return "".join(
@@ -498,7 +499,10 @@ class phonenumber(DataType):
             value = f' value="{value.value.replace(quot, "&quot;")}"'
         else:
             value = ""
-        return f"""<input type="tel" name="value"{value}></input>"""
+        return f"""
+            <input type="tel" name="value"{value}>
+            <small>Non-international phone numbers (without the <tt>+</tt> prefix) will be interpreted as being from region {S.default_phone_region}.</small>
+        """
 
     def encode(self, value):
         pn = phonenumbers.parse(value, region=S.default_phone_region)
@@ -519,14 +523,26 @@ class social(DataType):
     def display_html(self, value, prop, **_):
         if context.user.redact:
             value = "someone"
-        return f'<span class="type-social">{prop.extra.format(escape(value))}</span>'
+        value = prop.extra.format(escape(value))
+        if value.startswith("http"):
+            value = f'<a href="{value}">{value}</a>'
+        return f'<span class="type-social">{value}</span>'
 
-    def input_html(self, value=None, **_):
+    def input_html(self, verb_id, value=None, **_):
+        import veronique.objects as O
         if value:
             value = f' value="{escape(value.value)}"'
         else:
             value = ""
-        return f"""<input name="value"{value}></input>"""
+        before, _, after  = O.Verb(verb_id).extra.partition("{}")
+        parts = ['<fieldset role="group">']
+        if before:
+            parts.append(f'<input value="{before}" disabled>')
+        parts.append(f'<input name="value"{value}>')
+        if after:
+            parts.append(f'<input value="{after}" disabled>')
+        parts.append("</fieldset>")
+        return "".join(parts)
 
     def next_step(self, args):
         return """
@@ -598,7 +614,10 @@ class alpha2(DataType):
             value = f' value="{value.value.replace(quot, "&quot;")}"'
         else:
             value = ""
-        return f"""<input name="value"{value}></input>"""
+        return f"""
+            <input name="value"{value}></input>
+            <small>Enter a two-uppercase-letter region code here (ISO 3166-1 alpha 2), e.g. "DE".</small>
+        """
 
 
 class age(DataType):
@@ -658,11 +677,15 @@ class age(DataType):
             # value is now a tuple of earliest and latest possible date
             earliest, latest = value.value
             return f"""
-            <input name="value" value="{self.possible_ages(value.value)}"></input>
+            <input name="value" value="{self.possible_ages(value.value)}">
+            <small>Format: <tt>optional-date:age</tt>. The age can also be a range. E.g.: <tt>2026-03-05:42-44</tt>. Updates restrict further.</small>
             <input type="hidden" name="previous" value="{earliest:%Y-%m-%d}--{latest:%Y-%m-%d}">
             """
         else:
-            return '<input name="value">'
+            return """
+                <input name="value">
+                <small>Format: <tt>optional-date:age</tt>. The age can also be a range. E.g.: <tt>2026-03-05:42-44</tt></small>
+            """
 
 
 class choice(DataType):
