@@ -846,7 +846,7 @@ class Claim(Model):
             if context.user.can("write", "verb", IS_A):
                 new_cat = f"""<span
                     class="clickable new-cat"
-                    hx-get="/claims/new/verb?verb={IS_A}&claim_id={self.id}&direction=outgoing&standalone=1"
+                    hx-get="/claims/new/verb?verb={IS_A}&claim_ids={self.id}&direction=outgoing&standalone=1"
                     hx-target="#edit-area"
                 >, +</span>"""
             else:
@@ -883,7 +883,7 @@ class Claim(Model):
                                     class="outline contrast"
                                     role="button"
                                     data-tooltip="Set valid from"
-                                    hx-get="/claims/new/verb?verb={VALID_FROM}&claim_id={self.id}&direction=outgoing&standalone=1"
+                                    hx-get="/claims/new/verb?verb={VALID_FROM}&claim_ids={self.id}&direction=outgoing&standalone=1"
                                     hx-target="#edit-area"
                                 >⇤</a>"""
                             )
@@ -893,7 +893,7 @@ class Claim(Model):
                                     class="outline contrast"
                                     role="button"
                                     data-tooltip="Set valid until"
-                                    hx-get="/claims/new/verb?verb={VALID_UNTIL}&claim_id={self.id}&direction=outgoing&standalone=1"
+                                    hx-get="/claims/new/verb?verb={VALID_UNTIL}&claim_ids={self.id}&direction=outgoing&standalone=1"
                                     hx-target="#edit-area"
                                 >⇥</a>"""
                             )
@@ -932,7 +932,7 @@ class Claim(Model):
             return f"""<img
                 src="/claims/{self.id}/avatar"
                 class="avatar" alt="avatar"
-                hx-get="/claims/new/verb?verb={AVATAR}&claim_id={self.id}&direction=outgoing&standalone=1"
+                hx-get="/claims/new/verb?verb={AVATAR}&claim_ids={self.id}&direction=outgoing&standalone=1"
                 hx-target="#edit-area"
                 style="cursor: copy"
             >"""
