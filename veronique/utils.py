@@ -100,7 +100,7 @@ def page(fn):
                 <details class="dropdown">
                 <summary>New...</summary>
                 <ul dir="rtl">
-                    <li><a href="/claims/new-root">Root claim</a></li>
+                    <li><a href="/claims/new-entity">Entity</a></li>
                     <li><a href="/verbs/new">Verb</a></li>
                     <li><a href="/queries/new">Query</a></li>
                     <li><a href="/users/new">User</a></li>
@@ -115,7 +115,7 @@ def page(fn):
                 <details class="dropdown">
                 <summary>New...</summary>
                 <ul dir="rtl">
-                    <li><a href="/claims/new-root">Root claim</a></li>
+                    <li><a href="/claims/new-entity">Entity</a></li>
                     <li><a href="/verbs/new" disabled>Verb</a></li>
                     <li><a href="/queries/new" disabled>Query</a></li>
                     <li><a href="/users/new" disabled>User</a></li>

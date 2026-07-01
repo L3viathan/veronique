@@ -12,9 +12,9 @@ from veronique.db import IS_A, ROOT, AVATAR, COMMENT
 claims = Blueprint("claims", url_prefix="/claims")
 
 
-@claims.get("/new-root")
+@claims.get("/new-entity")
 @page
-async def new_root_claim_form(request):
+async def new_entity_form(request):
     if not context.user.can("write", "verb", ROOT):
         return HTTPResponse(
             body="403 Forbidden",
@@ -33,10 +33,10 @@ async def new_root_claim_form(request):
             <input type="hidden" name="connect" value="{connect}">
             """
     name = args.get("name", "")
-    return "New root", f"""
+    return "New entity", f"""
     <article>
-    <header><h2>New root claim</h2></header>
-        <form action="/claims/new-root" method="POST">
+    <header><h2>New entity</h2></header>
+        <form action="/claims/new-entity" method="POST">
             <input name="name" placeholder="name" value="{name}"></input>
             <select
                 name="category"
@@ -59,8 +59,8 @@ async def new_root_claim_form(request):
     """
 
 
-@claims.post("/new-root")
-async def new_root_claim(request):
+@claims.post("/new-entity")
+async def new_entity(request):
     form = D(request.form)
     name = form["name"]
     if not context.user.can("write", "verb", ROOT):
@@ -68,7 +68,7 @@ async def new_root_claim(request):
             body="403 Forbidden",
             status=403,
         )
-    claim = O.Claim.new_root(name)
+    claim = O.Claim.new_entity(name)
     if form.get("category") and context.user.can("write", "verb", IS_A):
         cat = O.Claim(int(form["category"]))
         O.Claim.new(claim, O.Verb(IS_A), cat)
@@ -83,7 +83,7 @@ async def new_root_claim(request):
                 O.Claim.new(conn_claim, conn_verb, claim)
             # We came from the conn_claim, so we want to go back there.
             return redirect(f"/claims/{conn_claim.id}")
-        # If we couldn't make the link, we want to go to the new root instead.
+        # If we couldn't make the link, we want to go to the new entity instead.
     return redirect(f"/claims/{claim.id}")
 
 

@@ -17,7 +17,7 @@ def cli():
     from veronique.context import context
 
     def make(name, *relations, category="human"):
-        person = O.Claim.new_root(name)
+        person = O.Claim.new_entity(name)
         O.Claim.new(person, O.Verb(veronique.db.IS_A), categories[category])
         for verb, obj in relations:
             if not isinstance(obj, O.Claim):
@@ -28,7 +28,7 @@ def cli():
     context.user = O.User(0)
     categories = {}
     for category in ["human", "place", "event", "company"]:
-        categories[category] = O.Claim.new_root(category)
+        categories[category] = O.Claim.new_entity(category)
     child_of = O.Verb.new("child of", data_type=O.TYPES["directed_link"])
     birthdate = O.Verb.new("birth date", data_type=O.TYPES["date"])
     partner_of = O.Verb.new("partner of", data_type=O.TYPES["undirected_link"])

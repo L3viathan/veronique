@@ -39,7 +39,7 @@ class link(Autocomplete):
             hx-get="/autocomplete/link/accept/{claim.id}"
         >{claim:label}</a>
         ''' for claim in claims)}
-        {f'''<a class="clickable" href="/claims/new-root?connect={connect}&name={query}">
+        {f'''<a class="clickable" href="/claims/new-entity?connect={connect}&name={query}">
             <em>Create</em> {query} <em> claim...</em>
         </a>''' if connect is not None else ''}
         """

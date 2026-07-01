@@ -41,7 +41,7 @@ async def settings_form(request):
                     <select name="index_type">
                         <option value="recent_events" {"selected" if S.index_type == "recent_events" else ""}>Recent events</option>
                         <option value="all_recent_events" {"selected" if S.index_type == "all_recent_events" else ""}>Recent events (including validity)</option>
-                        <option value="newest_root_claims" {"selected" if S.index_type == "newest_root_claims" else ""}>Newest claims (roots only)</option>
+                        <option value="newest_entities" {"selected" if S.index_type == "newest_entities" else ""}>Newest entities</option>
                         <option value="newest_claims" {"selected" if S.index_type == "newest_claims" else ""}>Newest claims (all)</option>
                     </select>
                 <fieldset class="grid">

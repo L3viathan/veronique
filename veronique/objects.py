@@ -111,7 +111,7 @@ class Verb(Model):
             (self.id,),
         ).fetchone()
         if not row:
-            raise ValueError("No Verb with this ID found")
+            raise ValueError(f"No Verb with this ID found: {self.id}")
         self.label = row["label"]
         self.data_type = TYPES[row["data_type"]]
         self.internal = row["internal"]
@@ -213,7 +213,7 @@ class Verb(Model):
             return "(unknown verb)"
         if fmt == "full":
             return f"""<span class="verb">
-                <a class="clickable" href="/verbs/{self.id}">{self.label}</a>
+                <a class="clickable" href="/verbs/{self.id}">{self.name}</a>
                 {self.data_type}</span>"""
         elif fmt == "heading":
             buttons = []
@@ -234,7 +234,7 @@ class Verb(Model):
                             class="outline contrast"
                         >\N{WASTEBASKET}\ufe0e Delete</a>'''
                     )
-            return f"""<h2>{self.label}</h2>{" ".join(buttons)}"""
+            return f"""<h2>{self.name}</h2>{" ".join(buttons)}"""
         elif fmt == "detail":
             return self.data_type.detail_for(self)
         elif fmt == "edit":
@@ -243,7 +243,7 @@ class Verb(Model):
             return f"""<a
                 class="clickable verb"
                 href="/verbs/{self.id}"
-            >{self.label}</a>"""
+            >{self.name}</a>"""
 
     def edit(self, form):
         self.data_type.edit_verb(self, form)
@@ -289,6 +289,12 @@ class Verb(Model):
         dt_name1 = type(self.data_type).__name__
         dt_name2 = type(other.data_type).__name__
         return dt_name2 in TYPES[dt_name1].compatible_types
+
+    @property
+    def name(self):
+        if self.id == -1:
+            return "root (allows creating new entities)"
+        return self.label
 
 
 class Claim(Model):
@@ -764,7 +770,7 @@ class Claim(Model):
         return Claim(cur.lastrowid)
 
     @classmethod
-    def new_root(cls, name):
+    def new_entity(cls, name):
         cur = db.conn.cursor()
         cur.execute(
             "INSERT INTO claims (verb_id, value, owner_id) VALUES (?, ?, ?)",
@@ -962,7 +968,7 @@ class Claim(Model):
         if list(self.outgoing_claims()) or list(self.incoming_claims()):
             return False
         if self.verb.id == ROOT:
-            # For now, you can't delete roots.
+            # For now, you can't delete entities.
             return False
         return True
 

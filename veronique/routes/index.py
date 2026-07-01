@@ -49,12 +49,12 @@ def _recent_events_page(request, include_validity=False):
     """
 
 
-def _newest_claims(request, only_root=True):
+def _newest_claims(request, only_entities=True):
     page_no = int(request.args.get("page", 1))
     parts = ["<article><header><h2>Newest claims</h2></header>"]
     more_results = False
     for i, claim in enumerate(O.Claim.all(
-        verb_id=ROOT if only_root else None,
+        verb_id=ROOT if only_entities else None,
         order_by="created_at DESC",
         page_no=page_no - 1,
         page_size=S.page_size + 1,
@@ -78,6 +78,6 @@ async def homepage(request):
     return {
         "recent_events": _recent_events_page,
         "all_recent_events": functools.partial(_recent_events_page, include_validity=True),
-        "newest_claims": functools.partial(_newest_claims, only_root=False),
-        "newest_root_claims": _newest_claims,
+        "newest_claims": functools.partial(_newest_claims, only_entities=False),
+        "newest_entities": _newest_claims,
     }[S.index_type](request)
