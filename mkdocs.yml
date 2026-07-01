@@ -1,5 +1,7 @@
 site_name: Véronique
 nav:
   - Home: index.md
-  - Claims: claims.md
-  - Verbs: verbs.md
+  - User Guide:
+    - Claims: claims.md
+    - Verbs: verbs.md
+theme: readthedocs

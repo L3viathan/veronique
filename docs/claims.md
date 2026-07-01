@@ -1,18 +1,18 @@
-# Claims
+# Claims & Entities
 
-A claim can be thought of as a simple sentence: It (normally) has a subject, a
-verb, and an object. For example, "John loves Mary", "Peter is 28 years old",
-or "Paul knows that [John loves Mary]".
+## Entities
 
-A subject is either another claim, or NULL. The latter is only possible when
-the verb is a special builtin one called `ROOT`. Root claims have no subject
-and have their name as their object. They represent any kind of entity.
+An entity is something. A named thing. It could be a human, a place, an event; anything you can give a name to.
 
-Now that we bootstrapped the world with root claims, we can talk about other
-types of claims: They (non-root claims) always have a subject claim (which can
-be, but doesn't have to be a root claim), a verb, and an object. The object can
-either be another claim (when the verb has the data type `directed_link` or
-`undirected_link`) or some atomic value (e.g. a number, a string, a date, ...).
+An entity by itself has only a name (and an automatically assigned ID).
 
+## Claims
 
-TODO: How to create/edit a claim
+A claim can be thought of as a simple sentence:
+
+![Bart Simpson — lives in — Springfield](img/claim-relation.png)
+
+It has a subject (the entity "Bart Simpson"), a verb ("lives in"), and an object (the entity "Springfield").
+Sometimes the object is not an entity, but plain data, [which can take many different forms](data-types.md):
+
+![Homer Simpson — full name — Homer Jay Simpson](img/claim-plain.png)
