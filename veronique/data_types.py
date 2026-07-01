@@ -378,7 +378,7 @@ class location(DataType):
                 href="https://www.openstreetmap.org/search?query={
                 quote_plus(value.replace(newline, ", "))
             }"
-            >🌍</a>"""
+            >🌍</a></span>"""
 
     def input_html(self, value=None, **_):
         if value:
