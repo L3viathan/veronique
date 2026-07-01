@@ -17,7 +17,7 @@ instead here's a few tasks that you can do with Véronique:
 As Véronique attempts to model (a fragment of) the real world, it can deal with
 uncertanties in some places:
 
-- There are no facts, there are [claims](claims.md).
+- There are no facts, there are [claims](concepts.md#claims).
 - Claims can be restricted in their validity (e.g., "only valid until
   1992-05-13").
 - Any date supports (partial) uncertainty: "2025-01-02" is a date, but so is
