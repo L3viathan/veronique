@@ -419,7 +419,7 @@ class text(DataType):
 
     def _sub(self, match):
         import veronique.objects as O
-        return f"{O.Claim(int(match.group(1))):link}"
+        return f"{O.Claim(int(match.group(1)))}"
 
     def display_html(self, value, fmt=None, **_):
         if len(value) > 100 and fmt == "short":

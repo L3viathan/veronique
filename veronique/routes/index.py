@@ -32,7 +32,7 @@ def _recent_events_page(request, include_validity=False):
             if years:
                 years = 1 if years.group(1) in ("last", "next") else int(years.group(1))
             if not years or years % S.index_recent_events_mod(years) == 0:
-                recent_events.append(f'<span class="row">{claim:link}</span>')
+                recent_events.append(f'<span class="row">{claim}</span>')
     heading = f"Events near {'today' if page_no == 1 else f'{reference_date:%m-%d}'}"
     return f"""
         <article><header>
@@ -62,7 +62,7 @@ def _newest_claims(request, only_root=True):
         if i == S.page_size:
             more_results = True
         else:
-            parts.append(f'<span class="row">{claim:link}</span>')
+            parts.append(f'<span class="row">{claim}</span>')
     parts.append(pagination(
         "/",
         page_no,

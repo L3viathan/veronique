@@ -833,13 +833,15 @@ class Claim(Model):
                 return self.object.value
             else:
                 return f"Claim #{self.id}"
-        elif fmt == "link" or not fmt:
+        elif not fmt or fmt == "nested":
             if self.verb.id == ROOT and not context.user.redact:
                 return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatarsmall}{escape(self.object.value)}</a>'
             elif self.verb.id == ROOT:
                 return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatarsmall}Claim #{self.id}</a>'
+            elif fmt == "nested":
+                return f'<span{remarks} style="border: 2px solid grey" class="svo{css_classes}">{self:handle}{self.subject:nested} {self.verb:nested} {self.object:nested}</span>'
             else:
-                return f"{self:svo}"
+                return f'<span{remarks} class="svo{css_classes}">{self:handle}{self.subject:nested} {self.verb:nested} {self.object:nested}</span>'
         elif fmt == "heading":
             if context.user.can("write", "verb", IS_A):
                 new_cat = f"""<span
@@ -850,7 +852,7 @@ class Claim(Model):
             else:
                 new_cat = ""
             if IS_A in data:
-                cat = f"""<br><small class="cats">&lt;{", ".join(f"<span>{c:handle}{c.object:link}</span>" for c in data[IS_A])}{new_cat}&gt;</small>"""
+                cat = f"""<br><small class="cats">&lt;{", ".join(f"<span>{c:handle}{c.object}</span>" for c in data[IS_A])}{new_cat}&gt;</small>"""
             else:
                 cat = f"""<br><small class="cats">&lt;{new_cat}&gt;</small>"""
             buttons = []
@@ -910,22 +912,16 @@ class Claim(Model):
                     text = escape(self.object.value)
                 return f"""<h2>{self:rename} {text}{cat}</h2>{" ".join(buttons)}"""
             else:
-                return f"""<h2>{self:svoheading}</h2>{" ".join(buttons)}"""
+                return f"""<h2>{self}</h2>{" ".join(buttons)}"""
         elif fmt.startswith("vo:"):
             subj_id = int(fmt[3:])
             # Handle undirected links properly (always display the _other_ claim)
             if self.subject.id == subj_id:
-                return f'<span{remarks} class="vo{css_classes}">{self:handle}{self.verb:link} {self.object:link}</span>'
+                return f'<span{remarks} class="vo{css_classes}">{self:handle}{self.verb} {self.object}</span>'
             else:
-                return f'<span{remarks} class="vo{css_classes}">{self:handle}{self.verb:link} {self.subject:link}</span>'
+                return f'<span{remarks} class="vo{css_classes}">{self:handle}{self.verb} {self.subject}</span>'
         elif fmt == "sv":
-            return f'<span{remarks} class="sv{css_classes}">{self:handle}{self.subject:link} {self.verb:link}</span>'
-        elif fmt == "svo":
-            return f'<span{remarks} class="svo{css_classes}">{self:handle}{self.subject:link} {self.verb:link} {self.object:link}</span>'
-        elif fmt == "svoheading":
-            return f'<span{remarks} class="svo{css_classes}">{self:handle}{self.subject:link} {self.verb:link} {self.object:short}</span>'
-        elif fmt == "short":
-            return f"{self:link}"
+            return f'<span{remarks} class="sv{css_classes}">{self:handle}{self.subject} {self.verb}</span>'
         elif fmt == "handle":
             return f'<a class="handle{" more" if "has_claims" in data else ""}" href="/claims/{self.id}">↱</a>'
         elif fmt == "avatarsmall":
@@ -971,7 +967,7 @@ class Claim(Model):
         return True
 
     def __str__(self):
-        return f"{self:link}"
+        return f"{self}"
 
     def graph_elements(self, verbs=None):
         data = self.get_data()
@@ -1287,7 +1283,7 @@ class User(Model):
         self.populate()
 
     def __format__(self, fmt):
-        if fmt == "link":
+        if not fmt:
             return f'<a href="/users/{self.id}">{self.name}</a>'
         elif fmt == "session":
             if not self.last_session_at:

@@ -29,7 +29,7 @@ async def new_root_claim_form(request):
             conn_verb = O.Verb(int(conn_verb_id))
             conn_claim = O.Claim(int(conn_claim_id))
             connect_info = f"""
-            <p>After creation, an {conn_dir} {conn_verb:link} link will be made to {conn_claim:link}.</p>
+            <p>After creation, an {conn_dir} {conn_verb} link will be made to {conn_claim}.</p>
             <input type="hidden" name="connect" value="{connect}">
             """
     name = args.get("name", "")
@@ -350,7 +350,7 @@ async def list_labelled_claims(request):
         if i == S.page_size:
             more_results = True
         else:
-            parts.append(f'<span class="row">{claim:link}</span>')
+            parts.append(f'<span class="row">{claim}</span>')
     parts.append(pagination(
         "/claims",
         page_no,
@@ -410,7 +410,7 @@ async def view_claim(request, claim_id: int):
         {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in outgoing_claims if c.verb.id not in (IS_A, AVATAR, COMMENT))}
         {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in claim.outgoing_inferred_claims())}
         </td></tr></table>
-        {"<hr><h3>Mentions</h3>" + "".join(f'<span class="row">{c:svo}</span>' for c in incoming_mentions) if incoming_mentions else ""}
+        {"<hr><h3>Mentions</h3>" + "".join(f'<span class="row">{c}</span>' for c in incoming_mentions) if incoming_mentions else ""}
         <footer>
         {'<table class="comments">' + "".join(f"{c:comment}" for c in comments) + "</table>" if comments else ""}
         {
@@ -466,7 +466,7 @@ async def list_comments(request):
         if i == S.page_size:
             more_results = True
         else:
-            parts.append(f"{claim:link}")
+            parts.append(f"{claim}")
     return "Comments", "".join(parts) + pagination(
         "/claims/comments",
         page_no,

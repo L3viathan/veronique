@@ -122,7 +122,7 @@ async def view_verb(request, verb_id: int):
         if i == S.page_size:
             more_results = True
         else:
-            parts.append(f'<span class="row">{claim:svo}</span>')
+            parts.append(f'<span class="row">{claim}</span>')
     parts.append(pagination(
         f"/verbs/{verb_id}",
         page_no,

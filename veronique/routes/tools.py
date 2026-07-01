@@ -80,7 +80,7 @@ async def start_multiclaim(request):
     claims = [O.Claim(int(claim_id)) for claim_id in claim_ids]
     return "New multiclaim", f"""
         <article>
-            <header><h2>New multiclaim</h2>{' '.join(f"{claim:link}" for claim in claims)}</header>
+            <header><h2>New multiclaim</h2>{' '.join(f"{claim}" for claim in claims)}</header>
             <table class="claims"><tr><td>
         {
             f'<div hx-swap="outerHTML" hx-get="/claims/new/{",".join(claim_ids)}/incoming" class="new-item-placeholder">+</div>'
