@@ -18,6 +18,9 @@ test = [
   "pytest",
   "pytest-asyncio",
 ]
+dev = [
+  "mkdocs",
+]
 [build-system]
 requires = ["uv_build"]
 build-backend = "uv_build"
