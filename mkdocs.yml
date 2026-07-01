@@ -2,6 +2,7 @@ site_name: Véronique
 nav:
   - Home: index.md
   - User Guide:
-    - Claims: claims.md
-    - Verbs: verbs.md
+    - Concepts: concepts.md
+    - Data types: data-types.md
+    - Advanced topics: advanced.md
 theme: readthedocs
