@@ -1,4 +1,5 @@
 site_name: Véronique
 nav:
   - Home: index.md
-  - Concepts: concepts.md
+  - Claims: claims.md
+  - Verbs: verbs.md
