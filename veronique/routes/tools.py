@@ -56,31 +56,31 @@ async def merge_claims(request):
     return redirect(f"/claims/{claim_a.id}")
 
 
-@tools.get("multiclaims")
+@tools.get("bulk-claim")
 @page
-async def get_multiclaim_form(request):
+async def get_bulk_claim_form(request):
     widget = AUTOCOMPLETES["multiselect"].widget()
     return f"""
-    <h2>New multiclaim</h2>
+    <h2>New bulk claim</h2>
     <form
-        action="/tools/multiclaims"
+        action="/tools/bulk-claim"
         method="POST"
         enctype="multipart/form-data"
     >
         {widget}
-        <button type="submit">Make multiclaim</button>
+        <button type="submit">Make bulk claim</button>
     </form>
     """
 
 
-@tools.post("multiclaims")
+@tools.post("bulk-claim")
 @page
-async def start_multiclaim(request):
+async def start_bulk_claim(request):
     claim_ids = request.form["value"]
     claims = [O.Claim(int(claim_id)) for claim_id in claim_ids]
-    return "New multiclaim", f"""
+    return "New bulk claim", f"""
         <article>
-            <header><h2>New multiclaim</h2>{' '.join(f"{claim}" for claim in claims)}</header>
+            <header><h2>New bulk claim</h2>{' '.join(f"{claim}" for claim in claims)}</header>
             <table class="claims"><tr><td>
         {
             f'<div hx-swap="outerHTML" hx-get="/claims/new/{",".join(claim_ids)}/incoming" class="new-item-placeholder">+</div>'
