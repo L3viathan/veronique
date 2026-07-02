@@ -9,9 +9,11 @@ An entity by itself has only a name (and an automatically assigned ID).
 
 To create a new entity, select <kbd>New</kbd> &rarr; <kbd>Entity</kbd>. Then
 enter a name (and optionally select a [category](#categories), more on that
-later):
+later) and click the big submit button:
 
-TODO image
+![Creating a new entity](img/new-entity.png)
+
+You'll end up on the page of this entity, which will look pretty empty for now.
 
 ## Verbs
 
@@ -23,7 +25,7 @@ To create a new verb, select <kbd>New</kbd> &rarr; <kbd>Verb</kbd>. Next, enter
 a name, and select the type. For now, let's select `directed_link`, which links
 two entities (or other claims):
 
-TODO image
+![Creating a new verb](img/new-verb.png)
 
 ## Claims
 
@@ -43,7 +45,7 @@ To create a claim, click on the plus button on one of the sides of an entity
 page, then start typing the name of the other entity until you see it and click
 on it:
 
-TODO: image
+![Making the Homer Simpson — child of — Abraham Simpson claim](img/new-relation.png)
 
 Which side you choose determines whether this entity will be the subject or the
 object of the claim.
@@ -59,6 +61,8 @@ A category is nothing special, it's just another entity.
 To mark something as a category, click on the little plus under the heading of
 an entity page that represents one of its members and start typing the name of
 the category.
+
+![Setting a category](img/set-category.png)
 
 Once something is a category of another entity, you will be able to select it
 as the category of an entity when creating a new entity (it will appear in the
