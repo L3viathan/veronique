@@ -51,6 +51,8 @@ async def list_verbs(request):
 @page
 async def new_verb_form(request):
     return "New verb", f"""
+    <article>
+    <header><h2>New verb</h2></header>
         <form
             action="/verbs/new"
             method="POST"
@@ -73,6 +75,7 @@ async def new_verb_form(request):
             </select>
             <span id="steps"></span>
         </form>
+    </article>
     """
 
 
