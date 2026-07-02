@@ -692,7 +692,7 @@ class Claim(Model):
                     self.id,
                 ),
             )
-            if self.verb.id == ROOT:
+            if self.is_entity:
                 update_index_for_doc(cur, "claims", self.id, value.encode())
         db.conn.commit()
         self.populate()
@@ -829,20 +829,24 @@ class Claim(Model):
             return True
         return False
 
+    @property
+    def is_entity(self):
+        return self.verb.id == ROOT
+
     def __format__(self, fmt):
         if not context.user.can("read", "verb", self.verb.id):
             return "(unknown claim)"
         data = self.get_data()
         css_classes, remarks = self._get_remarks(data)
         if fmt == "label":
-            if self.verb.id == ROOT and not context.user.redact:
+            if self.is_entity and not context.user.redact:
                 return self.object.value
             else:
                 return f"Claim #{self.id}"
         elif not fmt or fmt == "nested":
-            if self.verb.id == ROOT and not context.user.redact:
+            if self.is_entity and not context.user.redact:
                 return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatarsmall}{escape(self.object.value)}</a>'
-            elif self.verb.id == ROOT:
+            elif self.is_entity:
                 return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatarsmall}Claim #{self.id}</a>'
             elif fmt == "nested":
                 return f'<span{remarks} style="border: 2px solid grey" class="svo{css_classes}">{self:handle}{self.subject:nested} {self.verb:nested} {self.object:nested}</span>'
@@ -863,7 +867,7 @@ class Claim(Model):
                 cat = f"""<br><small class="cats">&lt;{new_cat}&gt;</small>"""
             buttons = []
             if context.user.is_admin or self.owner.id == context.user.id:
-                if self.verb.id != ROOT:
+                if not self.is_entity:
                     buttons.append(f"""<a
                         hx-target="#edit-area"
                         hx-get="/claims/{self.id}/move"
@@ -911,7 +915,7 @@ class Claim(Model):
                         role="button"
                         class="outline contrast"
                     >\N{WASTEBASKET}\ufe0e Delete</a>""")
-            if self.verb.id == ROOT:
+            if self.is_entity:
                 if context.user.redact:
                     text = f"Claim #{self.id}"
                 else:
@@ -967,7 +971,7 @@ class Claim(Model):
     def deletable(self):
         if list(self.outgoing_claims()) or list(self.incoming_claims()):
             return False
-        if self.verb.id == ROOT:
+        if self.is_entity:
             # For now, you can't delete entities.
             return False
         return True

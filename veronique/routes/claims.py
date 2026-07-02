@@ -392,7 +392,7 @@ async def view_claim(request, claim_id: int):
         more_results = False
     return f"{claim:label}", f"""
         <article>
-            <header>{claim:heading}{claim:avatar}</header>
+            <header>{claim:heading}{f"{claim:avatar}" if claim.is_entity else ""}</header>
             <div id="edit-area"></div>
             <table class="claims"><tr><td>
         {
