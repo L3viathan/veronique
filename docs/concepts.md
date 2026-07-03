@@ -123,4 +123,6 @@ and whereever the entity is shown (e.g. as part of a claim).
 
 #### **`comment`**
 
-
+You can add comments to any claim. This can be especially useful for
+[multi-user instances](administration.md#users) where you may not want to give everyone
+permission to make direct changes.

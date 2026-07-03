@@ -4,5 +4,6 @@ nav:
   - User Guide:
     - Concepts: concepts.md
     - Data types: data-types.md
+    - Administration: administration.md
     - Advanced topics: advanced.md
 theme: readthedocs
