@@ -117,9 +117,10 @@ transparency.
 
 #### **`avatar`**
 
-Entities can have avatars. By clicking on the circle left of the header, you'll
-be able to upload an image. This image will then be shown on the entity page,
-and whereever the entity is shown (e.g. as part of a claim).
+Entities can have avatars. By hovering on the left part of the header and
+clicking on the circle that appears, you'll be able to upload an image. This
+image will then be shown on the entity page, and whereever the entity is shown
+(e.g. as part of a claim).
 
 #### **`comment`**
 
