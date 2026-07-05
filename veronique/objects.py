@@ -939,9 +939,10 @@ class Claim(Model):
                 return ""
             return f'<img src="/claims/{self.id}/avatar" class="avatar">'
         elif fmt == "avatar":
+            css_class = " noavatarset" if AVATAR not in data else ""
             return f"""<img
                 src="/claims/{self.id}/avatar"
-                class="avatar" alt="avatar"
+                class="avatar{css_class}" alt="avatar"
                 hx-get="/claims/new/verb?verb={AVATAR}&claim_ids={self.id}&direction=outgoing&standalone=1"
                 hx-target="#edit-area"
                 style="cursor: copy"

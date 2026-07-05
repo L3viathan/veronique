@@ -226,6 +226,13 @@ header {
     object-fit: cover;
     top: 20px;
     left: 20px;
+    background-color: #E5E5F7;
+    &.noavatarset {
+      opacity: 0;
+      &:hover {
+        opacity: 0.6;
+      }
+    }
   }
 }
 
