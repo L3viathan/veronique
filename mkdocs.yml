@@ -1,4 +1,6 @@
 site_name: Véronique
+repo_url: https://github.com/L3viathan/veronique
+repo_name: Github
 nav:
   - Home: index.md
   - User Guide:
@@ -6,4 +8,5 @@ nav:
     - Data types: data-types.md
     - Advanced topics: advanced.md
     - Administration: administration.md
+  - Chat: 'https://discord.gg/atvuVztJcN'
 theme: readthedocs
