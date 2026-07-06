@@ -15,3 +15,5 @@ Next, click on <kbd>Make bulk claim</kbd>.
 You'll be redirected to something that looks a bit like an entity/claim detail
 page. Add a claim in the usual way, and it will be added once per selected
 entity.
+
+## Queries
