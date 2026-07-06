@@ -73,7 +73,7 @@ enter them:
 When displaying a date, Véronique compares it with the current date and shows a
 human-readable diff:
 
-![1855-07-06, showing as "in 3 days, 171 years ago"](img/date-display.png)
+![1798-07-03, showing as "228 years and 3 days ago"](img/display-date.png)
 
 ## `boolean`
 
@@ -82,9 +82,11 @@ A simple boolean (true/false) input. Shown as a checkbox.
 ## `location`
 
 A place on earth, in the format a map application would understand (including
-with latitude/longitude coordinates). When editing a location with coordinates,
-shows a little map on which you can click to set new coordinates. Display links
-to OpenStreetMap.
+with latitude/longitude coordinates). When editing a location, shows a little
+map on which you can click to set new coordinates. Display links to
+OpenStreetMap.
+
+![Editing a location](img/edit-location.png)
 
 ## `email`
 
@@ -122,6 +124,8 @@ Perhaps this type should be called "templated string" instead.
 For a bit of fun, this type allows you to annotate something with a mana cost.
 Basic colours only, it's intended to be used for
 [personalities](https://homosabiens.substack.com/p/the-mtg-color-wheel).
+
+![Editing an mtgcolors verb](img/edit-mtgcolors.png)
 
 ## `alpha2`
 
