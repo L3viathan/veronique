@@ -2,7 +2,18 @@
 
 ## Settings
 
-...
+Click on your username, and on <kbd>Settings</kbd> in the dropdown that opens
+to go to the settings page.
+
+You can set the application name, the default page size, and the default region
+(currently only used for entering phone numbers in the non-international
+format).
+
+The **index page** section lets you decide what page will be used as the
+homepage of your Véronique instance, and configure a few details about this.
+
+The **indexing** section lets you fine-tune the search algorithm.
+Véronique uses a variant of BM25 based on n-grams.
 
 ## Users
 

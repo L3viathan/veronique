@@ -37,16 +37,3 @@ ansible](https://github.com/L3viathan/ansibly/blob/master/roles/mainserver/tasks
 for deploying new versions.
 
 Missing migrations are automatically applied when restarting the app.
-
-### Users
-
-Véronique now has basic support for additional users. Non-admin users can by
-default only see claims of a built-in type (e.g., root claims, labels,
-category, ...).
-
-You can then allow reading of other verbs per user, and also give _write_
-access to certain verbs. Non-admin users can only create claims of those verbs
-then, and can only edit claims they themselves have created.
-
-Users can also be allowed to see a set of allowed queries. Pretty much anything
-else is forbidden.
