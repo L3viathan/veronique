@@ -65,10 +65,11 @@ enter them:
   year.
 - If you know the exact date, use the full ISO 8601 format of `YYYY-mm-dd`
   (e.g. "2025-02-13").
-- Finally, you can use any of the above formats and replace one or more digits
+- You can use any of the above formats and replace one or more digits
   with a question mark to indicate lack of knowledge. For example, `06-??`
   represents "some time in June some year". You may even just provide a single
   "?" (for "completely unknown date"), but that is rarely useful.
+- You can enter any of these shortcuts: "today", "tomorrow", or "yesterday".
 
 When displaying a date, Véronique compares it with the current date and shows a
 human-readable diff:

@@ -297,6 +297,17 @@ class date(DataType):
             value = value.removeprefix("????-").removesuffix("-??-??")
         return f"""<span class="{class_}">🗓️{value}{astro} <em>({td:{fmt_flags}})</em></span>"""
 
+    def extract_value(self, form):
+        value = form.get("value")
+        if value in ("today", "yesterday", "tomorrow"):
+            t = dt_date.today()
+            return {
+                "yesterday": str(t - timedelta(days=1)),
+                "today": str(t),
+                "tomorrow": str(t + timedelta(days=1)),
+            }[value]
+        return value
+
     def input_html(self, value=None, **_):
         if value:
             value = f' value="{value.value}"'
@@ -305,9 +316,9 @@ class date(DataType):
         return f"""<input
             type="text"
             size=10
-            pattern="[0-9?]{{4}}-[0-9?]{{2}}-[0-9?]{{2}}|[0-9?]{{4}}|[0-9?]{{2}}-[0-9?]|[?]"
+            pattern="[0-9?]{{4}}-[0-9?]{{2}}-[0-9?]{{2}}|[0-9?]{{4}}|[0-9?]{{2}}-[0-9?]|[?]|today|yesterday|tomorrow"
             name="value"{value}
-        ><small>Possible formats: <tt>YYYY-mm-dd</tt>, <tt>YYYY</tt>, <tt>mm-dd</tt>, <tt>?</tt>. Any digit can also be replaced by a question mark.</small>
+        ><small>Possible formats: <tt>YYYY-mm-dd</tt>, <tt>YYYY</tt>, <tt>mm-dd</tt>, <tt>?</tt>. Any digit can also be replaced by a question mark. You may also use any of these short hands: <tt>yesterday</tt>, <tt>today</tt>, <tt>tomorrow</tt></small>.
         """
 
     def get_extra(self, args):
