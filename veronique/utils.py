@@ -136,6 +136,7 @@ def page(fn):
                     if context.impersonator else ''
                     }
                     <li><a href="/settings">Settings</a></li>
+                    <li><a target="_blank" href="https://veronique.readthedocs.io">Help</a></li>
                     <li><a href="/logout">Logout</a></li>
                 </ul>
             </details>
