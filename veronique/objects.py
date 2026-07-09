@@ -661,7 +661,7 @@ class Claim(Model):
         cur = db.conn.cursor()
         cur.execute("DELETE FROM claims WHERE id = ?", (self.id,))
         cur.execute("DELETE FROM forward_index WHERE table_name = 'claims' AND id = ?", (self.id,))
-        cur.execute("DELETE FROM reverse_index WHERE table_name = 'claims' AND id = ?", (self.id,))
+        cur.execute("DELETE FROM inverted_index WHERE table_name = 'claims' AND id = ?", (self.id,))
         # evict deleted claim from cache:
         db.conn.commit()
         self._cache.pop(self.id)
