@@ -185,9 +185,14 @@ async def show_network(request):
         var draggedNode = null;
     """]
 
+    maybe_force_labels = (
+        ", forceLabel: true"
+        if len(all_nodes) < 100 or "forcelabels" in request.args
+        else ""
+    )
     colors = defaultdict(cycle(["red", "green", "blue", "orange", "purple"]).__next__)
     for node in all_nodes:
-        parts.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: {round(math.log(link_count[node["id"]] + 1)) + 2}, color: "{colors[node["cat"] if not colormap else colormap[node["id"]]]}"}});\n')
+        parts.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: {round(math.log(link_count[node["id"]] + 1)) + 2}, color: "{colors[node["cat"] if not colormap else colormap[node["id"]]]}"{maybe_force_labels}}});\n')
 
     for edge in all_edges:
         parts.append(f'graph.addEdge("{edge["source"]}", "{edge["target"]}", {{label: "{edge["label"]}", size: 1, color: "grey", type: "{edge["type"]}"}});\n')
