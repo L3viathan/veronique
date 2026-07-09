@@ -348,6 +348,48 @@ class date(DataType):
         verb.extra = new_extra
 
 
+class date_interval(DataType):
+    def display_html(self, value, prop, **_):
+        return f"{date.display_html(self, value[0], prop)}–{date.display_html(self, value[1], prop)}"
+
+    def encode(self, value):
+        return "/".join(value)
+
+    def decode(self, value):
+        return value.split("/")
+
+    def input_html(self, value=None, **_):
+        if value:
+            print("existing value:", repr(value.value))
+            value_from, value_until = (f' value="{val}"' for val in value.value)
+        else:
+            value_from = value_until = ""
+        return f"""
+        <fieldset role="group">
+            <input
+                type="text"
+                size=10
+                pattern="[0-9?]{{4}}-[0-9?]{{2}}-[0-9?]{{2}}|[0-9?]{{4}}|[0-9?]{{2}}-[0-9?]|[?]|today|yesterday|tomorrow"
+                name="value_from"{value_from}
+            >
+            <input value="–" disabled style="width: 50px;">
+            <input
+                type="text"
+                size=10
+                pattern="[0-9?]{{4}}-[0-9?]{{2}}-[0-9?]{{2}}|[0-9?]{{4}}|[0-9?]{{2}}-[0-9?]|[?]|today|yesterday|tomorrow"
+                name="value_until"{value_until}
+            >
+        </fieldset>
+        <small>Possible formats: <tt>YYYY-mm-dd</tt>, <tt>YYYY</tt>, <tt>mm-dd</tt>, <tt>?</tt>. Any digit can also be replaced by a question mark. You may also use any of these short hands: <tt>yesterday</tt>, <tt>today</tt>, <tt>tomorrow</tt>.</small>
+        """
+
+    def extract_value(self, form):
+        return (
+            date.extract_value(self, {"value": form.get("value_from")}),
+            date.extract_value(self, {"value": form.get("value_until")}),
+        )
+
+
 class boolean(DataType):
     def display_html(self, value, **_):
         if value:
