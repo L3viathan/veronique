@@ -273,15 +273,19 @@ async def reverb_claim_form(request, claim_id: int):
 @fragment
 async def delete_claim(request, claim_id: int):
     claim = O.Claim(claim_id)
-    subject_id = claim.subject.id
     if not context.user.is_admin and claim.owner.id != context.user.id:
         return HTTPResponse(
             body="403 Forbidden",
             status=403,
         )
+    if claim.subject:
+        redirect = f"/claims/{claim.subject.id}"
+    else:
+        redirect = "/"
+
     claim.delete()
     return f"""
-        <meta http-equiv="refresh" content="0; url=/claims/{subject_id}">
+        <meta http-equiv="refresh" content="0; url={redirect}">
     """
 
 
