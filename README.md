@@ -15,6 +15,9 @@ protection against e.g. XSS. This is a feature, you can put HTML into text
 fields for example. If you need SSO, MFA, or any other similar features, use a
 different tool.
 
+You can find user documentation
+[**here**](https://veronique.readthedocs.io/en/latest).
+
 ## Development
 
 - Clone the repo
