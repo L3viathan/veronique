@@ -231,6 +231,21 @@ async def view_query(request, query_id: int):
     """
 
 
+@queries.delete("/<query_id>")
+@fragment
+async def delete_query(request, query_id: int):
+    query = O.Query(query_id)
+    if not context.user.is_admin:
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
+    query.delete()
+    return f"""
+        <meta http-equiv="refresh" content="0; url=/queries">
+    """
+
+
 @queries.post("/remote")
 @admin_only
 async def remote_query(request):

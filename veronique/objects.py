@@ -1113,7 +1113,11 @@ class Query(Model):
                 return f"""<h2
                 >{self.label} <a
                     href="/queries/{self.id}/edit"
-                >✎</a></h2>"""
+                >✎</a><a
+                    hx-delete="/queries/{self.id}"
+                    hx-confirm="Are you sure you want to delete this query?"
+                >⌫</a>
+                </h2>"""
             else:
                 return f"""<h2>{self.label}</h2>"""
         else:
@@ -1150,6 +1154,18 @@ class Query(Model):
         db.conn.commit()
         self.sql = sql
         self.label = label
+
+    def delete(self):
+        cur = db.conn.cursor()
+        cur.execute("DELETE FROM queries WHERE id = ?", (self.id,))
+        cur.execute(
+            "DELETE FROM permissions WHERE object = ? AND permission = 'view-query'",
+            (self.id,),
+        )
+        db.conn.commit()
+        # evict deleted query from cache:
+        self._cache.pop(self.id)
+
 
     def __str__(self):
         return f"{self}"
