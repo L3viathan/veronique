@@ -241,7 +241,7 @@ async def delete_query(request, query_id: int):
             status=403,
         )
     query.delete()
-    return f"""
+    return """
         <meta http-equiv="refresh" content="0; url=/queries">
     """
 
