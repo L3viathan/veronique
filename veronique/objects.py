@@ -292,7 +292,7 @@ class Verb(Model):
 
     @property
     def name(self):
-        if self.id == -1:
+        if self.id == ROOT:
             return "root (allows creating new entities)"
         return self.label
 
