@@ -225,7 +225,7 @@ class Verb(Model):
                         class="outline contrast"
                     >✎ Edit</a>'''
                 )
-                if not list(self.claims(page_size=1)):
+                if not list(self.claims(page_size=1)) and self.id >= 0:
                     buttons.append(f'''<a
                             hx-target="#edit-area"
                             hx-delete="/verbs/{self.id}"
@@ -272,6 +272,8 @@ class Verb(Model):
         self.label = name
 
     def delete(self):
+        if self.id < 0:
+            raise ValueError("Can't delete internal verbs")
         cur = db.conn.cursor()
         cur.execute("DELETE FROM verbs WHERE id = ?", (self.id,))
         cur.execute(
