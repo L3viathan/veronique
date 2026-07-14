@@ -998,13 +998,14 @@ class Claim(Model):
                 continue
             if link.verb.id in (IS_A, ROOT):
                 continue
+            edge_label = link.verb.label.replace('"', "'")
             if link._is_invalid(link.get_data()):
-                continue
+                edge_label = f"({edge_label})"
             edges.append(
                 {
                     "source": str(self.id),
                     "target": str(link.object.id),
-                    "label": link.verb.label.replace('"', "'"),
+                    "label": edge_label,
                     "type": "arrow" if link.verb.data_type.name == "directed_link" else "line",
                 }
             )
