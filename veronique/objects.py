@@ -853,7 +853,7 @@ class Claim(Model):
             elif self.is_entity:
                 return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatarsmall}Claim #{self.id}</a>'
             elif fmt == "nested":
-                return f'<span{remarks} style="border: 2px solid grey" class="svo{css_classes}">{self:handle}{self.subject:nested} {self.verb:nested} {self.object:nested}</span>'
+                return f'<span{remarks} class="svo nested{css_classes}">{self:handle}{self.subject:nested} {self.verb:nested} {self.object:nested}</span>'
             else:
                 return f'<span{remarks} class="svo{css_classes}">{self:handle}{self.subject:nested} {self.verb:nested} {self.object:nested}</span>'
         elif fmt == "heading":

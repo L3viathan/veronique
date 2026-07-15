@@ -455,3 +455,7 @@ footer {
 .dim {
   opacity: 0.5;
 }
+
+.nested {
+  border: 2px solid grey
+}
