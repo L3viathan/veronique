@@ -28,6 +28,7 @@ You can find user documentation
   data. The password of the admin user will be "admin". **This irrevocably
   overwrites any existing db you may have.**
 - Run `sanic veronique:app --dev`
+- Open `localhost:8000` in your web browser
 
 ## Deployment
 
