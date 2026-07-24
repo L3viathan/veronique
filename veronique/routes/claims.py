@@ -1,4 +1,5 @@
 import base64
+from datetime import datetime
 
 from sanic import Blueprint, HTTPResponse, redirect, raw
 
@@ -449,7 +450,26 @@ async def view_claim_avatar(request, claim_id: int):
         mime = value[value.index(":"):value.index(";")]
         value = base64.b64decode(value[value.index(","):])
 
-    return raw(value, content_type=mime)
+    return raw(
+        value,
+        content_type=mime,
+        headers={
+            "Cache-Control": "max-age=86400",
+            "Pragma": "public",
+            "Last-Modified": _http_date(claim.updated_at),
+            "Date": _http_date(datetime.now()),
+        },
+    )
+
+
+def _http_date(dt):
+    # We're just assuming UTC here. That is a) probably correct in a production
+    # setup, and b) it really doesn't matter; this is just to force caching to
+    # work.
+    if isinstance(dt, str):
+        # 2025-05-04 09:39:50
+        dt = datetime.fromisoformat(dt)
+    return f"{dt:%a, %d %b %Y %H:%M:%S GMT}"
 
 
 @claims.get("/comments")
