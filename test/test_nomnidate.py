@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from veronique.nomnidate import NonOmniscientDatedelta, NonOmniscientDate
+from veronique.nomnidate import NonOmniscientDate, NonOmniscientDatedelta
 
 
 @pytest.mark.parametrize(

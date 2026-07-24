@@ -3,11 +3,11 @@ import sqlite3
 from sanic import Blueprint, HTTPResponse, json
 
 import veronique.objects as O
-from veronique.settings import settings as S
-from veronique.utils import fragment, page, admin_only, pagination, D
+from veronique import db
 from veronique.context import context
 from veronique.data_types import TYPES
-from veronique import db
+from veronique.settings import settings as S
+from veronique.utils import D, admin_only, fragment, page, pagination
 
 queries = Blueprint("queries", url_prefix="/queries")
 

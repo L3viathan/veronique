@@ -1,9 +1,9 @@
 from sanic import Blueprint, redirect
 
 import veronique.objects as O
-from veronique.utils import page, admin_only
 from veronique.autocomplete import AUTOCOMPLETES
 from veronique.context import context
+from veronique.utils import admin_only, page
 
 tools = Blueprint("tools", url_prefix="/tools")
 

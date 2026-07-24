@@ -1,12 +1,15 @@
 import json
-from pathlib import Path
-from hashlib import pbkdf2_hmac
-from secrets import token_bytes
-from hmac import compare_digest
 from base64 import b64decode
+from hashlib import pbkdf2_hmac
+from hmac import compare_digest
+from pathlib import Path
+from secrets import token_bytes
 
-from veronique.constants import SECURITY_KEY_SIZE, SECURITY_SALT_SIZE, SECURITY_PBKDF2_HMAC_ROUNDS
-
+from veronique.constants import (
+    SECURITY_KEY_SIZE,
+    SECURITY_PBKDF2_HMAC_ROUNDS,
+    SECURITY_SALT_SIZE,
+)
 
 key_path = Path(".veronique-key")
 if not key_path.exists():

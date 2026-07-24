@@ -1,4 +1,4 @@
-from veronique.security import sign, unsign, hash_password, is_correct
+from veronique.security import hash_password, is_correct, sign, unsign
 
 
 def test_roundtrip():
@@ -10,7 +10,7 @@ def test_wrong_signature():
     data = {"arbitrary": ["stuff", "and"], "more": "things"}
     token = sign(data)
     sig, _, payload = token.partition(".")
-    assert unsign("1"*len(sig) + ".{payload}") is None
+    assert unsign("1"*len(sig) + f".{payload}") is None
 
 
 def test_password_hashing():

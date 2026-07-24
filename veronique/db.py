@@ -1,9 +1,10 @@
+import base64
+import json
 import os
 import re
-import base64
-import sys
 import sqlite3
-import json
+import sys
+
 from veronique.security import hash_password
 
 conn = sqlite3.connect(os.environ.get("VERONIQUE_DB", "veronique.db"))

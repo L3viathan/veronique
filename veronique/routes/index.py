@@ -5,11 +5,10 @@ from datetime import date, timedelta
 from sanic import Blueprint
 
 import veronique.objects as O
-from veronique.settings import settings as S
 from veronique.context import context
-from veronique.utils import page, pagination, _notice
 from veronique.db import ROOT
-
+from veronique.settings import settings as S
+from veronique.utils import _notice, page, pagination
 
 index = Blueprint("index")
 

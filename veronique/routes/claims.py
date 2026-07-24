@@ -1,14 +1,14 @@
 import base64
 from datetime import datetime
 
-from sanic import Blueprint, HTTPResponse, redirect, raw
+from sanic import Blueprint, HTTPResponse, raw, redirect
 
 import veronique.objects as O
-from veronique.utils import fragment, page, pagination, D
-from veronique.data_types import TYPES
-from veronique.settings import settings as S
 from veronique.context import context
-from veronique.db import IS_A, ROOT, AVATAR, COMMENT
+from veronique.data_types import TYPES
+from veronique.db import AVATAR, COMMENT, IS_A, ROOT
+from veronique.settings import settings as S
+from veronique.utils import D, fragment, page, pagination
 
 claims = Blueprint("claims", url_prefix="/claims")
 

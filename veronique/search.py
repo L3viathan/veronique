@@ -3,8 +3,8 @@ import unicodedata
 from veronique import db
 from veronique.constants import SEARCH_AVGDL_CACHE_TIME, SEARCH_AVGDL_FALLBACK
 from veronique.db import ROOT
-from veronique.utils import timed_cache
 from veronique.settings import settings as S
+from veronique.utils import timed_cache
 
 
 def update_index_for_doc(cur, table, id, name):

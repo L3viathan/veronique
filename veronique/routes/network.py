@@ -1,15 +1,15 @@
-import random
 import math
-from collections import defaultdict, Counter, deque
-from itertools import cycle, combinations
+import random
+from collections import Counter, defaultdict, deque
+from itertools import combinations, cycle
 from time import monotonic
 
 from sanic import Blueprint, HTTPResponse, redirect
 
 import veronique.objects as O
 from veronique.context import context
-from veronique.utils import page
 from veronique.db import IS_A, ROOT
+from veronique.utils import page
 
 network = Blueprint("network", url_prefix="/network")
 

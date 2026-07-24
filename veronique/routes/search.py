@@ -1,12 +1,11 @@
 from sanic import Blueprint
 
 import veronique.objects as O
-from veronique.settings import settings as S
 from veronique.context import context
-from veronique.utils import page, pagination, D, admin_only, fragment
 from veronique.db import conn
-from veronique.search import rebuild_search_index, find
-
+from veronique.search import find, rebuild_search_index
+from veronique.settings import settings as S
+from veronique.utils import D, admin_only, fragment, page, pagination
 
 search = Blueprint("search", url_prefix="/search")
 

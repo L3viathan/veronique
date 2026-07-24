@@ -1,10 +1,11 @@
 from base64 import b64encode
+
 from sanic import Blueprint, redirect
 
-from veronique.settings import settings as S
-from veronique.utils import admin_only, page, D, fragment
 from veronique.context import context
 from veronique.security import sign
+from veronique.settings import settings as S
+from veronique.utils import D, admin_only, fragment, page
 
 settings = Blueprint("settings", url_prefix="/settings")
 

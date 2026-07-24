@@ -1,13 +1,26 @@
 import re
 from datetime import datetime
-from sanic import Sanic, html, file, redirect
+
+from sanic import Sanic, file, html, redirect
 
 import veronique.objects as O
-import veronique.security as security
-from veronique.context import context
+from veronique import security
 from veronique.constants import SESSION_MAX_AGE, SESSION_REFRESH_AFTER
+from veronique.context import context
+from veronique.routes import (
+    autocomplete,
+    claims,
+    index,
+    network,
+    queries,
+    search,
+    settings,
+    static,
+    tools,
+    users,
+    verbs,
+)
 from veronique.utils import D
-from veronique.routes import claims, verbs, queries, users, settings, network, static, index, search, tools, autocomplete
 
 app = Sanic("Veronique")
 app.blueprint(claims)

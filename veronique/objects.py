@@ -1,26 +1,26 @@
 import json
 import re
 from datetime import date, datetime, timedelta
-from functools import cached_property, cache
-from itertools import count, combinations
+from functools import cache, cached_property
 from html import escape
+from itertools import combinations, count
 
 from veronique import db
-from veronique.constants import SESSION_MAX_AGE, CLAIM_DATA_CACHE_TIME
-from veronique.data_types import TYPES
-from veronique.nomnidate import NonOmniscientDate
-from veronique.security import hash_password, sign
+from veronique.constants import CLAIM_DATA_CACHE_TIME, SESSION_MAX_AGE
 from veronique.context import context
+from veronique.data_types import TYPES
 from veronique.db import (
-    IS_A,
     AVATAR,
+    COMMENT,
+    DATA_LABELS,
+    IS_A,
     ROOT,
     VALID_FROM,
     VALID_UNTIL,
-    DATA_LABELS,
-    COMMENT,
 )
-from veronique.search import update_index_for_doc, find
+from veronique.nomnidate import NonOmniscientDate
+from veronique.search import find, update_index_for_doc
+from veronique.security import hash_password, sign
 from veronique.utils import timed_cache
 
 SELF = object()
@@ -36,7 +36,7 @@ class lazy:
         if instance is None:
             return self
         if getattr(instance, f"_{self.name}", UNSET) is UNSET:
-            +instance
+            +instance  # noqa
         return getattr(instance, f"_{self.name}")
 
     def __set__(self, instance, value):
@@ -46,10 +46,10 @@ class lazy:
 class Model:
     def __new__(cls, id):
         if not isinstance(id, int):
-            raise ValueError("IDs need to be ints")
+            raise TypeError("IDs need to be ints")
         if id in cls._cache:
             return cls._cache[id]
-        obj = super(Model, cls).__new__(cls)
+        obj = super().__new__(cls)
         cls._cache[id] = obj
         obj._populated = False
         return obj
@@ -602,8 +602,7 @@ class Claim(Model):
     def outgoing_inferred_claims(self):
         inferables = Verb.get_inferables()
         for inferable in inferables:
-            for inferred in inferable(self.id):
-                yield inferred
+            yield from inferable(self.id)
 
     @classmethod
     def all_labelled(cls, *, order_by="id ASC", page_no=0, page_size=20):
@@ -815,23 +814,19 @@ class Claim(Model):
 
     def _is_invalid(self, data):
         today = date.today()
-        if (
+        return (
             VALID_FROM in data
             and (
                 NonOmniscientDate(data[VALID_FROM][0].object.value).definitely_after(today)
                 or data[VALID_FROM][0].object.value == "????-??-??"
             )
-        ):
-            return True
-        elif (
+        ) or (
             VALID_UNTIL in data
             and (
                 NonOmniscientDate(data[VALID_UNTIL][0].object.value).definitely_before(today)
                 or data[VALID_UNTIL][0].object.value == "????-??-??"
             )
-        ):
-            return True
-        return False
+        )
 
     @property
     def is_entity(self):
@@ -974,9 +969,11 @@ class Claim(Model):
 
     @property
     def deletable(self):
-        if list(self.outgoing_claims()) or list(self.incoming_claims()) or list(self.incoming_mentions()):
-            return False
-        return True
+        return (
+            not list(self.outgoing_claims())
+            and not list(self.incoming_claims())
+            and not list(self.incoming_mentions())
+        )
 
     def __str__(self):
         return f"{self}"
@@ -1460,7 +1457,7 @@ class Inferable:
                         links.append((condition, other))
                         break
                 else:
-                    raise  # we didn't find a link
+                    raise RuntimeError  # we didn't find a link
             for (s_id, s_sub, _, s_obj), (t_id, t_sub, _, t_obj) in links:
                 if s_sub == t_sub:
                     joins.append((s_id, f"cond{s_id}.subject_id = cond{t_id}.subject_id"))

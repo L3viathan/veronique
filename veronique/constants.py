@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-
 SESSION_REFRESH_AFTER = timedelta(days=7)
 SESSION_MAX_AGE = timedelta(days=30)
 

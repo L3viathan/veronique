@@ -3,19 +3,19 @@ import operator
 import typing
 
 from veronique import db
-from veronique.context import context
 from veronique.constants import (
-    SEARCH_DEFAULT_K1,
-    SEARCH_DEFAULT_B,
-    SEARCH_DEFAULT_N,
-    INDEX_DEFAULT_TYPE,
+    DEFAULT_APP_NAME,
+    DEFAULT_PAGE_SIZE,
+    DEFAULT_PHONE_REGION,
     INDEX_DEFAULT_DAYS_AHEAD,
     INDEX_DEFAULT_DAYS_BACK,
     INDEX_DEFAULT_RECENT_EVENTS_MOD,
-    DEFAULT_PHONE_REGION,
-    DEFAULT_APP_NAME,
-    DEFAULT_PAGE_SIZE,
+    INDEX_DEFAULT_TYPE,
+    SEARCH_DEFAULT_B,
+    SEARCH_DEFAULT_K1,
+    SEARCH_DEFAULT_N,
 )
+from veronique.context import context
 
 UNKNOWN = object()
 

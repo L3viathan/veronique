@@ -1,13 +1,12 @@
 import functools
-from types import CoroutineType
 from time import monotonic
+from types import CoroutineType
 
-from sanic import html, HTTPResponse
+from sanic import HTTPResponse, html
 
+from veronique.context import context
 from veronique.db import ROOT
 from veronique.settings import settings as S
-from veronique.context import context
-
 
 with open("data/template.html") as f:
     TEMPLATE = f.read().format

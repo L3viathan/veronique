@@ -36,3 +36,11 @@ module-name = "veronique"
 module-root = ""
 source-exclude = ["test/**"]
 data = { data = "data" }
+
+[tool.ruff.lint]
+ignore = [
+  "DTZ011",  # datetime without tz: UTC everywhere (without needing tz)
+  "DTZ005",  # same here
+  "B020",  # loop variable overrides iterable: I do that intentionally
+  "SIM103",  # return condition directly; not always more readable
+]

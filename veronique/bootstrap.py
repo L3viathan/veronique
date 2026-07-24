@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 
 def cli():
@@ -12,7 +12,7 @@ def cli():
     with open("veronique_initial_pw", "w") as f:
         f.write("admin")
     # running migrations:
-    import veronique.db  # noqa
+    import veronique.db
     import veronique.objects as O
     from veronique.context import context
 

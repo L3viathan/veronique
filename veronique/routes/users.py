@@ -1,13 +1,13 @@
 from secrets import token_urlsafe
 
-from sanic import Blueprint, redirect, html
+from sanic import Blueprint, html, redirect
 
 import veronique.objects as O
-from veronique.utils import page, admin_only, pagination
-from veronique.settings import settings as S
+from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import IS_A, ROOT
-from veronique.context import context
+from veronique.settings import settings as S
+from veronique.utils import admin_only, page, pagination
 
 users = Blueprint("users", url_prefix="/users")
 
