@@ -11,6 +11,7 @@ dependencies = [
   "sanic",
   "markdown-it-py[linkify]",
   "phonenumbers",
+  "pycountry>=24.6.1",
 ]
 [dependency-groups]
 test = [

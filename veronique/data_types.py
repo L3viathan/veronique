@@ -631,9 +631,33 @@ class alpha2(DataType):
         else:
             value = ""
         return f"""
-            <input name="value"{value}></input>
+            <div class="ac-widget">
+            <input hx-trigger="keyup" hx-get="/verbs/data-types/alpha2" hx-target="#alpha2-results" name="value"{value} autocomplete="off">
             <small>Enter a two-uppercase-letter region code here (ISO 3166-1 alpha 2), e.g. "DE".</small>
+            <div id="alpha2-results" class="ac-results"></div>
+            </div>
         """
+
+    @fragment
+    async def request(self, request):
+        args = D(request.args)
+        if "accept" in args:
+            return self.input_html(value=args["accept"])
+        if "value" not in args:
+            return ""
+        value = args["value"]
+
+        try:
+            results = pycountry.countries.search_fuzzy(value)
+        except LookupError:
+            results = []
+        return "".join(f'''<a
+            class="clickable ac-result"
+            hx-target="closest .ac-widget"
+            hx-swap="outerHTML"
+            hx-get="/verbs/data-types/alpha2/?accept={c.alpha_2}"
+        >{c.flag} {c.name}</a>
+        ''' for c in results[:5])
 
 
 class age(DataType):
