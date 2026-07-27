@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@main
       - name: Install uv
-        uses: astral-sh/setup-uv
+        uses: astral-sh/setup-uv@main
       - name: Set up Python
         run: uv python install
       - name: Install project
