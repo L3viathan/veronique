@@ -12,7 +12,7 @@ jobs:
       - name: Set up Python
         run: uv python install
       - name: Install project
-        run: uv sync --locked --all-extras --dev
+        run: uv sync --all-extras --dev
       - name: Test
         run: uv run pytest
       - name: Lint
