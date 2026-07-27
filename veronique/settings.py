@@ -11,6 +11,10 @@ from veronique.constants import (
     INDEX_DEFAULT_DAYS_BACK,
     INDEX_DEFAULT_RECENT_EVENTS_MOD,
     INDEX_DEFAULT_TYPE,
+    LOCATION_DEFAULT_LINK_TEMPLATE,
+    MAP_TILES_DEFAULT_ATTRIBUTION_LABEL,
+    MAP_TILES_DEFAULT_ATTRIBUTION_LINK,
+    MAP_TILES_DEFAULT_PROVIDER_URL,
     SEARCH_DEFAULT_B,
     SEARCH_DEFAULT_K1,
     SEARCH_DEFAULT_N,
@@ -105,6 +109,10 @@ class Settings:
     search_k_1: float = Setting(SEARCH_DEFAULT_K1)
     search_b: float = Setting(SEARCH_DEFAULT_B)
     search_n: int = Setting(SEARCH_DEFAULT_N)
+    map_tile_url: str = Setting(MAP_TILES_DEFAULT_PROVIDER_URL)
+    map_tile_attribution_label: str = Setting(MAP_TILES_DEFAULT_ATTRIBUTION_LABEL)
+    map_tile_attribution_link: str = Setting(MAP_TILES_DEFAULT_ATTRIBUTION_LINK)
+    location_link_template: str = Setting(LOCATION_DEFAULT_LINK_TEMPLATE)
 
 
 settings = Settings()

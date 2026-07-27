@@ -79,6 +79,29 @@ async def settings_form(request):
                     <small>This is the <em>n</em> in n-gram. We use character n-grams.</small>
                     </label>
                 </fieldset>
+                <h4>Maps</h4>
+                <fieldset class="grid">
+                    <label>
+                    Tile provider URL
+                    <input type="text" name="map_tile_url" value="{S.map_tile_url}">
+                    <small>Needs to contain <tt>{{x}}</tt>, <tt>{{y}}</tt>, and <tt>{{z}}</tt>.</small>
+                    </label>
+                    <label>
+                    Location link format
+                    <input type="text" name="location_link_template" value="{S.location_link_template}">
+                    <small>Needs to contain <tt>{{}}</tt>.</small>
+                    </label>
+                </fieldset>
+                <fieldset class="grid">
+                    <label>
+                    Tile provider name
+                    <input type="text" name="map_tile_attribution_label" value="{S.map_tile_attribution_label}">
+                    </label>
+                    <label>
+                    Tile provider attribution URL
+                    <input type="text" name="map_tile_attribution_link" value="{S.map_tile_attribution_link}">
+                    </label>
+                </fieldset>
                 {'''
                 <fieldset>
                 <a href="#" role="button" hx-swap="outerHTML" hx-post="/search/rebuild">Rebuild search index</a>
@@ -106,6 +129,10 @@ async def save_settings(request):
         S.search_k_1 = form.get("search_k_1")
         S.search_b = form.get("search_b")
         S.search_n = form.get("search_n")
+        S.map_tile_attribution_link = form.get("map_tile_attribution_link")
+        S.map_tile_attribution_label = form.get("map_tile_attribution_label")
+        S.map_tile_url = form.get("map_tile_url")
+        S.location_link_template = form.get("location_link_template")
     return redirect("/")
 
 

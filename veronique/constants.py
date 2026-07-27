@@ -23,3 +23,8 @@ INDEX_DEFAULT_RECENT_EVENTS_MOD = 1
 DEFAULT_PHONE_REGION = "DE"
 DEFAULT_PAGE_SIZE = 20
 DEFAULT_APP_NAME = "Véronique"
+
+LOCATION_DEFAULT_LINK_TEMPLATE = "https://www.openstreetmap.org/search?query={}"
+MAP_TILES_DEFAULT_ATTRIBUTION_LINK = "http://www.openstreetmap.org/copyright"
+MAP_TILES_DEFAULT_ATTRIBUTION_LABEL = "OpenStreetMap"
+MAP_TILES_DEFAULT_PROVIDER_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"

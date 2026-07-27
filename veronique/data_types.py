@@ -380,18 +380,18 @@ class location(DataType):
                 <div id="map{rand}" class="map"></div>
                 <script>
                     var map = L.map('map{rand}').setView([{value}], 13);
-                    L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+                    L.tileLayer('{S.map_tile_url}', {{
                         maxZoom: 19,
-                        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        attribution: '&copy; <a href="{S.map_tile_attribution_link}">{S.map_tile_attribution_label}</a>'
                     }}).addTo(map);
                     L.marker([{value}]).addTo(map);
                 </script>
             """
         else:
             return f"""<span class="type-location">{escape(value).replace(newline, "<br>")} <a
-                href="https://www.openstreetmap.org/search?query={
+                href="{S.location_link_template.format(
                 quote_plus(value.replace(newline, ", "))
-            }"
+                )}"
             >🌍</a></span>"""
 
     def input_html(self, value=None, **_):
@@ -409,9 +409,9 @@ class location(DataType):
             <div id="map{rand}" class="map"></div>
             <script>
                 var map = L.map('map{rand}').setView([{map_coords}], 13);
-                L.tileLayer('https://tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+                L.tileLayer('{S.map_tile_url}', {{
                     maxZoom: 19,
-                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    attribution: '&copy; <a href="{S.map_tile_attribution_link}">{S.map_tile_attribution_label}</a>'
                 }}).addTo(map);
                 var marker = null;
                 function onMapClick(e) {{
