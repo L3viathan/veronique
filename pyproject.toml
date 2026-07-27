@@ -14,14 +14,12 @@ dependencies = [
   "pycountry>=24.6.1",
 ]
 [dependency-groups]
-test = [
-  "sanic-testing",
-  "pytest",
-  "pytest-asyncio",
-]
 dev = [
   "mkdocs",
   "ruff",
+  "sanic-testing",
+  "pytest",
+  "pytest-asyncio",
 ]
 [build-system]
 requires = ["uv_build"]
