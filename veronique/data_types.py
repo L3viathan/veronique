@@ -610,11 +610,11 @@ class mtgcolors(DataType):
 
 class alpha2(DataType):
     def display_html(self, value, **_):
-        country = value.upper()
-        flag = "".join(
-            unicodedata.lookup(f"REGIONAL INDICATOR SYMBOL LETTER {c}") for c in country
-        )
-        return f'<span class="type-alpha2">{flag} {country}</span>'
+        try:
+            country = pycountry.countries.lookup(value.upper())
+        except LookupError:
+            return f'<span class="type-alpha2">invalid country ({value.upper()})</span>'
+        return f'<span class="type-alpha2">{country.flag} {country.name}</span>'
 
     def encode(self, string):
         val = string.upper()
