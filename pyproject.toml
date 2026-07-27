@@ -21,6 +21,7 @@ test = [
 ]
 dev = [
   "mkdocs",
+  "ruff",
 ]
 [build-system]
 requires = ["uv_build"]
