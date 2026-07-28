@@ -431,9 +431,12 @@ class text(DataType):
     def __init__(self):
         self.md = MarkdownIt("gfm-like")
 
-    def _sub(self, match):
+    def _sub(self, match, fmt=None):
         import veronique.objects as O
-        return f"{O.Claim(int(match.group(1)))}"
+        if fmt:
+            return f"{O.Claim(int(match.group(1))):{fmt}}"
+        else:
+            return f"{O.Claim(int(match.group(1)))}"
 
     def display_html(self, value, fmt=None, **_):
         if len(value) > 100 and fmt == "short":
@@ -449,9 +452,14 @@ class text(DataType):
             value = value.value
         else:
             value = ""
+        value = escape(value)
+        value = re.sub(TEXT_REF, partial(self._sub, fmt="input-widget-ref"), value)
         return f"""
-            <div onkeyup="document.getElementsByName('value')[0].innerHTML = this.innerHTML" contenteditable>{escape(value)}</div>
-            <textarea style="display: none;" name="value">{escape(value)}</textarea>
+            <div
+                class="input-text"
+                onkeyup="document.getElementsByName('value')[0].innerHTML = this.innerHTML"
+                contenteditable>{value}</div>
+            <textarea style="display: none;" name="value">{value}</textarea>
         """
 
 
