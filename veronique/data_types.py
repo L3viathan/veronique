@@ -504,7 +504,7 @@ class phonenumber(DataType):
         return f"""<span
             class="type-phonenumber"
         >
-            {flag}<a href="tel:{value}">{display}</a>
+            {flag} <a href="tel:{value}">{display}</a>
         </span>"""
 
     def input_html(self, value=None, **_):
