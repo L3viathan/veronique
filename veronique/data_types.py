@@ -450,7 +450,8 @@ class text(DataType):
         else:
             value = ""
         return f"""
-            <textarea name="value">{escape(value)}</textarea>
+            <div onkeyup="document.getElementsByName('value')[0].innerHTML = this.innerHTML" contenteditable>{escape(value)}</div>
+            <textarea style="display: none;" name="value">{escape(value)}</textarea>
         """
 
 
