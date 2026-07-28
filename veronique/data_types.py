@@ -4,6 +4,7 @@ import re
 import unicodedata
 from datetime import date as dt_date
 from datetime import timedelta
+from functools import partial
 from html import escape
 from itertools import count
 from random import randint
