@@ -6,6 +6,47 @@ class Autocomplete:
         AUTOCOMPLETES[cls.__name__] = cls()
 
 
+class input_ref_widget(Autocomplete):
+    def widget(self, data=None):
+        return f"""
+            <div class="ac-widget">
+                <input
+                    name="ac-query"
+                    placeholder="Start typing..."
+                    hx-get="/autocomplete/input_ref_widget/query/{data}"
+                    hx-target="next .ac-results"
+                    hx-swap="innerHTML"
+                    hx-trigger="input changed delay:200ms, search"
+                    autofocus
+                >
+                <div class="ac-results">
+                </div>
+            </div>
+        """
+
+    def get_results(self, query, connect):
+        import veronique.objects as O
+        if not query:
+            return ""
+        claims = O.Claim.search(
+            q=query,
+            page_size=5,
+        )
+        return f"""
+        {"".join(f'''<a
+            class="clickable ac-result"
+            hx-target="closest .ac-widget"
+            hx-swap="outerHTML"
+            hx-get="/autocomplete/input_ref_widget/accept/{claim.id}"
+        >{claim:label}</a>
+        ''' for claim in claims)}
+        """
+
+    def accept(self, claim_id):
+        import veronique.objects as O
+        claim = O.Claim(int(claim_id))
+        return f"{claim:input-widget-ref}&nbsp;"
+
 class link(Autocomplete):
     def widget(self, data=None):
         return f"""

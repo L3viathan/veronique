@@ -471,9 +471,17 @@ class text(DataType):
             <div
                 class="input-text"
                 onkeyup="document.getElementsByName('value')[0].innerHTML = this.innerHTML"
+                onchange="document.getElementsByName('value')[0].innerHTML = this.innerHTML"
+                hx-trigger="keydown[key=='@']"
+                hx-post="/verbs/data-types/text"
+                hx-swap="beforeend"
                 contenteditable>{value}</div>
             <textarea style="display: none;" name="value">{value}</textarea>
         """
+
+    @fragment
+    async def request(self, request, *, method):
+        return AUTOCOMPLETES["input_ref_widget"].widget(None)
 
 
 class email(DataType):
@@ -661,7 +669,7 @@ class alpha2(DataType):
         """
 
     @fragment
-    async def request(self, request):
+    async def request(self, request, *, method):
         args = D(request.args)
         if "accept" in args:
             return self.input_html(value=args["accept"])
