@@ -22,6 +22,7 @@ from veronique.utils import D, fragment
 
 TYPES = {}
 TEXT_REF = re.compile(r"&lt;@(\d+)&gt;")
+INPUT_WIDGET_REF = re.compile(r'<span [^>]+data-claim-ref="(\d+)"[^>]+>.+?</span>')
 COORDS = re.compile(r"^-?\d+(.\d+)?, ?-?\d+(.\d+)?$")
 
 
@@ -448,6 +449,15 @@ class text(DataType):
             value = self.md.render(escape(value))
         return f"""<span class="type-text">{re.sub(TEXT_REF, self._sub, value)}</span>"""
 
+    def _encode_input_widget_refs(self, match):
+        return f'<@{match.group(1)}>'
+
+    def extract_value(self, form):
+        return re.sub(INPUT_WIDGET_REF, self._encode_input_widget_refs, form.get("value"))
+
+    def encode(self, value):
+        return value.strip()
+
     def input_html(self, value=None, **_):
         if value:
             value = value.value
@@ -455,6 +465,8 @@ class text(DataType):
             value = ""
         value = escape(value)
         value = re.sub(TEXT_REF, partial(self._sub, fmt="input-widget-ref"), value)
+        if value.endswith(">"):
+            value = f"{value}&nbsp;"
         return f"""
             <div
                 class="input-text"
