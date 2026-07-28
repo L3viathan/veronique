@@ -470,3 +470,27 @@ footer {
 .nested {
   border: 2px solid grey
 }
+
+.input-text {
+  padding: 5px;
+  margin: 3px;
+  border: 1px solid grey;
+}
+
+.input-widget-ref {
+  display: inline-block;
+  background-color: #ddeeff;
+  margin: 3px;
+  border: 1px solid #adf;
+  border-radius: 2px;
+  & .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 15px;
+    vertical-align: middle;
+    margin-bottom: 6px;
+    display: inline;
+    margin-left: 5px;
+    object-fit: cover;
+  }
+}
