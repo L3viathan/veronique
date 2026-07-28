@@ -853,9 +853,9 @@ class Claim(Model):
                 return f'<span{remarks} class="svo{css_classes}">{self:handle}{self.subject:nested} {self.verb:nested} {self.object:nested}</span>'
         elif fmt == "input-widget-ref":
             if self.is_entity and not context.user.redact:
-                return f'<span contenteditable="false" class="input-widget-ref">{self:avatarsmall}{escape(self.object.value)}</span>&nbsp;'
+                return f'<span contenteditable="false" data-claim-ref="{self.id}" class="input-widget-ref">{self:avatarsmall}{escape(self.object.value)}</span>&nbsp;'
             else:
-                return f'<span contenteditable="false" class="input-widget-ref">Claim #{self.id}</span>&nbsp;'
+                return f'<span contenteditable="false" data-claim-ref="{self.id}" class="input-widget-ref">Claim #{self.id}</span>'
         elif fmt == "heading":
             if context.user.can("write", "verb", IS_A):
                 new_cat = f"""<span
