@@ -43,6 +43,16 @@ A simple, short text. Use this for things that would usually fit in one line.
 Behaves mostly like `string`, but you'll have a multiline input, and the output
 renders as Markdown.
 
+![How to insert entities into a text field](img/edit-text.png)
+
+You can also mention other entities in a text value. To insert an entity
+reference, type an <kbd>@</kbd> symbol. An autocomplete input box will appear,
+with which you can search for the entity to insert. Clicking on the entity
+inserts it into the text box.
+
+If you want to insert a literal "@" character, press the little "x"/close
+button.
+
 ## `number`
 
 Another one in the group of very simple types. This represents a number that
