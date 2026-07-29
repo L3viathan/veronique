@@ -463,7 +463,7 @@ class text(DataType):
             value = value.value
         else:
             value = ""
-        value = escape(value)
+        value = escape(value).strip()
         value = re.sub(TEXT_REF, partial(self._sub, fmt="input-widget-ref"), value)
         if value.endswith(">"):
             value = f"{value}&nbsp;"
