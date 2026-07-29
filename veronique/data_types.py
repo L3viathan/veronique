@@ -472,7 +472,8 @@ class text(DataType):
                 class="input-text"
                 onkeyup="document.getElementsByName('value')[0].innerHTML = this.innerHTML"
                 onchange="document.getElementsByName('value')[0].innerHTML = this.innerHTML"
-                hx-trigger="keydown[key=='@']"
+                hx-on:keydown="if(event.key==='@'){{ event.preventDefault(); htmx.trigger(this, 'at-key'); }}"
+                hx-trigger="at-key"
                 hx-post="/verbs/data-types/text"
                 hx-swap="beforeend"
                 contenteditable>{value}</div>
