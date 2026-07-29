@@ -10,6 +10,7 @@ class input_ref_widget(Autocomplete):
     def widget(self, data=None):
         return f"""
             <div class="ac-widget">
+                <fieldset role="group">
                 <input
                     name="ac-query"
                     placeholder="Start typing..."
@@ -19,6 +20,8 @@ class input_ref_widget(Autocomplete):
                     hx-trigger="input changed delay:200ms, search"
                     autofocus
                 >
+                <input type="button" value="x" hx-swap="outerHTML" hx-target=".ac-widget" hx-get="/verbs/data-types/text">
+                </fieldset>
                 <div class="ac-results">
                 </div>
             </div>
