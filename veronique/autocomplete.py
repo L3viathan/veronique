@@ -18,6 +18,7 @@ class input_ref_widget(Autocomplete):
                     hx-target="next .ac-results"
                     hx-swap="innerHTML"
                     hx-trigger="input changed delay:200ms, search"
+                    autocomplete="pleaseno"
                     autofocus
                 >
                 <input type="button" value="x" hx-swap="outerHTML" hx-target=".ac-widget" hx-get="/verbs/data-types/text">
