@@ -47,6 +47,8 @@ def rebuild_search_index(cur):
 
 def ngrams(string):
     sanitized = unicodedata.normalize("NFKD", string).casefold()
+    if len(sanitized) < S.search_n:
+        return
     iterables = [iter(sanitized) for _ in range(S.search_n)]
     for index, it in enumerate(iterables):
         for _ in range(index):
