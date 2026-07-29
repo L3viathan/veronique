@@ -4,6 +4,7 @@ import re
 import unicodedata
 from datetime import date as dt_date
 from datetime import timedelta
+from functools import partial
 from html import escape
 from itertools import count
 from random import randint
@@ -21,6 +22,7 @@ from veronique.utils import D, fragment
 
 TYPES = {}
 TEXT_REF = re.compile(r"&lt;@(\d+)&gt;")
+INPUT_WIDGET_REF = re.compile(r'<span [^>]+data-claim-ref="(\d+)"[^>]+>.+?</span>')
 COORDS = re.compile(r"^-?\d+(.\d+)?, ?-?\d+(.\d+)?$")
 
 
@@ -431,9 +433,12 @@ class text(DataType):
     def __init__(self):
         self.md = MarkdownIt("gfm-like")
 
-    def _sub(self, match):
+    def _sub(self, match, fmt=None):
         import veronique.objects as O
-        return f"{O.Claim(int(match.group(1)))}"
+        if fmt:
+            return f"{O.Claim(int(match.group(1))):{fmt}}"
+        else:
+            return f"{O.Claim(int(match.group(1)))}"
 
     def display_html(self, value, fmt=None, **_):
         if len(value) > 100 and fmt == "short":
@@ -444,14 +449,42 @@ class text(DataType):
             value = self.md.render(escape(value))
         return f"""<span class="type-text">{re.sub(TEXT_REF, self._sub, value)}</span>"""
 
+    def _encode_input_widget_refs(self, match):
+        return f'<@{match.group(1)}>'
+
+    def extract_value(self, form):
+        return re.sub(INPUT_WIDGET_REF, self._encode_input_widget_refs, form.get("value"))
+
+    def encode(self, value):
+        return value.strip()
+
     def input_html(self, value=None, **_):
         if value:
             value = value.value
         else:
             value = ""
+        value = escape(value).strip()
+        value = re.sub(TEXT_REF, partial(self._sub, fmt="input-widget-ref"), value)
+        if value.endswith(">"):
+            value = f"{value}&nbsp;"
         return f"""
-            <textarea name="value">{escape(value)}</textarea>
+            <div
+                class="input-text"
+                onkeyup="document.getElementsByName('value')[0].innerHTML = this.innerHTML"
+                onchange="document.getElementsByName('value')[0].innerHTML = this.innerHTML"
+                hx-on:keydown="if(event.key==='@'){{ event.preventDefault(); htmx.trigger(this, 'at-key'); }}"
+                hx-trigger="at-key"
+                hx-post="/verbs/data-types/text"
+                hx-swap="beforeend"
+                contenteditable>{value}</div>
+            <textarea style="display: none;" name="value">{value}</textarea>
         """
+
+    @fragment
+    async def request(self, request, *, method):
+        if method == "POST":
+            return AUTOCOMPLETES["input_ref_widget"].widget(None)
+        return "@"
 
 
 class email(DataType):
@@ -639,7 +672,7 @@ class alpha2(DataType):
         """
 
     @fragment
-    async def request(self, request):
+    async def request(self, request, *, method):
         args = D(request.args)
         if "accept" in args:
             return self.input_html(value=args["accept"])

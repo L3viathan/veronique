@@ -163,5 +163,10 @@ async def edit_verb(request, verb_id: int):
 
 
 @verbs.get("/data-types/<data_type>")
-async def data_type_request(request, data_type: str):
-    return await TYPES[data_type].request(request)
+async def data_type_request_get(request, data_type: str):
+    return await TYPES[data_type].request(request, method="GET")
+
+
+@verbs.post("/data-types/<data_type>")
+async def data_type_request_post(request, data_type: str):
+    return await TYPES[data_type].request(request, method="POST")
