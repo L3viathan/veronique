@@ -482,7 +482,9 @@ class text(DataType):
 
     @fragment
     async def request(self, request, *, method):
-        return AUTOCOMPLETES["input_ref_widget"].widget(None)
+        if method == "POST":
+            return AUTOCOMPLETES["input_ref_widget"].widget(None)
+        return "@"
 
 
 class email(DataType):
