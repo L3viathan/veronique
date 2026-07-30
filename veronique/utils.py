@@ -1,4 +1,5 @@
 import functools
+from datetime import datetime
 from time import monotonic
 from types import CoroutineType
 
@@ -7,6 +8,8 @@ from sanic import HTTPResponse, html
 from veronique.context import context
 from veronique.db import ROOT
 from veronique.settings import settings as S
+
+startup_time = datetime.now()
 
 with open("data/template.html") as f:
     TEMPLATE = f.read().format
@@ -204,3 +207,22 @@ def timed_cache(max_duration, *, key=None):
             return result
         return wrapper
     return decorator
+
+
+def http_date(dt):
+    # We're just assuming UTC here. That is a) probably correct in a production
+    # setup, and b) it really doesn't matter; this is just to force caching to
+    # work.
+    if isinstance(dt, str):
+        # 2025-05-04 09:39:50
+        dt = datetime.fromisoformat(dt)
+    return f"{dt:%a, %d %b %Y %H:%M:%S GMT}"
+
+
+def cache_pls_headers(update_time=None):
+    return {
+        "Cache-Control": "max-age=86400",
+        "Pragma": "public",
+        "Last-Modified": http_date(update_time or startup_time),
+        "Date": http_date(datetime.now()),
+    }

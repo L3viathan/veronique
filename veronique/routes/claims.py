@@ -1,5 +1,4 @@
 import base64
-from datetime import datetime
 
 from sanic import Blueprint, HTTPResponse, raw, redirect
 
@@ -8,7 +7,7 @@ from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import AVATAR, COMMENT, IS_A, ROOT
 from veronique.settings import settings as S
-from veronique.utils import D, fragment, page, pagination
+from veronique.utils import D, cache_pls_headers, fragment, page, pagination
 
 claims = Blueprint("claims", url_prefix="/claims")
 
@@ -453,23 +452,8 @@ async def view_claim_avatar(request, claim_id: int):
     return raw(
         value,
         content_type=mime,
-        headers={
-            "Cache-Control": "max-age=86400",
-            "Pragma": "public",
-            "Last-Modified": _http_date(claim.updated_at),
-            "Date": _http_date(datetime.now()),
-        },
+        headers=cache_pls_headers(claim.updated_at),
     )
-
-
-def _http_date(dt):
-    # We're just assuming UTC here. That is a) probably correct in a production
-    # setup, and b) it really doesn't matter; this is just to force caching to
-    # work.
-    if isinstance(dt, str):
-        # 2025-05-04 09:39:50
-        dt = datetime.fromisoformat(dt)
-    return f"{dt:%a, %d %b %Y %H:%M:%S GMT}"
 
 
 @claims.get("/comments")
