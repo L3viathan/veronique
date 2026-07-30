@@ -444,15 +444,18 @@ async def view_claim_avatar(request, claim_id: int):
         # transparent pixel
         value = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
         mime = "image/png"
+        updated_at = claim.updated_at
     else:
-        value = data[AVATAR][0].object.value
+        avatar_claim = data[AVATAR][0]
+        value = avatar_claim.object.value
         mime = value[value.index(":"):value.index(";")]
         value = base64.b64decode(value[value.index(","):])
+        updated_at = avatar_claim.updated_at or avatar_claim.created_at
 
     return raw(
         value,
         content_type=mime,
-        headers=cache_pls_headers(claim.updated_at),
+        headers=cache_pls_headers(updated_at),
     )
 
 
