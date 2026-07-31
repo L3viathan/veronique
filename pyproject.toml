@@ -12,6 +12,7 @@ dependencies = [
   "markdown-it-py[linkify]",
   "phonenumbers",
   "pycountry>=24.6.1",
+  "lxml_html_clean",
 ]
 [dependency-groups]
 dev = [

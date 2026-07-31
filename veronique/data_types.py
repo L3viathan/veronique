@@ -12,6 +12,7 @@ from urllib.parse import quote_plus
 
 import phonenumbers
 import pycountry
+from lxml_html_clean import clean_html
 from markdown_it import MarkdownIt
 
 from veronique.autocomplete import AUTOCOMPLETES
@@ -446,24 +447,25 @@ class text(DataType):
         if context.user.redact:
             value = "..."
         else:
-            value = self.md.render(escape(value))
+            value = self.md.render(value)
         return f"""<span class="type-text">{re.sub(TEXT_REF, self._sub, value)}</span>"""
 
     def _encode_input_widget_refs(self, match):
         return f'<@{match.group(1)}>'
 
     def extract_value(self, form):
-        return re.sub(INPUT_WIDGET_REF, self._encode_input_widget_refs, form.get("value"))
+        return re.sub(INPUT_WIDGET_REF, self._encode_input_widget_refs, form.get("value")).strip()
 
     def encode(self, value):
-        return value.strip()
+        # This removes "dangerous" HTML (scripts, meta tags, <link>, etc.)
+        return clean_html(value).strip()
 
     def input_html(self, value=None, **_):
         if value:
             value = value.value
         else:
             value = ""
-        value = escape(value).strip()
+        value = value.strip()
         value = re.sub(TEXT_REF, partial(self._sub, fmt="input-widget-ref"), value)
         if value.endswith(">"):
             value = f"{value}&nbsp;"
