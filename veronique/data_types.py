@@ -12,8 +12,8 @@ from urllib.parse import quote_plus
 
 import phonenumbers
 import pycountry
-from lxml_html_clean import clean_html
 from markdown_it import MarkdownIt
+from nh3 import clean as clean_html
 
 from veronique.autocomplete import AUTOCOMPLETES
 from veronique.context import context
