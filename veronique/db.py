@@ -720,6 +720,25 @@ def add_last_session_to_users(cur):
     """)
 
 
+@migration(25)
+def change_entity_reference_format(cur):
+    claims = cur.execute("""
+        SELECT c.id, c.value
+        FROM claims c
+        LEFT JOIN verbs v
+        ON c.verb_id = v.id
+        WHERE
+            v.data_type = 'text'
+            AND value LIKE '%<@%>%'
+    """).fetchall()
+    for id, value in claims:
+        if value:
+            cur.execute(
+                "UPDATE claims SET value = ? WHERE id = ?",
+                (re.sub(r'<@(\d+)>', r'[@\1]', value), id),
+            )
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 

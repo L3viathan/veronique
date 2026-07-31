@@ -546,7 +546,7 @@ class Claim(Model):
             FROM claims c
             LEFT JOIN verbs v
             ON c.verb_id = v.id
-            WHERE c.value LIKE '%<@' || ? || '>%' {cond}
+            WHERE c.value LIKE '%[@' || ? || ']%' {cond}
             LIMIT {page_size}
             OFFSET {page_no * page_size}
             """,

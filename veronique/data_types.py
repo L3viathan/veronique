@@ -22,7 +22,7 @@ from veronique.settings import settings as S
 from veronique.utils import D, fragment
 
 TYPES = {}
-TEXT_REF = re.compile(r"&lt;@(\d+)&gt;")
+TEXT_REF = re.compile(r"\[@(\d+)\]")
 INPUT_WIDGET_REF = re.compile(r'<span [^>]+data-claim-ref="(\d+)"[^>]+>.+?</span>')
 COORDS = re.compile(r"^-?\d+(.\d+)?, ?-?\d+(.\d+)?$")
 
@@ -451,7 +451,7 @@ class text(DataType):
         return f"""<span class="type-text">{re.sub(TEXT_REF, self._sub, value)}</span>"""
 
     def _encode_input_widget_refs(self, match):
-        return f'<@{match.group(1)}>'
+        return f'[@{match.group(1)}]'
 
     def extract_value(self, form):
         return re.sub(INPUT_WIDGET_REF, self._encode_input_widget_refs, form.get("value")).strip()
