@@ -494,3 +494,34 @@ footer {
     object-fit: cover;
   }
 }
+
+.inline-source {
+  position-area: block-end span-inline-end;
+  position-try: flip-block, flip-inline, flip-block flip-inline;
+  transition-property: translate, opacity, display, overlay;
+  transition-duration: 0.5s;
+  transition-behavior: allow-discrete;
+
+  opacity: 0;
+  display: none;
+  translate: 10px 0;
+
+  &:popover-open {
+    opacity: 1;
+    display: block;
+    translate: 0 0;
+    @starting-style {
+      opacity: 0;
+      translate: 0 -20px;
+    }
+  }
+}
+
+.source-button {
+  background: transparent;
+  width: auto;
+  height: auto;
+  padding: 3px;
+  border: none;
+  cursor: help;
+}

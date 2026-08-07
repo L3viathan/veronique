@@ -7,6 +7,7 @@ from veronique.constants import (
     DEFAULT_APP_NAME,
     DEFAULT_PAGE_SIZE,
     DEFAULT_PHONE_REGION,
+    DEFAULT_SOURCE_TYPE,
     INDEX_DEFAULT_DAYS_AHEAD,
     INDEX_DEFAULT_DAYS_BACK,
     INDEX_DEFAULT_RECENT_EVENTS_MOD,
@@ -113,6 +114,7 @@ class Settings:
     map_tile_attribution_label: str = Setting(MAP_TILES_DEFAULT_ATTRIBUTION_LABEL)
     map_tile_attribution_link: str = Setting(MAP_TILES_DEFAULT_ATTRIBUTION_LINK)
     location_link_template: str = Setting(LOCATION_DEFAULT_LINK_TEMPLATE)
+    default_source_type: str = Setting(DEFAULT_SOURCE_TYPE)
 
 
 settings = Settings()

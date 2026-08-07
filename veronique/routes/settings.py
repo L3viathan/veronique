@@ -102,6 +102,14 @@ async def settings_form(request):
                     <input type="text" name="map_tile_attribution_link" value="{S.map_tile_attribution_link}">
                     </label>
                 </fieldset>
+                <h4>Sources</h4>
+                <label>Default source type
+                    <select name="default_source_type">
+                        <option value="T" {"selected" if S.default_source_type == "T" else ""}>Text</option>
+                        <option value="U" {"selected" if S.default_source_type == "U" else ""}>Website</option>
+                        <option value="E" {"selected" if S.default_source_type == "E" else ""}>Entity</option>
+                    </select>
+                </label>
                 {'''
                 <fieldset>
                 <a href="#" role="button" hx-swap="outerHTML" hx-post="/search/rebuild">Rebuild search index</a>
@@ -124,6 +132,7 @@ async def save_settings(request):
     S.index_days_back = form.get("index_days_back")
     S.index_type = form.get("index_type")
     S.index_recent_events_mod = form.get("index_recent_events_mod")
+    S.default_source_type = form.get("default_source_type")
     if context.user.is_admin:
         S.app_name = form.get("app_name")
         S.search_k_1 = form.get("search_k_1")

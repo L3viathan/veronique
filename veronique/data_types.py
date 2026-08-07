@@ -202,7 +202,7 @@ class inferred(DataType):
 
 
 class string(DataType):
-    can_turn_into = ("text",)
+    can_turn_into = ("text", "source")
     def display_html(self, value, **_):
         if context.user.redact:
             return '<span class="type-string">"..."</span>'
@@ -214,6 +214,85 @@ class string(DataType):
         else:
             value = ""
         return f"""<input type="text" name="value"{value}></input>"""
+
+
+class source(string):
+    can_turn_into = ("string", "text")
+
+    def display_html(self, value, **_):
+        import veronique.objects as O
+        if context.user.redact:
+            return '<span class="type-source">"..."</span>'
+        variant, value = value[0], value[1:]
+        if variant == "T":
+            return f'<span class="type-source type-source-text">"{escape(value)}"</span>'
+        if variant == "U":
+            return f'<span class="type-source type-source-url"><a href="{escape(value)}">{escape(value)}</a></span>'
+        if variant == "E":
+            entity = O.Claim(int(value))
+            return f'<span class="type-source type-source-entity">{entity}</span>'
+
+    def _input_for_variant(self, variant, value):
+        if variant == "T":
+            if value:
+                return f"""<input type="text" name="value" value="{escape(value)}">"""
+            return """<input type="text" name="value">"""
+        elif variant == "U":
+            if value:
+                return f"""<input type="url" name="value" value="{escape(value)}">"""
+            return """<input type="url" name="value">"""
+        elif variant == "E":
+            return AUTOCOMPLETES["link"].widget(None)
+
+    def extract_value(self, form):
+        """
+        Given a form object, extract the value in the form we want it.
+
+        Typically, this is just whatever is in the value field, but this can be
+        used to implement widgets with several <input>s.
+        """
+        value = form.get("value")
+        variant = form.get("variant")
+        assert variant in ("T", "U", "E")
+        return f"{variant}{value}"
+
+    def input_html(self, value=None, **_):
+        # TODO: radio box for the three (two?) choices
+        if value:
+            variant, value = value.value[0], value.value[1:]
+        else:
+            variant = S.default_source_type
+
+        print(f"{variant=}, {value=}")
+
+        input = self._input_for_variant(variant, value)
+        return f"""
+        <fieldset hx-trigger="change" hx-get="/verbs/data-types/source" hx-target="#source-value-container" hx-include="this">
+            <legend>Type of source:</legend>
+            <label>
+                <input type="radio" name="variant" value="T" {"checked" if variant == "T" else ""}>
+                Text
+            </label>
+            <label>
+                <input type="radio" name="variant" value="U" {"checked" if variant == "U" else ""}>
+                Website
+            </label>
+            <label>
+                <input type="radio" name="variant" value="E" {"checked" if variant == "E" else ""}>
+                Entity
+            </label>
+        </fieldset>
+        <div id="source-value-container">
+            {input}
+        </div>
+        """
+        return f"""<input type="text" name="value"{value}></input>"""
+
+    @fragment
+    async def request(self, request, *, method):
+        if method == "GET":
+            return self._input_for_variant(D(request.args)["variant"], value=None)
+        return "@"
 
 
 class number(DataType):
@@ -430,7 +509,7 @@ class location(DataType):
 
 
 class text(DataType):
-    can_turn_into = ("string",)
+    can_turn_into = ("string", "source")
     def __init__(self):
         self.md = MarkdownIt("gfm-like")
 

@@ -28,3 +28,5 @@ LOCATION_DEFAULT_LINK_TEMPLATE = "https://www.openstreetmap.org/search?query={}"
 MAP_TILES_DEFAULT_ATTRIBUTION_LINK = "http://www.openstreetmap.org/copyright"
 MAP_TILES_DEFAULT_ATTRIBUTION_LABEL = "OpenStreetMap"
 MAP_TILES_DEFAULT_PROVIDER_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+
+DEFAULT_SOURCE_TYPE = "T"

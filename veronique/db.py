@@ -19,7 +19,8 @@ DATA_LABELS = [
     VALID_UNTIL,
     AVATAR,
     COMMENT,
-] = range(-1, -8, -1)
+    SOURCE,
+] = range(-1, -9, -1)
 
 
 try:
@@ -737,6 +738,23 @@ def change_entity_reference_format(cur):
                 "UPDATE claims SET value = ? WHERE id = ?",
                 (re.sub(r'<@(\d+)>', r'[@\1]', value), id),
             )
+
+
+@migration(26)
+def add_sources(cur):
+    cur.execute(f"""
+        INSERT INTO verbs (
+            id,
+            label,
+            data_type,
+            internal
+        ) VALUES (
+            {SOURCE},
+            'source',
+            'source',
+            TRUE
+        )
+    """)
 
 
 if os.environ.get("VERONIQUE_READONLY"):

@@ -127,3 +127,26 @@ image will then be shown on the entity page, and whereever the entity is shown
 You can add comments to any claim. This can be especially useful for
 [multi-user instances](administration.md#users) where you may not want to give everyone
 permission to make direct changes.
+
+Comments can be added below any claim via an input field at the bottom of a
+claim.
+
+Comments are meant to not be permanent (otherwise their information would be a
+proper non-comment claim), so any pending comments are shown on the homepage.
+
+#### **`source`**
+
+Oftentimes you want to record the source of a (non-entity) claim. For instance,
+when you want to represent something like "Peter said that Mary's birthday is
+in May."
+
+On the detail page of a (non-entity) claim there's a <kbd>Source</kbd> button
+with which you can add a source for a claim. Sources can be either:
+
+- an entity (such as in the example above)
+- a website
+- or raw text
+
+While sourcing works via claims, entity sources don't count as incoming
+references, so you won't see claims attributed to an entity on that entity's
+detail page.

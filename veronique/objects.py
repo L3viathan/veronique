@@ -15,6 +15,7 @@ from veronique.db import (
     DATA_LABELS,
     IS_A,
     ROOT,
+    SOURCE,
     VALID_FROM,
     VALID_UNTIL,
 )
@@ -792,8 +793,33 @@ class Claim(Model):
         for cl in claims:
             if cl.verb.id in DATA_LABELS:
                 data.setdefault(cl.verb.id, []).append(cl)
-            data["has_claims"] = True
+            if cl.verb.id != SOURCE:
+                # A bit of a lie, but source has special UI anyways so we don't
+                # need to show that it has claims.
+                data["has_claims"] = True
         return data
+
+    def _get_source(self, data):
+        if SOURCE not in data:
+            return "", ""
+        src_id = f"--source-{self.id}"
+        sources = []
+        for source in data[SOURCE]:
+            sources.append(f"{source:handle} {source.object}")
+        return (
+            f""" <button
+                class="source-button"
+                command="toggle-popover"
+                commandfor="source-{self.id}"
+                interestfor="source-{self.id}"
+                style="anchor-name: {src_id};"
+            >\N{SPEECH BALLOON}</button>""",
+            f"""<div id="source-{self.id}" popover="hint" class="inline-source" style="position-anchor: {src_id};">
+                {"<br>".join(sources)}
+            </div>
+            """
+        )
+
 
     def _get_remarks(self, data):
         remarks = []
@@ -837,6 +863,7 @@ class Claim(Model):
             return "(unknown claim)"
         data = self.get_data()
         css_classes, remarks = self._get_remarks(data)
+        source_button, source_popover = self._get_source(data)
         if fmt == "label":
             if self.is_entity and not context.user.redact:
                 return self.object.value
@@ -850,7 +877,7 @@ class Claim(Model):
             elif fmt == "nested":
                 return f'<span{remarks} class="svo nested{css_classes}">{self:handle}{self.subject:nested} {self.verb:nested} {self.object:nested}</span>'
             else:
-                return f'<span{remarks} class="svo{css_classes}">{self:handle}{self.subject:nested} {self.verb:nested} {self.object:nested}</span>'
+                return f'<span{remarks} class="svo{css_classes}">{self:handle}{self.subject:nested} {self.verb:nested} {self.object:nested}{source_button}</span>{source_popover}'
         elif fmt == "input-widget-ref":
             if self.is_entity and not context.user.redact:
                 return f'<span contenteditable="false" data-claim-ref="{self.id}" class="input-widget-ref">{self:avatarsmall}{escape(self.object.value)}</span>'
@@ -890,6 +917,13 @@ class Claim(Model):
                         role="button"
                         class="outline contrast"
                     >✎ Edit object</a>""")
+                    buttons.append(f"""<a
+                        hx-target="#edit-area"
+                        hx-get="/claims/new/verb?verb={SOURCE}&claim_ids={self.id}&direction=outgoing&standalone=1"
+                        hx-target="#edit-area"
+                        role="button"
+                        class="outline contrast"
+                    >\N{SPEECH BALLOON} Source</a>""")
                     if VALID_FROM not in data or VALID_UNTIL not in data:
                         if VALID_FROM not in data:
                             buttons.append(
@@ -1514,4 +1548,7 @@ class InferredClaim:
         return {}
 
     def _get_remarks(self, data):
+        return "", ""
+
+    def _get_source(self, data):
         return "", ""

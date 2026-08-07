@@ -51,6 +51,7 @@ class input_ref_widget(Autocomplete):
         claim = O.Claim(int(claim_id))
         return f"{claim:input-widget-ref}&nbsp;"
 
+
 class link(Autocomplete):
     def widget(self, data=None):
         return f"""
