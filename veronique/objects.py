@@ -965,11 +965,11 @@ class Claim(Model):
             subj_id = int(fmt[3:])
             # Handle undirected links properly (always display the _other_ claim)
             if self.subject.id == subj_id:
-                return f'<span{remarks} class="vo{css_classes}">{self:handle}{self.verb} {self.object}</span>'
+                return f'<span{remarks} class="vo{css_classes}">{self:handle}{self.verb} {self.object}{source_button}</span>{source_popover}'
             else:
-                return f'<span{remarks} class="vo{css_classes}">{self:handle}{self.verb} {self.subject}</span>'
+                return f'<span{remarks} class="vo{css_classes}">{self:handle}{self.verb} {self.subject}{source_button}</span>{source_popover}'
         elif fmt == "sv":
-            return f'<span{remarks} class="sv{css_classes}">{self:handle}{self.subject} {self.verb}</span>'
+            return f'<span{remarks} class="sv{css_classes}">{self:handle}{self.subject} {self.verb}{source_button}</span>{source_popover}'
         elif fmt == "handle":
             return f'<a class="handle{" more" if "has_claims" in data else ""}" href="/claims/{self.id}">↱</a>'
         elif fmt == "avatarsmall":
