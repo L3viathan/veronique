@@ -401,7 +401,7 @@ class date(DataType):
         return f"""<input
             type="text"
             size=10
-            pattern="[0-9?]{{4}}-[0-9?]{{2}}-[0-9?]{{2}}|[0-9?]{{4}}|[0-9?]{{2}}-[0-9?]|[?]|today|yesterday|tomorrow"
+            pattern="[0-9?]{{4}}-[0-9?]{{2}}-[0-9?]{{2}}|[0-9?]{{4}}|[0-9?]{{2}}-[0-9?]{{2}}|[?]|today|yesterday|tomorrow"
             name="value"{value}
         ><small>Possible formats: <tt>YYYY-mm-dd</tt>, <tt>YYYY</tt>, <tt>mm-dd</tt>, <tt>?</tt>. Any digit can also be replaced by a question mark. You may also use any of these short hands: <tt>yesterday</tt>, <tt>today</tt>, <tt>tomorrow</tt></small>.
         """
