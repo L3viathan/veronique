@@ -257,13 +257,10 @@ class source(string):
         return f"{variant}{value}"
 
     def input_html(self, value=None, **_):
-        # TODO: radio box for the three (two?) choices
         if value:
             variant, value = value.value[0], value.value[1:]
         else:
             variant = S.default_source_type
-
-        print(f"{variant=}, {value=}")
 
         input = self._input_for_variant(variant, value)
         return f"""

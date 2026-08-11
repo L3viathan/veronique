@@ -34,7 +34,6 @@ def rebuild_search_index(cur):
     for row in cur.execute(
         "SELECT id, value FROM claims WHERE verb_id = ?", (ROOT,)
     ).fetchall():
-        print("Updating claim")
         update_index_for_doc(cur, "claims", row["id"], row["value"])
     for row in cur.execute("SELECT id, label FROM verbs").fetchall():
         update_index_for_doc(cur, "verbs", row["id"], row["label"])
