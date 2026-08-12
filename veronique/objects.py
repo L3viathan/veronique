@@ -400,6 +400,11 @@ class Claim(Model):
         q,
         page_size=20,
     ):
+        if not (set(q) - {*"1234567890"}):
+            claim = cls(int(q))
+            if context.user.can("read", "verb", claim.verb.id):
+                yield claim
+
         cur = db.conn.cursor()
         for hit in find(cur, q, table="claims", page_size=page_size):
             claim = cls(hit["id"])
