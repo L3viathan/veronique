@@ -61,9 +61,10 @@ def _user_form(*, password_input, endpoint, user=None):
         verb_options_r.append(
             f'<option {"selected" if user and user.can("read", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
         )
-        verb_options_w.append(
-            f'<option {"selected" if user and user.can("write", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
-        )
+        if verb.data_type != TYPES["inferred"]:
+            verb_options_w.append(
+                f'<option {"selected" if user and user.can("write", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
+            )
     for query in O.Query.all(page_size=9999):
         query_options.append(
             f'<option {"selected" if user and user.can("view", "query", query.id) else ""} value="{query.id}">{query.label}</option>'
