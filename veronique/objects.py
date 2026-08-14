@@ -838,6 +838,7 @@ class Claim(Model):
             remarks.append(f"from {valid_from.object.value}")
         for valid_until in data.get(VALID_UNTIL, []):
             remarks.append(f"until {valid_until.object.value}")
+        remarks.sort(key=lambda s: s.split()[-1])
 
         if remarks:
             remarks = f' data-tooltip="{", ".join(remarks)}"'
