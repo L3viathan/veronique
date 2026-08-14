@@ -839,6 +839,43 @@ class age(DataType):
             """
 
 
+class daterange(DataType):
+    def display_html(self, value, **_):
+        earliest, latest = value
+        if earliest == latest:
+            date_range = earliest
+        else:
+            date_range = f"{earliest} – {latest}"
+        return date_range
+
+    encode = age.encode
+    decode = age.decode
+
+    def extract_value(self, form):
+        earliest, latest = form.get("value_earliest"), form.get("value_latest")
+        if not latest:
+            latest = earliest
+        return dt_date.fromisoformat(earliest), dt_date.fromisoformat(latest)
+
+    def input_html(self, value=None, **_):
+        if value:
+            # value is now a tuple of earliest and latest possible date
+            earliest, latest = value.value
+            earliest = f' value="{earliest}"'
+            latest = f' value="{latest}"'
+        else:
+            earliest = latest = ""
+
+        pattern = r"[0-9?]{4}-[0-9?]{2}-[0-9?]{2}"
+        return f"""
+            <fieldset role="group">
+            <input name="value_earliest" pattern="{pattern}" placeholder="Date, or earliest possible date"{earliest}>
+            <input value="–" style="width: 50px;" disabled>
+            <input name="value_latest" pattern="{pattern}" placeholder="Latest date (optional)"{latest}>
+            </fieldset>
+        """
+
+
 class choice(DataType):
     def display_html(self, value, **_):
         return f'<span class="type-choice">{escape(value)}</span>'
