@@ -32,9 +32,6 @@ except sqlite3.OperationalError:
 cur.close()
 
 
-MIGRATIONS = []
-
-
 def migration(number):
     def deco(fn):
         global version
@@ -53,7 +50,6 @@ def migration(number):
                 cur.execute("ROLLBACK")
                 sys.exit(1)
             cur.close()
-        MIGRATIONS.append(fn)
         return fn
 
     return deco
