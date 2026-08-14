@@ -745,7 +745,7 @@ class Claim(Model):
             fn = subject.get_data.__wrapped__
             if hasattr(fn, "_cached"):
                 delattr(fn, "_cached")
-            if verb.id in (AVATAR, VALID_FROM, VALID_UNTIL):
+            if verb.id == AVATAR:
                 cur.execute(
                     """
                         DELETE FROM claims
@@ -825,17 +825,19 @@ class Claim(Model):
             """
         )
 
-
     def _get_remarks(self, data):
         remarks = []
         css_classes = set()
-        if self._is_invalid(data):
+        validity = self._is_valid(data)
+        if validity is False:
             css_classes.add("invalid")
+        elif validity is None:
+            css_classes.add("invalid invalid-maybe")
 
-        if VALID_FROM in data:
-            remarks.append(f"from {data[VALID_FROM][0].object.value}")
-        if VALID_UNTIL in data:
-            remarks.append(f"until {data[VALID_UNTIL][0].object.value}")
+        for valid_from in data.get(VALID_FROM, []):
+            remarks.append(f"from {valid_from.object.value}")
+        for valid_until in data.get(VALID_UNTIL, []):
+            remarks.append(f"until {valid_until.object.value}")
 
         if remarks:
             remarks = f' data-tooltip="{", ".join(remarks)}"'
@@ -843,21 +845,50 @@ class Claim(Model):
             remarks = ""
         return f" {' '.join(css_classes)}" if css_classes else "", remarks
 
-    def _is_invalid(self, data):
+    def _is_valid(self, data):
         today = date.today()
-        return (
-            VALID_FROM in data
-            and (
-                NonOmniscientDate(data[VALID_FROM][0].object.value).definitely_after(today)
-                or data[VALID_FROM][0].object.value == "????-??-??"
-            )
-        ) or (
-            VALID_UNTIL in data
-            and (
-                NonOmniscientDate(data[VALID_UNTIL][0].object.value).definitely_before(today)
-                or data[VALID_UNTIL][0].object.value == "????-??-??"
-            )
+        validities = (
+            [("from", NonOmniscientDate(validity.object.value)) for validity in data.get(VALID_FROM, [])]
+            + [("until", NonOmniscientDate(validity.object.value)) for validity in data.get(VALID_UNTIL, [])]
         )
+        before, after = [], []
+        for validity in validities:
+            try:
+                kind, nomnidate = validity
+                cmp = nomnidate.compare(today)
+                if cmp == 1:
+                    after.append(validity)
+                elif cmp == -1:
+                    before.append(validity)
+                else:
+                    if kind == "from":
+                        before.append(validity)
+                    elif kind == "until":
+                        after.append(validity)
+                    else:
+                        raise RuntimeError
+            except ValueError:
+                return None  # not all validities are comparable to today: unknowable
+        if before:
+            latest_before = max(before, key=lambda t: t[1])[0]
+        else:
+            latest_before = None
+        if after:
+            earliest_after = min(after, key=lambda t: t[1])[0]
+        else:
+            earliest_after = None
+
+        return {
+            ("from", "from"): None,  # unclear which is correct
+            ("from", "until"): True,
+            ("from", None): True,
+            ("until", "from"): False,
+            ("until", "until"): None,  # unclear which is correct
+            ("until", None): False,
+            (None, "from"): False,
+            (None, "until"): True,
+            (None, None): True,
+        }[latest_before, earliest_after]
 
     @property
     def is_entity(self):
@@ -929,27 +960,24 @@ class Claim(Model):
                         role="button"
                         class="outline contrast"
                     >\N{SPEECH BALLOON} Source</a>""")
-                    if VALID_FROM not in data or VALID_UNTIL not in data:
-                        if VALID_FROM not in data:
-                            buttons.append(
-                                f"""<a
-                                    class="outline contrast"
-                                    role="button"
-                                    data-tooltip="Set valid from"
-                                    hx-get="/claims/new/verb?verb={VALID_FROM}&claim_ids={self.id}&direction=outgoing&standalone=1"
-                                    hx-target="#edit-area"
-                                >⇤</a>"""
-                            )
-                        if VALID_UNTIL not in data:
-                            buttons.append(
-                                f"""<a
-                                    class="outline contrast"
-                                    role="button"
-                                    data-tooltip="Set valid until"
-                                    hx-get="/claims/new/verb?verb={VALID_UNTIL}&claim_ids={self.id}&direction=outgoing&standalone=1"
-                                    hx-target="#edit-area"
-                                >⇥</a>"""
-                            )
+                    buttons.append(
+                        f"""<a
+                            class="outline contrast"
+                            role="button"
+                            data-tooltip="Set valid from"
+                            hx-get="/claims/new/verb?verb={VALID_FROM}&claim_ids={self.id}&direction=outgoing&standalone=1"
+                            hx-target="#edit-area"
+                        >⇤</a>"""
+                    )
+                    buttons.append(
+                        f"""<a
+                            class="outline contrast"
+                            role="button"
+                            data-tooltip="Set valid until"
+                            hx-get="/claims/new/verb?verb={VALID_UNTIL}&claim_ids={self.id}&direction=outgoing&standalone=1"
+                            hx-target="#edit-area"
+                        >⇥</a>"""
+                    )
                 if self.deletable:
                     buttons.append(f"""<a
                         hx-target="#edit-area"
@@ -1040,7 +1068,7 @@ class Claim(Model):
             if link.verb.id in (IS_A, ROOT):
                 continue
             edge_label = link.verb.label.replace('"', "'")
-            if link._is_invalid(link.get_data()):
+            if not link._is_valid(link.get_data()):
                 edge_label = f"({edge_label})"
             edges.append(
                 {

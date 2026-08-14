@@ -127,6 +127,9 @@ class NonOmniscientDate:
         self.is_omniscient = "?" not in representation
         self.negating_days_allowed = negating_days_allowed
 
+    def __repr__(self):
+        return f"NonOmniscientDate('{self.year}-{self.month}-{self.day}')"
+
     def __rsub__(self, other):
         assert isinstance(other, datetime.date)
         if self.is_omniscient:
@@ -167,22 +170,21 @@ class NonOmniscientDate:
             delta.days = -delta.days
         return delta
 
-    def definitely_after(self, date):
-        delta = self - date
-        if delta.years is None or delta.years < 0:
-            return False
-        if delta.years > 0:
-            return True
-        if delta.days is None or delta.days < 0:
-            return False
-        return True
+    def compare(self, other):
+        own = f"{self.year}-{self.month:>02}-{self.day:>02}"
+        other = f"{other.year}-{other.month:>02}-{other.day:>02}"
 
-    def definitely_before(self, date):
-        delta = date - self
-        if delta.years is None or delta.years < 0:
-            return False
-        if delta.years > 0:
-            return True
-        if delta.days is None or delta.days < 0:
-            return False
-        return True
+        for own_char, other_char in zip(own, other):
+            if "?" in (own_char, other_char):
+                raise ValueError("Uncomparable due to incomplete knowledge")
+            if own_char > other_char:
+                return 1
+            if other_char > own_char:
+                return -1
+        return 0
+
+    def __lt__(self, other):
+        return self.compare(other) == -1
+
+    def __gt__(self, other):
+        return self.compare(other) == 1

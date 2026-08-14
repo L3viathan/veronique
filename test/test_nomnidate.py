@@ -71,3 +71,23 @@ def test_nomnidate_delta_before_new_year():
 )
 def test_datedelta_str(delta, output):
     assert str(delta) == output
+
+
+@pytest.mark.parametrize(
+    ("one", "two", "expected"),
+    [
+        ("1999-??-??", "1998-??-??", 1),
+        ("1997-??-??", "1998-??-??", -1),
+        ("1998-??-??", "1998-??-??", None),
+        ("199?-??-??", "18??-??-??", 1),
+        ("189?-??-??", "18??-??-??", None),
+        ("189?-??-??", "19??-??-??", -1),
+    ],
+)
+def test_compare(one, two, expected):
+    try:
+        result = NonOmniscientDate(one).compare(NonOmniscientDate(two))
+    except ValueError:
+        assert expected is None
+    else:
+        assert result == expected
