@@ -843,7 +843,7 @@ class daterange(DataType):
     def display_html(self, value, **_):
         earliest, latest = value
         if earliest == latest:
-            date_range = earliest
+            date_range = str(earliest)
         else:
             date_range = f"{earliest} – {latest}"
         return date_range
@@ -861,8 +861,11 @@ class daterange(DataType):
         if value:
             # value is now a tuple of earliest and latest possible date
             earliest, latest = value.value
+            if earliest == latest:
+                latest = ""
+            else:
+                latest = f' value="{latest}"'
             earliest = f' value="{earliest}"'
-            latest = f' value="{latest}"'
         else:
             earliest = latest = ""
 
