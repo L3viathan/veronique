@@ -766,27 +766,35 @@ def turn_validities_into_daterange(cur):
     ).fetchall()
     for id, value in claims:
         assert "?" not in value.replace("-", "").rstrip("?")
-        y, m, d = value.split("-")
-        if "?" in y:
-            y_min = y.replace("?", "0")
-            if y_min == "0000":
-                # there's no year 0
-                y_min = "0001"
-            y_max = y.replace("?", "9")
-        else:
-            y_min = y_max = y
+        try:
+            y, m, d = value.split("-")
+            if "?" in y:
+                y_min = y.replace("?", "0")
+                if y_min == "0000":
+                    # there's no year 0
+                    y_min = "0001"
+                y_max = y.replace("?", "9")
+            else:
+                y_min = y_max = y
 
-        if m == "??":
-            m_min = "01"
-            m_max = "12"
-        elif m == "1?":
-            m_min = "11"
-            m_max = "12"
-        elif m == "0?":
-            m_min = "01"
-            m_max = "09"
-        else:
-            m_min = m_max = m
+            if m == "??":
+                m_min = "01"
+                m_max = "12"
+            elif m == "1?":
+                m_min = "11"
+                m_max = "12"
+            elif m == "0?":
+                m_min = "01"
+                m_max = "09"
+            else:
+                m_min = m_max = m
+        except ValueError:
+            if len(value) == 4 and "-" not in value:  # pure year, was allowed at some point apparently
+                y_min = y_max = value
+                m_min, m_max = "01", "12"
+                d_min, d_max = "01", "31"
+            else:
+                raise
 
         if d == "??":
             d_min = "01"
