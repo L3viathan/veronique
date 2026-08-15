@@ -835,9 +835,9 @@ class Claim(Model):
             css_classes.add("invalid invalid-maybe")
 
         for valid_from in data.get(VALID_FROM, []):
-            remarks.append(f"from {valid_from.object.value}")
+            remarks.append(f"from {valid_from.object}")
         for valid_until in data.get(VALID_UNTIL, []):
-            remarks.append(f"until {valid_until.object.value}")
+            remarks.append(f"until {valid_until.object}")
         remarks.sort(key=lambda s: s.split()[-1])
 
         if remarks:
@@ -848,47 +848,39 @@ class Claim(Model):
 
     def _is_valid(self, data):
         today = date.today()
-        validities = (
-            [("from", NonOmniscientDate(validity.object.value)) for validity in data.get(VALID_FROM, [])]
-            + [("until", NonOmniscientDate(validity.object.value)) for validity in data.get(VALID_UNTIL, [])]
-        )
-        before, after = [], []
-        for validity in validities:
-            try:
-                kind, nomnidate = validity
-                cmp = nomnidate.compare(today)
-                if cmp == 1:
-                    after.append(validity)
-                elif cmp == -1:
-                    before.append(validity)
+        before, after, during = [], [], []
+        for validity_type in (VALID_FROM, VALID_UNTIL):
+            for validity in data.get(validity_type, []):
+                start, end = validity.object.value
+                if end < today:
+                    before.append((validity_type, validity.object.value))
+                elif start > today:
+                    after.append((validity_type, validity.object.value))
                 else:
-                    if kind == "from":
-                        before.append(validity)
-                    elif kind == "until":
-                        after.append(validity)
-                    else:
-                        raise RuntimeError
-            except ValueError:
-                return None  # not all validities are comparable to today: unknowable
+                    during.append((validity_type, validity.object.value))
+        if during:
+            return None  # unknowable
+        if not before and not after:
+            return True
         if before:
-            latest_before = max(before, key=lambda t: t[1])[0]
+            latest_before = max(before, key=lambda t: t[1][-1])[0]
         else:
             latest_before = None
         if after:
-            earliest_after = min(after, key=lambda t: t[1])[0]
+            earliest_after = min(after, key=lambda t: t[1][0])[0]
         else:
             earliest_after = None
 
         return {
-            ("from", "from"): None,  # unclear which is correct
-            ("from", "until"): True,
-            ("from", None): True,
-            ("until", "from"): False,
-            ("until", "until"): None,  # unclear which is correct
-            ("until", None): False,
-            (None, "from"): False,
-            (None, "until"): True,
-            (None, None): True,
+            (VALID_FROM, VALID_FROM): None,  # unclear which is correct
+            (VALID_FROM, VALID_UNTIL): True,
+            (VALID_FROM, None): True,
+            (VALID_UNTIL, VALID_FROM): False,
+            (VALID_UNTIL, VALID_UNTIL): None,  # unclear which is correct
+            (VALID_UNTIL, None): False,
+            (None, VALID_FROM): False,
+            (None, VALID_UNTIL): True,
+            (None, None): True,  # just for completeness; will be handled by short circuit earlier
         }[latest_before, earliest_after]
 
     @property

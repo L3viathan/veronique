@@ -844,8 +844,15 @@ class daterange(DataType):
         earliest, latest = value
         if earliest == latest:
             date_range = str(earliest)
+        elif str(earliest).endswith("-01-01") and str(latest).endswith("-12-31"):
+            # full years
+            if earliest.year == latest.year:
+                return str(earliest.year)
+            else:
+                return f"{earliest.year} – {latest.year}"
         else:
             date_range = f"{earliest} – {latest}"
+        # TODO: add nice form for full months as well
         return date_range
 
     encode = age.encode

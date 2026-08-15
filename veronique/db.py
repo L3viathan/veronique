@@ -753,6 +753,72 @@ def add_sources(cur):
     """)
 
 
+@migration(27)
+def turn_validities_into_daterange(cur):
+    claims = cur.execute("""
+        SELECT c.id, c.value
+        FROM claims c
+        WHERE
+            c.verb_id = ?
+            OR c.verb_id = ?
+        """,
+        (VALID_UNTIL, VALID_FROM),
+    ).fetchall()
+    for id, value in claims:
+        assert "?" not in value.replace("-", "").rstrip("?")
+        y, m, d = value.split("-")
+        if "?" in y:
+            y_min = y.replace("?", "0")
+            if y_min == "0000":
+                # there's no year 0
+                y_min = "0001"
+            y_max = y.replace("?", "9")
+        else:
+            y_min = y_max = y
+
+        if m == "??":
+            m_min = "01"
+            m_max = "12"
+        elif m == "1?":
+            m_min = "11"
+            m_max = "12"
+        elif m == "0?":
+            m_min = "01"
+            m_max = "09"
+        else:
+            m_min = m_max = m
+
+        if d == "??":
+            d_min = "01"
+            if m_max in ("01", "03", "05", "07", "08", "10", "12"):
+                d_max = "31"
+            elif m_max == "02":
+                # yeah, technically we'd have to check if y_max is a leap eyear...
+                d_max = "28"
+            else:
+                d_max = "30"
+        elif d == "3?":
+            d_min = "30"
+            if m_max in ("01", "03", "05", "07", "08", "10", "12"):
+                d_max = "31"
+            else:
+                d_max = "30"
+        elif d == "0?":
+            d_min = "01"
+            d_max = "09"
+        else:
+            d_min = d.replace("?", "0")
+            d_max = d.replace("?", "9")
+        cur.execute(
+            "UPDATE claims SET value = ? WHERE id = ?",
+            (f"{y_min}-{m_min}-{d_min}--{y_max}-{m_max}-{d_max}", id),
+        )
+    cur.execute(
+        "UPDATE verbs SET data_type = 'daterange' WHERE id = ? OR id = ?",
+        (VALID_FROM, VALID_UNTIL),
+    )
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 
