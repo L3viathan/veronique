@@ -86,6 +86,15 @@ human-readable diff:
 
 ![1798-07-03, showing as "228 years and 3 days ago"](img/display-date.png)
 
+## `daterange`
+
+Date ranges contain a pair of dates. The _intended_ usecase of this is not for
+a state that was true during (but not outside) this range, but instead a
+larger-scale point in time, for example as another way of modeling uncertainty.
+
+This type is used by the internal validity verbs, such that you can express
+things like "this claim is valid until some time in 2018".
+
 ## `boolean`
 
 A simple boolean (true/false) input. Shown as a checkbox.

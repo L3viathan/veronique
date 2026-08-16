@@ -105,10 +105,9 @@ them and annotate the old one with `valid_until` and the new one with
 Non-entity claims have a little "handle" to their left: <kbd>↱</kbd>. By
 clicking on it, you'll go to the page of that claim, on which you can use the
 <kbd>⇤</kbd> and <kbd>⇥</kbd> buttons to add validity info. This is a
-`date`-type verb, so enter a (partial) date in [a sensible
-format](https://en.wikipedia.org/wiki/ISO_8601) like `2026-06-05` or
-`1992-??-??` (for details see the documentation for the
-[date](data-types.md#date) verb).
+`daterange`-type verb, so enter a date or a range of dates in [a sensible
+format](https://en.wikipedia.org/wiki/ISO_8601) like `2026-06-05` (for details
+see the documentation for the [daterange](data-types.md#daterange) verb).
 
 ![Setting validity of a claim](img/set-validity.png)
 
