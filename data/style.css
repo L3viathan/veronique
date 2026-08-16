@@ -159,6 +159,9 @@ nav {
 
 .invalid {
   opacity: 0.5;
+  &.invalid-maybe {
+    opacity: 0.7;
+  }
 }
 
 .type-picture {
