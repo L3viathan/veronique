@@ -534,7 +534,7 @@ class text(DataType):
 
     def encode(self, value):
         # This removes "dangerous" HTML (scripts, meta tags, <link>, etc.)
-        return clean_html(value).strip()
+        return clean_html(value).replace("<div>", "").replace("</div>", "\n\n")
 
     def input_html(self, value=None, **_):
         if value:
