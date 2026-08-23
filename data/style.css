@@ -573,3 +573,9 @@ article.network {
     width: 25px;
   }
 }
+
+#about-table {
+  td:first-child {
+    font-weight: bold;
+  }
+}

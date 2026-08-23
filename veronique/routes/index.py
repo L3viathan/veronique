@@ -1,5 +1,6 @@
 import functools
 import re
+from importlib.metadata import version
 from datetime import date, timedelta
 
 from sanic import Blueprint
@@ -80,3 +81,19 @@ async def homepage(request):
         "newest_claims": functools.partial(_newest_claims, only_entities=False),
         "newest_entities": _newest_claims,
     }[S.index_type](request)
+
+
+@index.get("/about")
+@page
+async def about(request):
+    return f"""
+    <article>
+    <header><h2>Véronique v{version("veronique")}<h2></header>
+    <table id="about-table" class="striped">
+        <tr><td>Source code</td><td><a target="_blank" href="https://github.com/L3viathan/veronique">https://github.com/L3viathan/veronique</a></td></tr>
+        <tr><td>Bug tracker</td><td><a target="_blank" href="https://github.com/L3viathan/veronique/issues">https://github.com/L3viathan/veronique/issues</a></td></tr>
+        <tr><td>Documentation</td><td><a target="_blank" href="https://veronique.readthedocs.io">https://veronique.readthedocs.io</a></td></tr>
+        <tr><td>Chat</td><td><a target="_blank" href="https://discord.gg/atvuVztJcN">https://discord.gg/atvuVztJcN</a></td></tr>
+    </table>
+    </article>
+    """
