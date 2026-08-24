@@ -4,7 +4,7 @@ html {
   background-color: aliceblue;
 }
 body {
-  height: inherit;
+  height: unset;
 }
 a, .clickable {
   cursor: pointer;
