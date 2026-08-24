@@ -212,12 +212,7 @@ async def view_user(request, user_id: int):
     user = O.User(user_id)
     result = f"""
         <article><header>
-        <a
-            href="/users/{user_id}/edit"
-            role="button"
-            class="outline contrast toolbutton"
-        >✎ Edit</a>
-        <h3>{user:heading}</h3>
+        <h3>{user:heading}</h3>{user:hamburger}
         </header>
         <table>
         <tr><th scope="row">Session</th><td>{user:session}</td></tr>

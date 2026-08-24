@@ -176,9 +176,6 @@ nav {
   max-width: 300px;
   max-height: 200px;
 }
-.toolbutton[role="button"] {
-  padding: 10px;
-}
 
 #container {
   padding: 1em;
@@ -189,7 +186,7 @@ nav {
 
 article {
   overflow: visible;
-  button, a.toolbutton[role=button] {
+  button {
     float: right;
   }
 }

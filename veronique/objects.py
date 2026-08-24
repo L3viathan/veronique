@@ -217,26 +217,32 @@ class Verb(Model):
             return f"""<span class="verb">
                 <a class="clickable" href="/verbs/{self.id}">{self.name}</a>
                 {self.data_type}</span>"""
-        elif fmt == "heading":
-            buttons = []
+        elif fmt == "hamburger":
+            parts = []
             if context.user.is_admin:
-                buttons.append(f'''<a
+                parts.append(f'''<li><a
                         hx-target="#edit-area"
                         hx-get="/verbs/{self.id}/edit"
-                        role="button"
-                        class="outline contrast"
-                    >✎ Edit</a>'''
+                    ><i>✎</i> Edit</a></li>'''
                 )
-                if not list(self.claims(page_size=1)) and self.id >= 0:
-                    buttons.append(f'''<a
+                if self.deletable:
+                    parts.append(f'''<li><a
                             hx-target="#edit-area"
                             hx-delete="/verbs/{self.id}"
                             hx-confirm="Are you sure you want to delete this verb?"
-                            role="button"
-                            class="outline contrast"
-                        >\N{WASTEBASKET}\ufe0e Delete</a>'''
+                        ><i>\N{WASTEBASKET}\ufe0e</i> Delete</a></li>'''
                     )
-            return f"""<h2>{self.name}</h2>{" ".join(buttons)}"""
+            if parts:
+                return f"""
+                <details class="dropdown hamburger">
+                    <summary>☰</summary>
+                    <ul dir="rtl">
+                        {"".join(parts)}
+                    </ul>
+                </details>
+                """
+        elif fmt == "heading":
+            return f"""<h2>{self.name}</h2>"""
         elif fmt == "detail":
             return self.data_type.detail_for(self)
         elif fmt == "edit":
@@ -273,9 +279,13 @@ class Verb(Model):
         db.conn.commit()
         self.label = name
 
+    @property
+    def deletable(self):
+        return not list(self.claims(page_size=1)) and self.id >= 0
+
     def delete(self):
-        if self.id < 0:
-            raise ValueError("Can't delete internal verbs")
+        if not self.deletable:
+            raise ValueError("Can't delete this verb")
         cur = db.conn.cursor()
         cur.execute("DELETE FROM verbs WHERE id = ?", (self.id,))
         cur.execute(
@@ -1185,17 +1195,28 @@ class Query(Model):
 
     def __format__(self, fmt):
         if fmt == "heading":
+            return f"""<h2>{self.label}</h2>"""
+        elif fmt == "hamburger":
+            parts = []
             if context.user.is_admin:
-                return f"""<h2
-                >{self.label} <a
-                    href="/queries/{self.id}/edit"
-                >✎</a><a
+                parts.append(f"""
+                <li><a href="/queries/{self.id}/edit"><i>✎</i> Edit</a></li>
+                """)
+                parts.append(f"""<li><a
                     hx-delete="/queries/{self.id}"
                     hx-confirm="Are you sure you want to delete this query?"
-                >⌫</a>
-                </h2>"""
-            else:
-                return f"""<h2>{self.label}</h2>"""
+                    class="danger"
+                ><i>⌫</i> Delete</a></li>
+                """)
+            if parts:
+                return f"""
+                <details class="dropdown hamburger">
+                    <summary>☰</summary>
+                    <ul dir="rtl">
+                        {"".join(parts)}
+                    </ul>
+                </details>
+                """
         else:
             return f"""<a
                 class="clickable query"
@@ -1404,6 +1425,22 @@ class User(Model):
                     delta = f"{delta} (expired)"
                 return f"last refreshed {diff}"
             return str(type(self.last_session_at).__name__) + str(self.last_session_at)
+        elif fmt == "hamburger":
+            parts = []
+            parts.append(f"""<li><a href="/users/{self.id}/edit"><i>✎</i> Edit</a></li>""")
+            parts.append(f'''<li><a
+                    disabled
+                    class="danger"
+                ><i>\N{WASTEBASKET}\ufe0e</i> Delete</a></li>'''
+            )
+            return f"""
+            <details class="dropdown hamburger">
+                <summary>☰</summary>
+                <ul dir="rtl">
+                    {"".join(parts)}
+                </ul>
+            </details>
+            """
         return self.name
 
     def __str__(self):

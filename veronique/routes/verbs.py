@@ -113,7 +113,7 @@ async def view_verb(request, verb_id: int):
             status=403,
         )
     verb = O.Verb(verb_id)
-    parts = [f'<article><header>{verb:heading}{verb:detail}</header><div id="edit-area"></div>']
+    parts = [f'<article><header>{verb:heading}{verb:hamburger}{verb:detail}</header><div id="edit-area"></div>']
     more_results = False
     for i, claim in enumerate(
         verb.claims(

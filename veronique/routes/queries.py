@@ -220,7 +220,7 @@ async def view_query(request, query_id: int):
         more_results = False
     return query.label, f"""
         <article><header>
-        {query:heading}</header>{display_query_result(result, query_id=query_id)}
+        {query:heading}{query:hamburger}</header>{display_query_result(result, query_id=query_id)}
         {
             pagination(
                 f"/queries/{query_id}",
