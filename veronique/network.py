@@ -62,7 +62,7 @@ def network_widget(claims, *, links_go_to="detail", force_labels=False, colormap
         parts.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: {1 if len(all_nodes) > 30 else 10}, color: "{colors[node["cat"] if not colormap else colormap[node["id"]]]}"{maybe_force_labels}}});\n')
 
     for edge in all_edges:
-        parts.append(f'graph.addEdge("{edge["source"]}", "{edge["target"]}", {{label: "{edge["label"]}", size: 1, color: "grey", type: "{edge["type"]}"}});\n')
+        parts.append(f'graph.addEdge("{edge["source"]}", "{edge["target"]}", {{label: "{edge["label"]}", size: {1 if len(all_edges) > 30 else 5}, color: "grey", type: "{edge["type"]}"}});\n')
 
     parts.append(f"""
         var sig = new Sigma(graph, document.getElementById("cy"), {{renderEdgeLabels: true, allowInvalidContainer: true}});
