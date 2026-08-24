@@ -563,10 +563,13 @@ article.network {
     color: var(--pico-form-element-invalid-active-border-color);
   }
   li:has(i) {
-    margin-left: 25px;
+    margin-left: 30px;
   }
   i {
     font-style: normal;
-    float: left;
+    position: absolute;
+    left: 10px;
+    text-align: center;
+    width: 25px;
   }
 }

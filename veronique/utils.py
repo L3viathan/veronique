@@ -83,19 +83,19 @@ def page(fn):
             title = f"{title} — {S.app_name}"
 
         gotos = []
-        for page_name, restricted in [
-            ("claims", False),
-            ("claims/network", False),
-            ("verbs", False),
-            ("queries", False),
-            ("users", True),
-            ("tools/connections", False),
-            ("tools/merge", True),
+        for page_name, path, restricted in [
+            ("Claims", "claims", False),
+            ("Network", "claims/network", False),
+            ("Verbs", "verbs", False),
+            ("Queries", "queries", False),
+            ("Users", "users", True),
+            ("Tools: Connections", "tools/connections", False),
+            ("Tools: Merge", "tools/merge", True),
         ]:
             if restricted and not context.user.is_admin:
-                gotos.append(f'<li><a href="#" disabled>{page_name.title()}</a></li>')
+                gotos.append(f'<li><a href="#" disabled>{page_name}</a></li>')
             else:
-                gotos.append(f'<li><a href="/{page_name}">{page_name.title()}</a></li>')
+                gotos.append(f'<li><a href="/{path}">{page_name}</a></li>')
         if context.user.is_admin:
             news = """
             <li>
