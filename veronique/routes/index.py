@@ -1,7 +1,7 @@
 import functools
 import re
-from importlib.metadata import PackageNotFoundError, version
 from datetime import date, timedelta
+from importlib.metadata import PackageNotFoundError, version
 
 from sanic import Blueprint
 
