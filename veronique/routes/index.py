@@ -1,6 +1,6 @@
 import functools
 import re
-from importlib.metadata import version
+from importlib.metadata import version, PackageNotFoundError
 from datetime import date, timedelta
 
 from sanic import Blueprint
@@ -89,9 +89,13 @@ async def about(request):
     stats = O.Claim.stats()
     n_users = len(list(O.User.all()))
     n_verbs = len(list(O.Verb.all()))
+    try:
+        v = version("veronique")
+    except PackageNotFoundError:
+        v = "local Git checkout"
     return f"""
     <article>
-    <header><h2>Véronique v{version("veronique")}<h2></header>
+    <header><h2>Véronique v{v}<h2></header>
     <table id="about-table" class="striped">
         <tr><td>Source code</td><td><a target="_blank" href="https://github.com/L3viathan/veronique">https://github.com/L3viathan/veronique</a></td></tr>
         <tr><td>Bug tracker</td><td><a target="_blank" href="https://github.com/L3viathan/veronique/issues">https://github.com/L3viathan/veronique/issues</a></td></tr>
