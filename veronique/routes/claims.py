@@ -1,4 +1,5 @@
 import base64
+from collections import defaultdict
 
 from sanic import Blueprint, HTTPResponse, raw, redirect
 
@@ -6,6 +7,7 @@ import veronique.objects as O
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import AVATAR, COMMENT, IS_A, ROOT
+from veronique.network import network_widget
 from veronique.settings import settings as S
 from veronique.utils import D, cache_pls_headers, fragment, page, pagination
 
@@ -364,6 +366,33 @@ async def list_labelled_claims(request):
     return "Claims", "".join(parts)
 
 
+@claims.get("/network")
+@page
+async def view_network(request):
+    claims = (
+        c
+        for c in O.Claim.all_labelled(page_size=9999)
+    )
+    return "Network", network_widget(claims)
+
+
+@claims.get("/<claim_id>/network")
+@page
+async def view_claim_network(request, claim_id: int):
+    claim = O.Claim(claim_id)
+    claims = [claim]
+    claims.extend(incoming.subject for incoming in claim.incoming_claims())
+    claims.extend(outgoing.object for outgoing in claim.outgoing_claims() if outgoing.verb.data_type in (TYPES["directed_link"], TYPES["undirected_link"]) and outgoing.verb.id != IS_A)
+    colormap = defaultdict(lambda: 1)
+    colormap[claim_id] = 2
+    return f"{claim:label}", f"""
+        <article class="network">
+            <header>{claim:handle}{claim:heading}{f"{claim:avatar}" if claim.is_entity else ""}</header>
+            {network_widget(claims, links_go_to="network", colormap=colormap, freeze_after=1)}
+        </article>
+        """
+
+
 @claims.get("/<claim_id>")
 @page
 async def view_claim(request, claim_id: int):
@@ -396,7 +425,9 @@ async def view_claim(request, claim_id: int):
         more_results = False
     return f"{claim:label}", f"""
         <article>
-            <header>{claim:heading}{f"{claim:avatar}" if claim.is_entity else ""}</header>
+            <header>{claim:heading}{f"{claim:avatar}" if claim.is_entity else ""}
+            {claim:hamburger}
+            </header>
             <div id="edit-area"></div>
             <table class="claims"><tr><td>
         {

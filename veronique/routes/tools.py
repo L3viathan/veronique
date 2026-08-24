@@ -1,8 +1,13 @@
+from collections import defaultdict, deque
+from itertools import combinations
+from time import monotonic
+
 from sanic import Blueprint, redirect
 
 import veronique.objects as O
 from veronique.autocomplete import AUTOCOMPLETES
 from veronique.context import context
+from veronique.network import network_widget
 from veronique.utils import admin_only, page
 
 tools = Blueprint("tools", url_prefix="/tools")
@@ -26,9 +31,37 @@ async def get_connections_form(request):
 
 
 @tools.post("connections")
+@page
 async def redirect_to_network(request):
-    claim_ids = ",".join(request.form["value"])
-    return redirect(f"/network?claims={claim_ids}")
+    claim_ids = [int(claim_id) for claim_id in request.form["value"]]
+    colormap = defaultdict(lambda: 0)
+    for claim_id in claim_ids:
+        colormap[str(claim_id)] = 1
+    claims = set()
+    t_start = monotonic()
+    for a_id, b_id in combinations(claim_ids, 2):
+        a = O.Claim(a_id)
+        queue = deque([(a, [])])
+        results = None
+        while queue and not results:
+            t, p = queue.popleft()
+            for link in t.all_links(page_size=999):
+                r_id = link.subject.id if link.subject.id != t.id else link.object.id
+                if r_id in (pe.id for pe in p):
+                    continue
+                r = O.Claim(r_id)
+                p_ = [*p, r]
+                if r_id == b_id:
+                    results = p_
+                else:
+                    queue.append((r, p_))
+            if monotonic() - t_start > 5:
+                return redirect("/")
+
+        if results:
+            claims.add(a)
+            claims.update(results)
+    return "Connections", network_widget(claims, colormap=colormap)
 
 
 @tools.get("merge")

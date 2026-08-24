@@ -11,7 +11,6 @@ from veronique.routes import (
     autocomplete,
     claims,
     index,
-    network,
     queries,
     search,
     settings,
@@ -28,7 +27,6 @@ app.blueprint(verbs)
 app.blueprint(queries)
 app.blueprint(users)
 app.blueprint(settings)
-app.blueprint(network)
 app.blueprint(static)
 app.blueprint(index)
 app.blueprint(search)

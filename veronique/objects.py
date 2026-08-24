@@ -925,68 +925,14 @@ class Claim(Model):
                 cat = f"""<br><small class="cats">&lt;{", ".join(f"<span>{c:handle}{c.object}</span>" for c in data[IS_A])}{new_cat}&gt;</small>"""
             else:
                 cat = f"""<br><small class="cats">&lt;{new_cat}&gt;</small>"""
-            buttons = []
-            if context.user.is_admin or self.owner.id == context.user.id:
-                if not self.is_entity:
-                    buttons.append(f"""<a
-                        hx-target="#edit-area"
-                        hx-get="/claims/{self.id}/move"
-                        role="button"
-                        class="outline contrast"
-                    >→ Edit subject</a>""")
-                    buttons.append(f"""<a
-                        hx-target="#edit-area"
-                        hx-get="/claims/{self.id}/reverb"
-                        role="button"
-                        class="outline contrast"
-                    >→ Edit verb</a>""")
-                    buttons.append(f"""<a
-                        hx-target="#edit-area"
-                        hx-get="/claims/{self.id}/edit"
-                        role="button"
-                        class="outline contrast"
-                    >✎ Edit object</a>""")
-                    buttons.append(f"""<a
-                        hx-target="#edit-area"
-                        hx-get="/claims/new/verb?verb={SOURCE}&claim_ids={self.id}&direction=outgoing&standalone=1"
-                        hx-target="#edit-area"
-                        role="button"
-                        class="outline contrast"
-                    >\N{SPEECH BALLOON} Source</a>""")
-                    buttons.append(
-                        f"""<a
-                            class="outline contrast"
-                            role="button"
-                            data-tooltip="Set valid from"
-                            hx-get="/claims/new/verb?verb={VALID_FROM}&claim_ids={self.id}&direction=outgoing&standalone=1"
-                            hx-target="#edit-area"
-                        >⇤</a>"""
-                    )
-                    buttons.append(
-                        f"""<a
-                            class="outline contrast"
-                            role="button"
-                            data-tooltip="Set valid until"
-                            hx-get="/claims/new/verb?verb={VALID_UNTIL}&claim_ids={self.id}&direction=outgoing&standalone=1"
-                            hx-target="#edit-area"
-                        >⇥</a>"""
-                    )
-                if self.deletable:
-                    buttons.append(f"""<a
-                        hx-target="#edit-area"
-                        hx-delete="/claims/{self.id}"
-                        hx-confirm="Are you sure you want to delete this claim?"
-                        role="button"
-                        class="outline contrast"
-                    >\N{WASTEBASKET}\ufe0e Delete</a>""")
             if self.is_entity:
                 if context.user.redact:
                     text = f"Claim #{self.id}"
                 else:
                     text = escape(self.object.value)
-                return f"""<h2>{self:rename} {text}{cat}</h2>{" ".join(buttons)}"""
+                return f"""<h2>{text}{cat}</h2>"""
             else:
-                return f"""<h2>{self}</h2>{" ".join(buttons)}"""
+                return f"""<h2>{self}</h2>"""
         elif fmt.startswith("vo:"):
             subj_id = int(fmt[3:])
             # Handle undirected links properly (always display the _other_ claim)
@@ -1022,14 +968,65 @@ class Claim(Model):
                 text = escape(self.object.value)
             return f'<tr><td data-placement="right" data-tooltip="{self.created_at}" class="comment-author">{self.owner.name}:</td><td>{self:handle}</td><td class="comment-text">{text}</td></tr>'
         elif fmt == "rename":
-            if context.user.is_admin or self.owner.id == context.user.id:
-                return f'''<span
-                    class="clickable rename"
+            if self.verb.id == ROOT and (context.user.is_admin or self.owner.id == context.user.id):
+                return f'''<a
                     hx-get="/claims/{self.id}/edit"
                     hx-target="#edit-area"
-                >✎</span>'''
+                >Rename ✎</a>'''
             else:
-                return ""
+                return '''<a
+                    disabled
+                >Rename ✎</a>'''
+        elif fmt == "hamburger":
+            parts = []
+            if self.verb.id == ROOT:
+                parts.append(f"<li>{self:rename}</li>")
+                parts.append(f'<li><a href="/claims/{self.id}/network">Network 🕸️</a></li>')
+            if context.user.is_admin or self.owner.id == context.user.id:
+                if not self.is_entity:
+                    parts.append(f"""<li><a
+                        hx-target="#edit-area"
+                        hx-get="/claims/{self.id}/move"
+                    >Edit subject →</a></li>""")
+                    parts.append(f"""<li><a
+                        hx-target="#edit-area"
+                        hx-get="/claims/{self.id}/reverb"
+                    >Edit verb →</a></li>""")
+                    parts.append(f"""<li><a
+                        hx-target="#edit-area"
+                        hx-get="/claims/{self.id}/edit"
+                    >Edit object ✎</a></li>""")
+                    parts.append(f"""<li><a
+                        hx-target="#edit-area"
+                        hx-get="/claims/new/verb?verb={SOURCE}&claim_ids={self.id}&direction=outgoing&standalone=1"
+                        hx-target="#edit-area"
+                    >Source \N{SPEECH BALLOON}</a></li>""")
+                    parts.append(
+                        f"""<li><a
+                            hx-get="/claims/new/verb?verb={VALID_FROM}&claim_ids={self.id}&direction=outgoing&standalone=1"
+                            hx-target="#edit-area"
+                        >Valid from ⇤</a></li>"""
+                    )
+                    parts.append(
+                        f"""<li><a
+                            hx-get="/claims/new/verb?verb={VALID_UNTIL}&claim_ids={self.id}&direction=outgoing&standalone=1"
+                            hx-target="#edit-area"
+                        >Valid until ⇥</a></li>"""
+                    )
+                if self.deletable:
+                    parts.append(f"""<li><a
+                        hx-target="#edit-area"
+                        hx-delete="/claims/{self.id}"
+                        hx-confirm="Are you sure you want to delete this claim?"
+                    >Delete \N{WASTEBASKET}\ufe0e</a></li>""")
+            return f"""
+            <details class="dropdown hamburger">
+                <summary>☰</summary>
+                <ul dir="rtl">
+                    {"".join(parts)}
+                </ul>
+            </details>
+            """
         return f"TODO: {fmt!r}"
 
     @property

@@ -1,7 +1,6 @@
 from .autocomplete import autocomplete as autocomplete
 from .claims import claims as claims
 from .index import index as index
-from .network import network as network
 from .queries import queries as queries
 from .search import search as search
 from .settings import settings as settings

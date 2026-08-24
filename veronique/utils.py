@@ -85,8 +85,8 @@ def page(fn):
         gotos = []
         for page_name, restricted in [
             ("claims", False),
+            ("claims/network", False),
             ("verbs", False),
-            ("network", False),
             ("queries", False),
             ("users", True),
             ("tools/connections", False),

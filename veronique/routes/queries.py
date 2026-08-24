@@ -6,6 +6,7 @@ import veronique.objects as O
 from veronique import db
 from veronique.context import context
 from veronique.data_types import TYPES
+from veronique.network import network_widget
 from veronique.settings import settings as S
 from veronique.utils import D, admin_only, fragment, page, pagination
 
@@ -138,7 +139,7 @@ def display_query_result(result, query_id=None):
         parts = ["<table><thead><tr>"]
         for col in header:
             if col.endswith("_c") and query_id is not None:
-                parts.append(f'<td>{colmap[col]["label"]} <a href="/network/?query={query_id}&col={col}"><small>[N]</small></a></td>')
+                parts.append(f'<td>{colmap[col]["label"]} <a href="/queries/{query_id}/network/?col={col}"><small>[N]</small></a></td>')
             else:
                 parts.append(f"<td>{colmap[col]['label']}</td>")
 
@@ -229,6 +230,22 @@ async def view_query(request, query_id: int):
         }
         </article>
     """
+
+@queries.get("/<query_id>/network/<col>")
+@page
+async def view_query_graph(request, query_id: int, col: str):
+    if not context.user.can("view", "query", query_id):
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
+    query = O.Query(query_id)
+    result = query.run(
+        page_no=0,
+        page_size=9999,
+    )
+    claims = (O.Claim(row[col]) for row in result)
+    return f"{query.label} [N]", network_widget(claims)
 
 
 @queries.delete("/<query_id>")
