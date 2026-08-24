@@ -285,6 +285,9 @@ class Verb(Model):
         db.conn.commit()
         # evict deleted verb from cache:
         self._cache.pop(self.id)
+        # This is needed because even though we clear the _verb_ cache cached
+        # users can still have permissions for now dead verbs.
+        User._cache.clear()
 
     def __str__(self):
         return f"{self}"
