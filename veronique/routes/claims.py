@@ -1,5 +1,6 @@
 import base64
 from collections import defaultdict
+from math import log
 
 from sanic import Blueprint, HTTPResponse, raw, redirect
 
@@ -388,7 +389,7 @@ async def view_claim_network(request, claim_id: int):
     return f"{claim:label}", f"""
         <article class="network">
             <header>{claim:handle}{claim:heading}{f"{claim:avatar}" if claim.is_entity else ""}</header>
-            {network_widget(claims, links_go_to="network", colormap=colormap, freeze_after=1)}
+            {network_widget(claims, links_go_to="network", colormap=colormap, freeze_after=log(len(claims)))}
         </article>
         """
 
