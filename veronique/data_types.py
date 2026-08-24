@@ -518,7 +518,7 @@ class text(DataType):
             return f"{O.Claim(int(match.group(1)))}"
 
     def display_html(self, value, fmt=None, **_):
-        if len(value) > 100 and fmt == "short":
+        if len(value) > 100 and fmt == "nested":
             value = f"{value[:100]}[...]"
         if context.user.redact:
             value = "..."

@@ -115,10 +115,12 @@ table.claims td {
   }
 }
 
-h2 {
+article header h2 {
   margin-top: calc(var(--pico-typography-spacing-vertical) * 0.5) !important;
   margin-bottom: calc(var(--pico-typography-spacing-vertical) * 0.5) !important;
   text-align: center;
+  padding-left: 60px;
+  padding-right: 60px;
   &>.svo>.handle {
     display: none;
   }
