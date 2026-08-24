@@ -81,6 +81,7 @@ table.claims td {
   margin: 3px;
   border: 1px solid #fda;
   border-radius: 2px;
+  padding-right: 2px;
 }
 
 .svo {
@@ -558,4 +559,14 @@ article.network {
   top: 10px;
   right: 10px;
   position: absolute !important;
+  .danger {
+    color: var(--pico-form-element-invalid-active-border-color);
+  }
+  li:has(i) {
+    margin-left: 25px;
+  }
+  i {
+    font-style: normal;
+    float: left;
+  }
 }
