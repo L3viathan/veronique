@@ -86,6 +86,9 @@ async def homepage(request):
 @index.get("/about")
 @page
 async def about(request):
+    stats = O.Claim.stats()
+    n_users = len(list(O.User.all()))
+    n_verbs = len(list(O.Verb.all()))
     return f"""
     <article>
     <header><h2>Véronique v{version("veronique")}<h2></header>
@@ -94,6 +97,11 @@ async def about(request):
         <tr><td>Bug tracker</td><td><a target="_blank" href="https://github.com/L3viathan/veronique/issues">https://github.com/L3viathan/veronique/issues</a></td></tr>
         <tr><td>Documentation</td><td><a target="_blank" href="https://veronique.readthedocs.io">https://veronique.readthedocs.io</a></td></tr>
         <tr><td>Chat</td><td><a target="_blank" href="https://discord.gg/atvuVztJcN">https://discord.gg/atvuVztJcN</a></td></tr>
+        <tr><td>Total claims</td><td>{stats["total"]}</td></tr>
+        <tr><td>Entities</td><td>{stats[ROOT]}</td></tr>
+        <tr><td>Categories</td><td>{len(stats["categories"])} ({", ".join(f"{cat}" for cat in stats["categories"])})</td></tr>
+        <tr><td>Verbs</td><td>{n_verbs}</td></tr>
+        <tr><td>Users</td><td>{n_users}</td></tr>
     </table>
     </article>
     """

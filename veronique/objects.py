@@ -1,5 +1,6 @@
 import json
 import re
+from collections import Counter
 from datetime import date, datetime, timedelta
 from functools import cache, cached_property
 from html import escape
@@ -1101,6 +1102,16 @@ class Claim(Model):
             (other.id,),
         )
         db.conn.commit()
+
+    @classmethod
+    def stats(cls):
+        res = Counter()
+        cur = db.conn.cursor()
+        for row in cur.execute("SELECT COUNT(*) AS count, verb_id FROM claims GROUP BY verb_id").fetchall():
+            res["total"] += row["count"]
+            res[row["verb_id"]] += row["count"]
+        res["categories"] = list(cls.all_categories())
+        return res
 
 
 class Query(Model):
