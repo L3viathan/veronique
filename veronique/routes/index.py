@@ -92,7 +92,7 @@ async def about(request):
     try:
         v = version("veronique")
     except PackageNotFoundError:
-        v = "local Git checkout"
+        v = "?.?.? (local Git checkout)"
     return f"""
     <article>
     <header><h2>Véronique v{v}<h2></header>
