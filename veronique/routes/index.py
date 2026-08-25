@@ -102,8 +102,8 @@ async def about(request):
         <tr><td>Documentation</td><td><a target="_blank" href="https://veronique.readthedocs.io">https://veronique.readthedocs.io</a></td></tr>
         <tr><td>Chat</td><td><a target="_blank" href="https://discord.gg/atvuVztJcN">https://discord.gg/atvuVztJcN</a></td></tr>
         <tr><td>Total claims</td><td>{stats["total"]}</td></tr>
-        <tr><td>Entities</td><td>{stats[ROOT]}</td></tr>
-        <tr><td>Categories</td><td>{len(stats["categories"])} ({", ".join(f"{cat}" for cat in stats["categories"])})</td></tr>
+        <tr><td>Entities</td><td>{stats["verbs"][ROOT]}</td></tr>
+        <tr><td>Categories</td><td>{', '.join(f"{O.Claim(category)} ({count})" for category, count in stats["categories"].items())}</td></tr>
         <tr><td>Verbs</td><td>{n_verbs}</td></tr>
         <tr><td>Users</td><td>{n_users}</td></tr>
     </table>

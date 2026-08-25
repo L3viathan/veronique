@@ -1119,11 +1119,14 @@ class Claim(Model):
     @classmethod
     def stats(cls):
         res = Counter()
+        res["verbs"] = Counter()
+        res["categories"] = {}
         cur = db.conn.cursor()
         for row in cur.execute("SELECT COUNT(*) AS count, verb_id FROM claims GROUP BY verb_id").fetchall():
             res["total"] += row["count"]
-            res[row["verb_id"]] += row["count"]
-        res["categories"] = list(cls.all_categories())
+            res["verbs"][row["verb_id"]] += row["count"]
+        for row in cur.execute("SELECT COUNT(object_id) AS count, object_id AS category_id FROM claims WHERE verb_id = -3 GROUP BY object_id").fetchall():
+            res["categories"][row["category_id"]] = row["count"]
         return res
 
 
