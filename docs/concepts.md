@@ -104,10 +104,11 @@ them and annotate the old one with `valid_until` and the new one with
 
 Non-entity claims have a little "handle" to their left: <kbd>↱</kbd>. By
 clicking on it, you'll go to the page of that claim, on which you can use the
-<kbd>⇤</kbd> and <kbd>⇥</kbd> buttons to add validity info. This is a
-`daterange`-type verb, so enter a date or a range of dates in [a sensible
-format](https://en.wikipedia.org/wiki/ISO_8601) like `2026-06-05` (for details
-see the documentation for the [daterange](data-types.md#daterange) verb).
+hamburger menu to add validity info via <kbd>⇤ Valid from</kbd> and <kbd>⇥
+Valid until</kbd>. This is a `daterange`-type verb, so enter a date or a range
+of dates in [a sensible format](https://en.wikipedia.org/wiki/ISO_8601) like
+`2026-06-05` (for details see the documentation for the
+[daterange](data-types.md#daterange) verb).
 
 ![Setting validity of a claim](img/set-validity.png)
 
@@ -139,8 +140,9 @@ Oftentimes you want to record the source of a (non-entity) claim. For instance,
 when you want to represent something like "Peter said that Mary's birthday is
 in May."
 
-On the detail page of a (non-entity) claim there's a <kbd>Source</kbd> button
-with which you can add a source for a claim. Sources can be either:
+On the detail page of a (non-entity) claim there's a <kbd>Source</kbd> entry in
+the hamburger menu with which you can add a source for a claim. Sources can be
+either:
 
 - an entity (such as in the example above)
 - a website
