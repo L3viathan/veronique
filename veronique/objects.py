@@ -1431,7 +1431,7 @@ class User(Model):
         elif fmt == "hamburger":
             parts = []
             parts.append(f"""<li><a href="/users/{self.id}/edit"><i>✎</i> Edit</a></li>""")
-            parts.append(f'''<li><a
+            parts.append('''<li><a
                     disabled
                     class="danger"
                 ><i>\N{WASTEBASKET}\ufe0e</i> Delete</a></li>'''
