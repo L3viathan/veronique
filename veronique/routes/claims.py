@@ -383,7 +383,12 @@ async def view_claim_network(request, claim_id: int):
     claim = O.Claim(claim_id)
     claims = [claim]
     claims.extend(incoming.subject for incoming in claim.incoming_claims())
-    claims.extend(outgoing.object for outgoing in claim.outgoing_claims() if outgoing.verb.data_type in (TYPES["directed_link"], TYPES["undirected_link"]) and outgoing.verb.id != IS_A)
+    for outgoing in claim.outgoing_claims():
+        if outgoing.verb.data_type in (TYPES["directed_link"], TYPES["undirected_link"]) and outgoing.verb.id != IS_A:
+            if outgoing.object != claim:
+                claims.append(outgoing.object)
+            else:
+                claims.append(outgoing.subject)
     colormap = defaultdict(lambda: 1)
     colormap[claim_id] = 2
     return f"{claim:label}", f"""
