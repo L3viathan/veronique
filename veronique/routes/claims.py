@@ -170,7 +170,7 @@ async def new_claims(request, claim_ids: list[int], direction: str):
             )
         if "value" in request.files:
             f = request.files["value"][0]
-            form["value"] = f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
+            form["value"] = f
         verb = O.Verb(int(form["verb"]))
         value = form.get("value")
         if verb.data_type.name.endswith("directed_link"):
@@ -297,7 +297,7 @@ async def edit_claim(request, claim_id: int):
     form = D(request.form)
     if "value" in request.files:
         f = request.files["value"][0]
-        form["value"] = f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
+        form["value"] = f
     claim = O.Claim(claim_id)
     if claim.owner.id != context.user.id:
         return HTTPResponse(

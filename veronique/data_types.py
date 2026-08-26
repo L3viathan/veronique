@@ -1,3 +1,4 @@
+import base64
 import datetime
 import json
 import re
@@ -639,6 +640,10 @@ class picture(DataType):
         if context.user.redact:
             return ""
         return f'<img class="type-picture" src="{value}">'
+
+    def extract_value(self, form):
+        f = form["value"]
+        return f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
 
     def input_html(self, value=None, **_):
         return """<input name="value" type="file"></input>"""
