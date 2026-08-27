@@ -4,9 +4,11 @@ from datetime import date, timedelta
 from importlib.metadata import PackageNotFoundError, version
 
 from sanic import Blueprint
+from sanic.response import file_stream
 
 import veronique.objects as O
 from veronique.context import context
+from veronique.data_types import TYPES
 from veronique.db import ROOT
 from veronique.settings import settings as S
 from veronique.utils import _notice, page, pagination
@@ -109,3 +111,8 @@ async def about(request):
     </table>
     </article>
     """
+
+@index.get("/user-content/<identifier>")
+async def get_user_content(request, identifier):
+    # no security for this — identifier is randomly generated and assumed unguessable
+    return await file_stream(TYPES["file"].FILE_PATH / identifier)

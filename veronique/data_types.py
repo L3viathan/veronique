@@ -1,6 +1,7 @@
 import base64
 import datetime
 import json
+import os
 import re
 import unicodedata
 from datetime import date as dt_date
@@ -8,8 +9,10 @@ from datetime import timedelta
 from functools import partial
 from html import escape
 from itertools import count
+from pathlib import Path
 from random import randint
 from urllib.parse import quote_plus
+from uuid import uuid4
 
 import phonenumbers
 import pycountry
@@ -644,6 +647,36 @@ class picture(DataType):
     def extract_value(self, form):
         f = form["value"]
         return f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
+
+    def input_html(self, value=None, **_):
+        return """<input name="value" type="file"></input>"""
+
+
+class file(DataType):
+    FILE_PATH = Path(os.environ.get("VERONIQUE_USER_CONTENT_PATH", "user-content"))
+    EMBED_MIME_TYPES = (
+        "image/jpeg",
+        "image/png",
+    )
+
+    def display_html(self, value, **_):
+        if context.user.redact:
+            return ""
+        # TODO: depending on mime type, either embed or not
+        mime, ref = value.split(":")
+        if mime in file.EMBED_MIME_TYPES:
+            return f'<img class="type-file" src="/user-content/{ref}">'
+        else:
+            return f'<a role="button" href="/user-content/{ref}">Download</a>'
+
+    # TODO: figure out how to delete files
+
+    def extract_value(self, form):
+        f = form["value"]
+        identifier = str(uuid4())
+        with (file.FILE_PATH / identifier).open("wb") as out:
+            out.write(f.body)
+        return f"{f.type}:{identifier}"
 
     def input_html(self, value=None, **_):
         return """<input name="value" type="file"></input>"""
