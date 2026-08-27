@@ -186,9 +186,6 @@ nav {
 
 article {
   overflow: visible;
-  button {
-    float: right;
-  }
 }
 
 .prev {
