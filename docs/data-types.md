@@ -129,6 +129,17 @@ This lets you upload any kind of image. Technically it will let you upload any
 file, but when viewed, it will be presented as an image (with an `<img>` tag),
 so anything other than images will appear broken.
 
+## `file`
+
+This is similar to `picture`, but implemented very differently. Where `picture`
+stores the image data inside the database directly, `file` only stores a
+reference and puts the actual contents on disk. For this to work, you need to
+have configured the environment variable `VERONIQUE_USER_CONTENT_PATH` (see
+[setup](#setup)).
+
+The other difference is that this allows up- and downloading arbitrary files,
+not just images.
+
 ## `social`
 
 A "social" verb refers to someone's presence on a social media platform. When

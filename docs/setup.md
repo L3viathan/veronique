@@ -36,3 +36,10 @@ have to worry about all that.
 
 All data is stored in the SQLite DB contained in `veronique.db`. It is enough
 to create backups of this file.
+
+### Exception: `file`
+
+The file contents of `file` verbs are instead stored on disk. This only works
+if you set the environment variable `VERONIQUE_USER_CONTENT_PATH` to something
+(or create a `user-content` directory/symlink in the working directory of the
+web service).
