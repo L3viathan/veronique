@@ -666,7 +666,7 @@ class file(DataType):
         if mime in file.EMBED_MIME_TYPES:
             return f'<img class="type-file" src="/user-content/{ref}/{filename}">'
         else:
-            return f'{filename} <a role="button" href="/user-content/{ref}/{filename}">Download</a>'
+            return f'<span class="type-file"><a href="/user-content/{ref}/{filename}">\N{PAPERCLIP} {filename}</a></span>'
 
     # TODO: figure out how to delete files. Perhaps just via "GC" by finding
     # files with no references to them.

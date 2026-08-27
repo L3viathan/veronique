@@ -573,3 +573,11 @@ article.network {
     font-weight: bold;
   }
 }
+
+.type-file {
+  background: white;
+  padding: 5px;
+  a {
+    color: #626262;
+  }
+}
