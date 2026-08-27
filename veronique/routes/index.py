@@ -112,7 +112,7 @@ async def about(request):
     </article>
     """
 
-@index.get("/user-content/<identifier>")
-async def get_user_content(request, identifier):
+@index.get("/user-content/<identifier>/<filename>")
+async def get_user_content(request, identifier, filename):
     # no security for this — identifier is randomly generated and assumed unguessable
-    return await file_stream(TYPES["file"].FILE_PATH / identifier)
+    return await file_stream(TYPES["file"].FILE_PATH / identifier, filename=filename)

@@ -662,21 +662,32 @@ class file(DataType):
     def display_html(self, value, **_):
         if context.user.redact:
             return ""
-        # TODO: depending on mime type, either embed or not
-        mime, ref = value.split(":")
+        mime, filename, ref = value.split(":")
         if mime in file.EMBED_MIME_TYPES:
-            return f'<img class="type-file" src="/user-content/{ref}">'
+            return f'<img class="type-file" src="/user-content/{ref}/{filename}">'
         else:
-            return f'<a role="button" href="/user-content/{ref}">Download</a>'
+            return f'{filename} <a role="button" href="/user-content/{ref}/{filename}">Download</a>'
 
-    # TODO: figure out how to delete files
+    # TODO: figure out how to delete files. Perhaps just via "GC" by finding
+    # files with no references to them.
 
     def extract_value(self, form):
         f = form["value"]
         identifier = str(uuid4())
         with (file.FILE_PATH / identifier).open("wb") as out:
             out.write(f.body)
-        return f"{f.type}:{identifier}"
+        filename = self._sanitize(f.name)
+        return f"{f.type}:{filename}:{identifier}"
+
+    def _sanitize(self, name):
+        return "".join(
+            c
+            for c in name
+            if (
+                unicodedata.category(c).startswith("L")
+                or c in " 1234567890-."
+            )
+        ).replace(" ", "_")
 
     def input_html(self, value=None, **_):
         return """<input name="value" type="file"></input>"""
