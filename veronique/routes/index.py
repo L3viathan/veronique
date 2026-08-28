@@ -11,7 +11,7 @@ from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import ROOT
 from veronique.settings import settings as S
-from veronique.utils import _notice, page, pagination
+from veronique.utils import _notice, cache_pls_headers, page, pagination
 
 index = Blueprint("index")
 
@@ -115,4 +115,8 @@ async def about(request):
 @index.get("/user-content/<identifier>/<filename>")
 async def get_user_content(request, identifier, filename):
     # no security for this — identifier is randomly generated and assumed unguessable
-    return await file_stream(TYPES["file"].FILE_PATH / identifier, filename=filename)
+    return await file_stream(
+        TYPES["file"].FILE_PATH / identifier,
+        filename=filename,
+        headers=cache_pls_headers(),
+    )
