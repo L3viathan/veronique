@@ -16,12 +16,12 @@ class input_ref_widget(Autocomplete):
                     placeholder="Start typing..."
                     hx-get="/autocomplete/input_ref_widget/query/{data}"
                     hx-target="next .ac-results"
-                    hx-swap="innerHTML"
+                    hx-swap="innerMorph"
                     hx-trigger="input changed delay:200ms, search"
                     autocomplete="pleaseno"
                     autofocus
                 >
-                <input type="button" value="x" hx-swap="outerHTML" hx-target=".ac-widget" hx-get="/verbs/data-types/text">
+                <input type="button" value="x" hx-swap="outerMorph" hx-target=".ac-widget" hx-get="/verbs/data-types/text">
                 </fieldset>
                 <div class="ac-results">
                 </div>
@@ -40,7 +40,7 @@ class input_ref_widget(Autocomplete):
         {"".join(f'''<a
             class="clickable ac-result"
             hx-target="closest .ac-widget"
-            hx-swap="outerHTML"
+            hx-swap="outerMorph"
             hx-get="/autocomplete/input_ref_widget/accept/{claim.id}"
         >{claim:label}</a>
         ''' for claim in claims)}
@@ -61,7 +61,7 @@ class link(Autocomplete):
                     placeholder="Start typing..."
                     hx-get="/autocomplete/link/query/{data}"
                     hx-target="next .ac-results"
-                    hx-swap="innerHTML"
+                    hx-swap="innerMorph"
                     hx-trigger="input changed delay:200ms, search"
                 >
                 <div class="ac-results">
@@ -81,7 +81,7 @@ class link(Autocomplete):
         {"".join(f'''<a
             class="clickable ac-result"
             hx-target="closest .ac-widget"
-            hx-swap="outerHTML"
+            hx-swap="outerMorph"
             hx-get="/autocomplete/link/accept/{claim.id}"
         >{claim:label}</a>
         ''' for claim in claims)}
@@ -108,7 +108,7 @@ class multiselect(Autocomplete):
                     placeholder="Start typing..."
                     hx-get="/autocomplete/multiselect/query/{data}"
                     hx-target="next .ac-results"
-                    hx-swap="innerHTML"
+                    hx-swap="innerMorph"
                     hx-trigger="input changed delay:200ms, search"
                 >
                 <div class="ac-results">
@@ -185,7 +185,7 @@ class merge(Autocomplete):
         return "".join(f'''<a
             class="clickable ac-result"
             hx-target="closest .ac-widget"
-            hx-swap="outerHTML"
+            hx-swap="outerMorph"
             hx-get="/autocomplete/merge/accept/{claim.id}"
         >{claim:label}</a>
         ''' for claim in claims)

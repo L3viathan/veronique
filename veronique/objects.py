@@ -1227,7 +1227,7 @@ class Query(Model):
                 href="/queries/{self.id}"
                 hx-select="#container"
                 hx-target="#container"
-                hx-swap="outerHTML"
+                hx-swap="outerMorph"
             ><strong>{self.label}</strong></a>"""
 
     def run(self, page_no, page_size):

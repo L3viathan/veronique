@@ -108,7 +108,7 @@ async def new_claim_form(request, claim_ids: list[int], direction: str):
                 name="verb"
                 hx-get="/claims/new/verb?claim_ids={claim_ids}&direction={direction}"
                 hx-target="#valueinput"
-                hx-swap="innerHTML"
+                hx-swap="innerMorph"
             >
                 <option selected disabled>--Verb--</option>
                 {
@@ -437,14 +437,14 @@ async def view_claim(request, claim_id: int):
             <div id="edit-area"></div>
             <table class="claims"><tr><td>
         {
-            f'<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>'
+            f'<div hx-swap="outerMorph" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>'
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }
         {"".join(f'<span class="row">{c:sv}</span>' for c in incoming_claims)}
         </td><td>
         {
-            f'<div hx-swap="outerHTML" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>'
+            f'<div hx-swap="outerMorph" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>'
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }

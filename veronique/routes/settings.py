@@ -112,8 +112,8 @@ async def settings_form(request):
                 </label>
                 {'''
                 <fieldset>
-                <a href="#" role="button" hx-swap="outerHTML" hx-post="/search/rebuild">Rebuild search index</a>
-                <a href="#" role="button" hx-swap="outerHTML" hx-post="/settings/generate-token">Issue API token</a>
+                <a href="#" role="button" hx-swap="outerMorph" hx-post="/search/rebuild">Rebuild search index</a>
+                <a href="#" role="button" hx-swap="outerMorph" hx-post="/settings/generate-token">Issue API token</a>
                 </fieldset>
                 ''' if context.user.is_admin else ""}
 

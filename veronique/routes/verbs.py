@@ -61,7 +61,7 @@ async def new_verb_form(request):
                 name="data_type"
                 hx-get="/verbs/new/steps"
                 hx-target="#steps"
-                hx-swap="innerHTML"
+                hx-swap="innerMorph"
                 hx-include="closest form"
             >
                 <option selected disabled>--Type--</option>

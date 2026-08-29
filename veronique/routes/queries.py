@@ -75,7 +75,7 @@ async def new_query_form(request):
                 hx-post="/queries/preview"
                 hx-target="#preview"
                 hx-include="#editing"
-                hx-swap="innerHTML"
+                hx-swap="innerMorph"
             >Preview</button>
             <button type="submit">»</button>
             </div>
@@ -92,7 +92,7 @@ async def edit_query_form(request, query_id: int):
     return f"Edit {query.label!r}", f"""
         <form
             hx-put="/queries/{query_id}"
-            hx-swap="outerHTML"
+            hx-swap="outerMorph"
             hx-encoding="multipart/form-data"
         >
             <input name="label" placeholder="label" value="{query.label}"></input>
@@ -103,7 +103,7 @@ async def edit_query_form(request, query_id: int):
                 hx-post="/queries/preview"
                 hx-target="#preview"
                 hx-include="#editing"
-                hx-swap="innerHTML"
+                hx-swap="innerMorph"
             >Preview</button>
             <button type="submit">»</button>
             </div>

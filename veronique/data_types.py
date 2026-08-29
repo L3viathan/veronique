@@ -105,7 +105,7 @@ class undirected_link(directed_link):
 class inferred(DataType):
     def next_step(self, args):
         import veronique.objects as O
-        hxall = 'hx-select="#autoform" hx-replace="outerHTML" hx-target="#autoform" hx-get="/verbs/new/steps" hx-include="closest form"'
+        hxall = 'hx-select="#autoform" hx-swap="outerMorph" hx-target="#autoform" hx-get="/verbs/new/steps" hx-include="closest form"'
         verbs = list(O.Verb.all(data_type="%directed_link", page_size=999))
         if "g1s" not in args:
             conditions = [("this", verbs[0].id, "that")]
@@ -814,7 +814,7 @@ class alpha2(DataType):
         return "".join(f'''<a
             class="clickable ac-result"
             hx-target="closest .ac-widget"
-            hx-swap="outerHTML"
+            hx-swap="outerMorph"
             hx-get="/verbs/data-types/alpha2/?accept={c.alpha_2}"
         >{c.flag} {c.name}</a>
         ''' for c in results[:5])

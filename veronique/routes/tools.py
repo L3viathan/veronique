@@ -116,13 +116,13 @@ async def start_bulk_claim(request):
             <header><h2>New bulk claim</h2>{' '.join(f"{claim}" for claim in claims)}</header>
             <table class="claims"><tr><td>
         {
-            f'<div hx-swap="outerHTML" hx-get="/claims/new/{",".join(claim_ids)}/incoming" class="new-item-placeholder">+</div>'
+            f'<div hx-swap="outerMorph" hx-get="/claims/new/{",".join(claim_ids)}/incoming" class="new-item-placeholder">+</div>'
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }
         </td><td>
         {
-            f'<div hx-swap="outerHTML" hx-get="/claims/new/{",".join(claim_ids)}/outgoing" class="new-item-placeholder">+</div>'
+            f'<div hx-swap="outerMorph" hx-get="/claims/new/{",".join(claim_ids)}/outgoing" class="new-item-placeholder">+</div>'
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }
