@@ -50,7 +50,7 @@ class DataType:
     def input_html(self, value=None, **_):
         return f"placeholder, not implemented for data type {type(self).__name__}."
 
-    def edit_verb(self, verb):
+    def edit_verb(self, verb, form):
         return ""
 
     def next_step(self, args):

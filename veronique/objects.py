@@ -241,12 +241,16 @@ class Verb(Model):
                     </ul>
                 </details>
                 """
+            else:
+                return ""
         elif fmt == "heading":
             return f"""<h2>{self.name}</h2>"""
         elif fmt == "detail":
             return self.data_type.detail_for(self)
         elif fmt == "edit":
-            return self.data_type.edit_verb_form(self)
+            if hasattr(self.data_type, "edit_verb_form"):
+                return self.data_type.edit_verb_form(self)
+            return ""
         else:
             return f"""<a
                 class="clickable verb"
