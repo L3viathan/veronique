@@ -382,8 +382,8 @@ async def view_network(request):
 async def view_claim_network(request, claim_id: int):
     claim = O.Claim(claim_id)
     claims = [claim]
-    claims.extend(incoming.subject for incoming in claim.incoming_claims())
-    for outgoing in claim.outgoing_claims():
+    claims.extend(incoming.subject for incoming in claim.incoming_claims(page_size=999))
+    for outgoing in claim.outgoing_claims(page_size=999):
         if outgoing.verb.data_type in (TYPES["directed_link"], TYPES["undirected_link"]) and outgoing.verb.id != IS_A:
             if outgoing.object != claim:
                 claims.append(outgoing.object)
