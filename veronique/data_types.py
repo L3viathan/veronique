@@ -697,9 +697,10 @@ class social(DataType):
     def display_html(self, value, prop, **_):
         if context.user.redact:
             value = "someone"
-        value = prop.extra.format(escape(value))
+        user = escape(value)
+        value = prop.extra.format(user)
         if value.startswith("http"):
-            value = f'<a href="{value}">{value}</a>'
+            value = f'<a href="{value}">{user}</a>'
         return f'<span class="type-social">{value}</span>'
 
     def input_html(self, verb_id, value=None, **_):
