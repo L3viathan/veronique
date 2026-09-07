@@ -581,3 +581,7 @@ article.network {
     color: #626262;
   }
 }
+
+img#logo {
+  width: 300px;
+}

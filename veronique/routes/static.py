@@ -95,11 +95,11 @@ async def graphology_library_js(request):
     )
 
 
-@static.get("/veronique.png")
-async def veronique_png(request):
+@static.get("/veronique.svg")
+async def veronique_svg(request):
     return await file(
-        "data/veronique.png",
-        mime_type="image/png",
+        "data/veronique.svg",
+        mime_type="image/svg+xml",
         headers=cache_pls_headers(),
     )
 
