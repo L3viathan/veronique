@@ -1,4 +1,4 @@
-# Véronique
+![Véronique](data/veronique.svg)
 
 _A small database for storing entities, links between them and simple
 properties (e.g. text, color, numbers)._
