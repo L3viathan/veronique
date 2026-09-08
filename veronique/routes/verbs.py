@@ -160,13 +160,3 @@ async def edit_verb(request, verb_id: int):
     verb.rename(value)
     verb.edit(form)
     return redirect(f"/verbs/{verb_id}")
-
-
-@verbs.get("/data-types/<data_type>")
-async def data_type_request_get(request, data_type: str):
-    return await TYPES[data_type].request(request, method="GET")
-
-
-@verbs.post("/data-types/<data_type>")
-async def data_type_request_post(request, data_type: str):
-    return await TYPES[data_type].request(request, method="POST")

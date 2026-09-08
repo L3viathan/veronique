@@ -16,6 +16,7 @@ from veronique.routes import (
     settings,
     static,
     tools,
+    types,
     users,
     verbs,
 )
@@ -31,6 +32,7 @@ app.blueprint(static)
 app.blueprint(index)
 app.blueprint(search)
 app.blueprint(tools)
+app.blueprint(types)
 app.blueprint(autocomplete)
 
 with open("data/login.html") as f:

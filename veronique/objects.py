@@ -518,6 +518,37 @@ class Claim(Model):
         for d in target_dates:
             yield d, results[d]
 
+    @classmethod
+    def all_with_value(cls, data_type, value, *, like=False, page_no=0, page_size=20):
+        """
+        Yields claims where the value is the given one.
+
+        If `like` is true, comparisons are made with `LIKE` instead of `=`.
+        """
+        cur = db.conn.cursor()
+        conditions = [
+            "v.data_type = ?",
+            "c.value LIKE ?",
+        ]
+        if (verb_ids := context.user.readable_verbs) is not None:
+            conditions.append(
+                f"verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
+            )
+
+        query = f"""
+            SELECT c.id
+            FROM claims c
+            LEFT JOIN verbs v ON c.verb_id = v.id
+            WHERE {" AND ".join(conditions)}
+            LIMIT {page_size}
+            OFFSET {page_no * page_size}
+        """
+        for row in cur.execute(
+            query,
+            (data_type, value),
+        ):
+            yield cls(row[0])
+
     def comments(self, page_no=0, page_size=20):
         cur = db.conn.cursor()
         for row in cur.execute(

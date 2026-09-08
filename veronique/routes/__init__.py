@@ -6,5 +6,6 @@ from .search import search as search
 from .settings import settings as settings
 from .static import static as static
 from .tools import tools as tools
+from .types import types as types
 from .users import users as users
 from .verbs import verbs as verbs

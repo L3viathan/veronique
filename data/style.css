@@ -585,3 +585,8 @@ article.network {
 img#logo {
   width: 300px;
 }
+
+.type-date a {
+  color: black;
+  text-decoration: none;
+}

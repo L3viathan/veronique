@@ -27,6 +27,7 @@ from veronique.utils import D, fragment
 
 TYPES = {}
 TEXT_REF = re.compile(r"\[@(\d+)\]")
+DATE_REF = re.compile(r"[12][0-9]{3}-[01][0-9]-[0-3][0-9]")
 INPUT_WIDGET_REF = re.compile(r'<span [^>]+data-claim-ref="(\d+)"[^>]+>.+?</span>')
 COORDS = re.compile(r"^-?\d+(.\d+)?, ?-?\d+(.\d+)?$")
 
@@ -40,6 +41,7 @@ def float_int(val):
 
 class DataType:
     can_turn_into = ()
+    supports_value_query = False
 
     def __init_subclass__(cls):
         TYPES[cls.__name__] = cls()
@@ -268,7 +270,7 @@ class source(string):
 
         input = self._input_for_variant(variant, value)
         return f"""
-        <fieldset hx-trigger="change" hx-get="/verbs/data-types/source" hx-target="#source-value-container" hx-include="this">
+        <fieldset hx-trigger="change" hx-get="/types/source" hx-target="#source-value-container" hx-include="this">
             <legend>Type of source:</legend>
             <label>
                 <input type="radio" name="variant" value="T" {"checked" if variant == "T" else ""}>
@@ -313,6 +315,7 @@ class number(DataType):
 
 class color(DataType):
     pattern = re.compile("^#[0-9A-Fa-f]{6}$")
+    supports_value_query = True
 
     def display_html(self, value, **_):
         return f"""
@@ -335,6 +338,8 @@ class color(DataType):
 
 
 class date(DataType):
+    supports_value_query = True
+
     def display_html(self, value, prop, **_):
         d = NonOmniscientDate(value, negating_days_allowed="a" not in (prop.extra or ""))
         today = datetime.date.today()
@@ -381,7 +386,7 @@ class date(DataType):
             value = "unknown"
         else:
             value = value.removeprefix("????-").removesuffix("-??-??")
-        return f"""<span class="{class_}">🗓️{value}{astro} <em>({td:{fmt_flags}})</em></span>"""
+        return f"""<span class="type-date {class_}">🗓️<a href="/types/date/{value}">{value}</a>{astro} <em>({td:{fmt_flags}})</em></span>"""
 
     def extract_value(self, form):
         value = form.get("value")
@@ -516,8 +521,11 @@ class text(DataType):
 
     def _sub(self, match, fmt=None):
         import veronique.objects as O
-        if fmt:
+        if fmt == "input-widget-ref":
             return f"{O.Claim(int(match.group(1))):{fmt}}"
+        elif fmt == "date":
+            value = match.group(0)
+            return f"""<span class="type-date">🗓️<a href="/types/date/{value}">{value}</a></span>"""
         else:
             return f"{O.Claim(int(match.group(1)))}"
 
@@ -528,7 +536,10 @@ class text(DataType):
             value = "..."
         else:
             value = self.md.render(value)
-        return f"""<span class="type-text">{re.sub(TEXT_REF, self._sub, value)}</span>"""
+        # TODO: more reference types
+        value = re.sub(TEXT_REF, self._sub, value)
+        value = re.sub(DATE_REF, partial(self._sub, fmt="date"), value)
+        return f"""<span class="type-text">{value}</span>"""
 
     def _encode_input_widget_refs(self, match):
         return f'[@{match.group(1)}]'
@@ -556,7 +567,7 @@ class text(DataType):
                 onchange="document.getElementsByName('value')[0].innerHTML = this.innerHTML"
                 hx-on:keydown="if(event.key==='@'){{ event.preventDefault(); htmx.trigger(this, 'at-key'); }}"
                 hx-trigger="at-key"
-                hx-post="/verbs/data-types/text"
+                hx-post="/types/text"
                 hx-swap="beforeend"
                 contenteditable>{value}</div>
             <textarea style="display: none;" name="value">{value}</textarea>
@@ -770,6 +781,8 @@ class mtgcolors(DataType):
 
 
 class alpha2(DataType):
+    supports_value_query = True
+
     def display_html(self, value, **_):
         try:
             country = pycountry.countries.lookup(value.upper())
@@ -793,7 +806,7 @@ class alpha2(DataType):
             value = ""
         return f"""
             <div class="ac-widget">
-            <input hx-trigger="keyup" hx-get="/verbs/data-types/alpha2" hx-target="#alpha2-results" name="value"{value} autocomplete="off">
+            <input hx-trigger="keyup" hx-get="/types/alpha2" hx-target="#alpha2-results" name="value"{value} autocomplete="off">
             <small>Enter a two-uppercase-letter region code here (ISO 3166-1 alpha 2), e.g. "DE".</small>
             <div id="alpha2-results" class="ac-results"></div>
             </div>
@@ -816,7 +829,7 @@ class alpha2(DataType):
             class="clickable ac-result"
             hx-target="closest .ac-widget"
             hx-swap="outerMorph"
-            hx-get="/verbs/data-types/alpha2/?accept={c.alpha_2}"
+            hx-get="/types/alpha2/?accept={c.alpha_2}"
         >{c.flag} {c.name}</a>
         ''' for c in results[:5])
 

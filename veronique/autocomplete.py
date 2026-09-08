@@ -21,7 +21,7 @@ class input_ref_widget(Autocomplete):
                     autocomplete="pleaseno"
                     autofocus
                 >
-                <input type="button" value="x" hx-swap="outerMorph" hx-target=".ac-widget" hx-get="/verbs/data-types/text">
+                <input type="button" value="x" hx-swap="outerMorph" hx-target=".ac-widget" hx-get="/types/text">
                 </fieldset>
                 <div class="ac-results">
                 </div>
