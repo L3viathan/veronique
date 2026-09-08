@@ -387,12 +387,12 @@ class date(DataType):
         value = form.get("value")
         if value in ("today", "yesterday", "tomorrow"):
             t = dt_date.today()
-            return {
+            value = {
                 "yesterday": str(t - timedelta(days=1)),
                 "today": str(t),
                 "tomorrow": str(t + timedelta(days=1)),
             }[value]
-        return value
+        return str(NonOmniscientDate(value))
 
     def input_html(self, value=None, **_):
         if value:

@@ -128,7 +128,10 @@ class NonOmniscientDate:
         self.negating_days_allowed = negating_days_allowed
 
     def __repr__(self):
-        return f"NonOmniscientDate('{self.year}-{self.month}-{self.day}')"
+        return f"NonOmniscientDate('{self}')"
+
+    def __str__(self):
+        return f"{self.year}-{self.month:>02}-{self.day:>02}"
 
     def __rsub__(self, other):
         assert isinstance(other, datetime.date)
@@ -171,8 +174,8 @@ class NonOmniscientDate:
         return delta
 
     def compare(self, other):
-        own = f"{self.year}-{self.month:>02}-{self.day:>02}"
-        other = f"{other.year}-{other.month:>02}-{other.day:>02}"
+        own = str(self)
+        other = str(other)
 
         for own_char, other_char in zip(own, other):
             if "?" in (own_char, other_char):
