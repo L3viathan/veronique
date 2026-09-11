@@ -14,9 +14,9 @@ Where relations are between equal members ("partner of", "friend of", "works
 with"), you want to use the `undirected_link` type instead. These will look
 identical from either side.
 
-## `inferred`
+## `inferred_link`
 
-Inferrable verbs are special in that you never explicitly create any claims for
+Inferrable links are special in that you never explicitly create any claims for
 them. Instead, they get shown automatically when a set of conditions is
 fulfilled. The prime example of this would be a "sibling" or "grandparent"
 relation — you can define it by a combination of other relations.
@@ -26,7 +26,7 @@ Mary and the child of Peter:
 
 ![Creating an inferred verb](img/new-inferred-verb.png)
 
-After entering a name and selecting `inferred` as the type, you'll need to
+After entering a name and selecting `inferred_link` as the type, you'll need to
 define what it means by "this" (your subject) being in that relation with
 "that" (your object). To define the relation, you'll need additional helper
 claims (a "parent" in both of the examples above). Every row needs to hold for

@@ -148,7 +148,7 @@ class Verb(Model):
         verb_id = cur.lastrowid
         update_index_for_doc(cur, "verbs", cur.lastrowid, label)
         db.conn.commit()
-        if data_type.name == "inferred":
+        if data_type.name == "inferred_link":
             cls.get_inferables.cache_clear()
         return Verb(verb_id)
 
@@ -156,7 +156,7 @@ class Verb(Model):
     @cache
     def get_inferables(cls):
         result = []
-        for inferable in cls.all(data_type="inferred"):
+        for inferable in cls.all(data_type="inferred_link"):
             result.append(Inferable(inferable))
         return result
 

@@ -827,6 +827,15 @@ def turn_validities_into_daterange(cur):
     )
 
 
+@migration(28)
+def rename_inferred_to_inferred_link(cur):
+    cur.execute("""
+        UPDATE verbs
+        SET data_type = 'inferred_link'
+        WHERE data_type = 'inferred'
+    """)
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 

@@ -34,7 +34,7 @@ def cli():
     partner_of = O.Verb.new("partner of", data_type=O.TYPES["undirected_link"])
     O.Verb.new(
         "sibling of",
-        data_type=O.TYPES["inferred"],
+        data_type=O.TYPES["inferred_link"],
         extra=f'{{"g1s": "this", "g1v": "{child_of.id}", "g1o": "A","g2s": "that", "g2v": "{child_of.id}", "g2o": "A"}}',
     )
     works_at = O.Verb.new("works at", data_type=O.TYPES["directed_link"])

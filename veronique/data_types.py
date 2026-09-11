@@ -104,7 +104,7 @@ class undirected_link(directed_link):
     pass
 
 
-class inferred(DataType):
+class inferred_link(DataType):
     def next_step(self, args):
         import veronique.objects as O
         hxall = 'hx-select="#autoform" hx-swap="outerMorph" hx-target="#autoform" hx-get="/verbs/new/steps" hx-include="closest form"'

@@ -117,7 +117,7 @@ async def new_claim_form(request, claim_ids: list[int], direction: str):
                                         value="{verb.id}"
                                     >{verb.label} ({verb.data_type})</option>'''
                         for verb in verbs
-                        if verb.id >= 0 and verb.data_type is not TYPES["inferred"]
+                        if verb.id >= 0 and verb.data_type is not TYPES["inferred_link"]
                     )
                 }
             </select>
@@ -180,7 +180,7 @@ async def new_claims(request, claim_ids: list[int], direction: str):
                     body="403 Forbidden",
                     status=403,
                 )
-        elif verb.data_type.name == "inferred":
+        elif verb.data_type.name == "inferred_link":
             return HTTPResponse(
                 body="400 Bad Request",
                 status=400,
