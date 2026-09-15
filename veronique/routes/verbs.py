@@ -92,11 +92,10 @@ async def new_verb_form_steps(request):
 @verbs.post("/new")
 @admin_only
 async def new_verb(request):
-    form = D(request.form)
-    data_type = TYPES[form["data_type"]]
-    extra = data_type.get_extra(form)
+    data_type = TYPES[request.form.get("data_type")]
+    extra = data_type.get_extra(request.form)
     verb = O.Verb.new(
-        form["label"],
+        request.form.get("label"),
         data_type=data_type,
         extra=extra,
     )

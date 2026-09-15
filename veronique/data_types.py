@@ -180,7 +180,8 @@ class inferred_link(DataType):
         """)
         return "".join(parts)
 
-    def get_extra(self, args):
+    def get_extra(self, form):
+        args = D(form)
         payload = args.copy()
         payload.pop("label")
         payload.pop("data_type")
@@ -205,6 +206,95 @@ class inferred_link(DataType):
             """)
         parts.append("</ul>")
         return "".join(parts)
+
+
+class computed(DataType):
+    def _computed_stack(self, elements, *, show_add_buttons):
+        import veronique.objects as O
+        parts = []
+        inputs = []
+        for part in reversed(elements):
+            kind, _, value = part.partition("-")
+            if kind == "verb":
+                parts.append(f"{O.Verb(int(value))}")
+            elif kind == "val":
+                parts.append(f"""<tt>{value}</tt>""")
+            elif kind == "op":
+                b, a = parts.pop(), parts.pop()
+                parts.append(f"""
+                <table class="computed-table">
+                    <tr><td rowspan="2"><strong>{value}</strong></td><td>{a}</td></tr>
+                    <tr><td>{b}</td></tr>
+                </table>
+                """)
+            else:
+                raise RuntimeError
+            inputs.append(f"""<input type="hidden" name="value" value="{part}">""")
+        buttons = """
+            <fieldset role="group">
+                <button hx-post="/types/computed?action=add-source" hx-include="closest form" hx-target="closest fieldset" hx-swap="afterend">New source</button>
+                <button hx-post="/types/computed?action=add-value" hx-include="closest form" hx-target="closest fieldset" hx-swap="afterend">New value</button>
+                <button hx-post="/types/computed?action=add-operator" hx-include="closest form" hx-target="closest fieldset" hx-swap="afterend">New operator</button>
+            </fieldset>
+        """
+        return f"""
+            <div id="computed-stack">
+            {buttons if show_add_buttons else ""}
+            {"".join(parts)}
+            {"".join(reversed(inputs))}
+            </div>
+        """
+
+    def next_step(self, args):
+        return f"""
+            {self._computed_stack([], show_add_buttons=True)}
+            <button type="submit">Create</button>
+        """
+
+    @fragment
+    async def request(self, request, *, method):
+        if method == "POST":
+            action = request.args.get("action")
+            arg = request.args.get("arg")
+            if action == "add-source":
+                import veronique.objects as O
+                verbs = list(O.Verb.all(page_size=999))
+                return f"""
+                <select>
+                    <option disabled selected>Verb</option>
+                    {"".join(f'<option hx-post="/types/computed?action=replace-verb&arg={verb.id}" hx-target="#computed-stack" hx-swap="outerMorph" name="{verb.id}">{verb}</option>' for verb in verbs)}
+                </select>
+                """
+            elif action == "add-operator":
+                operators = ["add", "subtract", "max", "coalesce"]
+                return f"""
+                <select>
+                    <option disabled selected>Operator</option>
+                    {"".join(f'<option hx-post="/types/computed?action=replace-op&arg={op}" hx-target="#computed-stack" hx-swap="outerMorph" name="{op}">{op}</option>' for op in operators)}
+                </select>
+                """
+            elif action == "add-value":
+                values = ["today"]
+                return f"""
+                <select>
+                    <option disabled selected>Values</option>
+                    {"".join(f'<option hx-post="/types/computed?action=replace-val&arg={val}" hx-target="#computed-stack" hx-swap="outerMorph" name="{val}">{val}</option>' for val in values)}
+                </select>
+                """
+            elif action.startswith("replace-"):
+                kind = action.removeprefix("replace-")
+                if "value" in request.form:
+                    parts = request.form["value"]
+                else:
+                    parts = []
+                return self._computed_stack([f"{kind}-{arg}", *parts], show_add_buttons=True)
+        return ""
+
+    def get_extra(self, form):
+        return json.dumps(form["value"])
+
+    def detail_for(self, verb):
+        return self._computed_stack(json.loads(verb.extra), show_add_buttons=False)
 
 
 class string(DataType):
@@ -412,9 +502,9 @@ class date(DataType):
         ><small>Possible formats: <tt>YYYY-mm-dd</tt>, <tt>YYYY</tt>, <tt>mm-dd</tt>, <tt>?</tt>. Any digit can also be replaced by a question mark. You may also use any of these short hands: <tt>yesterday</tt>, <tt>today</tt>, <tt>tomorrow</tt></small>.
         """
 
-    def get_extra(self, args):
+    def get_extra(self, form):
         return "".join(
-            name[0] for name in ("starsign", "age") if name in args
+            name[0] for name in ("starsign", "age") if name in D(form)
         )
 
     def edit_verb_form(self, verb):
@@ -740,8 +830,8 @@ class social(DataType):
             <button type="submit">»</button>
         """
 
-    def get_extra(self, args):
-        return args["template"]
+    def get_extra(self, form):
+        return D(form)["template"]
 
 
 class mtgcolors(DataType):
@@ -961,8 +1051,8 @@ class choice(DataType):
             <button type="submit">Create</button>
         """
 
-    def get_extra(self, args):
-        return json.dumps([choice.strip() for choice in args["choices"].split("\n") if choice.strip()])
+    def get_extra(self, form):
+        return json.dumps([choice.strip() for choice in D(form)["choices"].split("\n") if choice.strip()])
 
     def detail_for(self, verb):
         choices = json.loads(verb.extra)
