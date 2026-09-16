@@ -450,6 +450,7 @@ async def view_claim(request, claim_id: int):
         }
         {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in outgoing_claims if c.verb.id not in (IS_A, AVATAR, COMMENT))}
         {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in claim.outgoing_inferred_claims())}
+        {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in claim.outgoing_computed_claims())}
         </td></tr></table>
         {"<hr><h3>Mentions</h3>" + "".join(f'<span class="row">{c}</span>' for c in incoming_mentions) if incoming_mentions else ""}
         <footer>

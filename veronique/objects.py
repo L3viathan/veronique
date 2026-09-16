@@ -160,6 +160,14 @@ class Verb(Model):
             result.append(Inferable(inferable))
         return result
 
+    @classmethod
+    @cache
+    def get_computeds(cls):
+        result = []
+        for computed in cls.all(data_type="computed"):
+            result.append(Computed(computed))
+        return result
+
     def claims(self, page_no=0, page_size=20):
         cur = db.conn.cursor()
         for row in cur.execute(
@@ -658,6 +666,11 @@ class Claim(Model):
         inferables = Verb.get_inferables()
         for inferable in inferables:
             yield from inferable(self.id)
+
+    def outgoing_computed_claims(self):
+        computeds = Verb.get_computeds()
+        for computed in computeds:
+            yield from computed(self.id)
 
     @classmethod
     def all_labelled(cls, *, order_by="id ASC", page_no=0, page_size=20):
@@ -1563,6 +1576,86 @@ class Plain:
 
     def __str__(self):
         return self.prop.data_type.display_html(self.value, prop=self.prop)
+
+
+class Computed:
+    def __init__(self, verb):
+        self.verb = verb
+
+    def _build_expression(self, stack):
+        element = stack.pop()
+        if element == "op-coalesce":
+            yield "COALESCE("
+            yield from self._build_expression(stack)
+            yield ","
+            yield from self._build_expression(stack)
+            yield ")"
+        elif element == "op-subtract":
+            first = list(self._build_expression(stack))
+            yield "("
+            yield from self._build_expression(stack)
+            yield "-"
+            yield from first
+            yield ")"
+        elif element == "val-today":
+            yield "date()"
+        elif element.startswith("verb-"):
+            yield f'c{element.removeprefix("verb-")}.value'
+
+    @cached_property
+    def sql_query(self):
+        extra = json.loads(self.verb.extra)
+        froms = {int(val.removeprefix("verb-")) for val in extra if val.startswith("verb-")}
+        selects = [f"c{from_}.value AS v{from_}" for from_ in froms]
+        parts = ["SELECT", ", ".join(selects)]
+        wheres = []
+        for i, verb_id in enumerate(froms):
+            if i == 0:
+                parts.append("FROM")
+            else:
+                parts.append("JOIN")
+            parts.append(f"claims c{verb_id}")
+            wheres.append(f"c{verb_id}.verb_id = {verb_id} AND c{verb_id}.subject_id = :this")
+        parts.append("WHERE")
+        parts.append(" AND ".join(wheres))
+        return " ".join(parts)
+
+    def __call__(self, claim_id):
+        cur = db.conn.cursor()
+        query = self.sql_query
+        for row in cur.execute(query, {"this": claim_id}).fetchall():
+            value = self.compute_value(row)
+            yield InferredClaim(Claim(claim_id), self.verb, Plain.decode(self.verb, value))
+
+    def _evaluate(self, stack, values):
+        element = stack.pop()
+        if element.startswith("op-"):
+            b = self._evaluate(stack, values)
+            a = a_t, _a_v = self._evaluate(stack, values)
+            return a_t.operate(element.removeprefix("op-"), a, b)
+        elif element.startswith("val-"):
+            if element == "val-today":
+                return (TYPES["date"], str(date.today()))
+            else:
+                raise ValueError("Unexpected value on stack")
+        elif element.startswith("verb-"):
+            return values[element.replace("erb-", "")]
+        else:
+            raise ValueError(f"Invalid stack element: {element}")
+
+    def compute_value(self, row):
+        values = {
+            k: (Verb(int(k.removeprefix("v"))).data_type, v)
+            for k, v in dict(row).items()
+        }
+        result_type, result_value = self._evaluate(list(reversed(json.loads(self.verb.extra))), values)
+        return Plain.decode(ComputedVerb(result_type), result_value)
+
+
+class ComputedVerb:
+    def __init__(self, data_type):
+        self.data_type = data_type
+        self.extra = None
 
 
 class Inferable:

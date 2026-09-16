@@ -92,6 +92,13 @@ class DataType:
     def compatible_types(self):
         return {self.name, *self.can_turn_into}
 
+    def operate(self, operator, a, b):
+        if operator == "coalesce":
+            if a[1] is not None:
+                return a
+            return b
+        return self, None
+
 
 class directed_link(DataType):
     def input_html(self, value=None, claim_ids=None, direction=None, verb_id=None, allow_connect=True, **_):
@@ -209,39 +216,47 @@ class inferred_link(DataType):
 
 
 class computed(DataType):
+    def display_html(self, value, **_):
+        return value
+        # dtype, val = value
+        # return dtype.display_html(val)
+
     def _computed_stack(self, elements, *, show_add_buttons):
         import veronique.objects as O
         parts = []
-        inputs = []
         for part in reversed(elements):
             kind, _, value = part.partition("-")
+            if not value:
+                kind, value = "val", kind
             if kind == "verb":
-                parts.append(f"{O.Verb(int(value))}")
+                parts.append(f"""{O.Verb(int(value))}<input type="hidden" name="value" value="{part}">""")
             elif kind == "val":
-                parts.append(f"""<tt>{value}</tt>""")
+                if value == "number":
+                    parts.append(f"""<input type="numeric" name="value" value="{value if value != "number" else ""}">""")
+                else:
+                    parts.append(f"""<tt>{value}</tt><input type="hidden" name="value" value="{part}">""")
             elif kind == "op":
-                b, a = parts.pop(), parts.pop()
+                a, b = parts.pop(), parts.pop()
                 parts.append(f"""
+                <input type="hidden" name="value" value="{part}">
                 <table class="computed-table">
                     <tr><td rowspan="2"><strong>{value}</strong></td><td>{a}</td></tr>
                     <tr><td>{b}</td></tr>
                 </table>
                 """)
             else:
-                raise RuntimeError
-            inputs.append(f"""<input type="hidden" name="value" value="{part}">""")
+                raise RuntimeError(f"weird part: {part!r}")
         buttons = """
             <fieldset role="group">
-                <button hx-post="/types/computed?action=add-source" hx-include="closest form" hx-target="closest fieldset" hx-swap="afterend">New source</button>
-                <button hx-post="/types/computed?action=add-value" hx-include="closest form" hx-target="closest fieldset" hx-swap="afterend">New value</button>
-                <button hx-post="/types/computed?action=add-operator" hx-include="closest form" hx-target="closest fieldset" hx-swap="afterend">New operator</button>
+                <button hx-post="/types/computed?action=add-source" hx-include="closest form" hx-target="#computed-stack" hx-swap="beforeend">New source</button>
+                <button hx-post="/types/computed?action=add-value" hx-include="closest form" hx-target="#computed-stack" hx-swap="beforeend">New value</button>
+                <button hx-post="/types/computed?action=add-operator" hx-include="closest form" hx-target="#computed-stack" hx-swap="beforeend">New operator</button>
             </fieldset>
         """
         return f"""
             <div id="computed-stack">
             {buttons if show_add_buttons else ""}
             {"".join(parts)}
-            {"".join(reversed(inputs))}
             </div>
         """
 
@@ -274,7 +289,7 @@ class computed(DataType):
                 </select>
                 """
             elif action == "add-value":
-                values = ["today"]
+                values = ["today", "number"]
                 return f"""
                 <select>
                     <option disabled selected>Values</option>
@@ -527,6 +542,14 @@ class date(DataType):
     def edit_verb(self, verb, form):
         new_extra = self.get_extra(form)
         verb.extra = new_extra
+
+    def operate(self, operator, a, b):
+        _a_t, a_v = a
+        b_t, b_v = b
+        if b_t == self and operator == "subtract":
+            delta = dt_date.fromisoformat(a_v) - dt_date.fromisoformat(b_v)
+            return TYPES["number"], delta.days
+        return super().operate(operator, a, b)
 
 
 class boolean(DataType):
