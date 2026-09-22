@@ -998,13 +998,11 @@ class Claim(Model):
                 return ""
             return f'<img src="/claims/{self.id}/avatar" class="avatar">'
         elif fmt == "avatar":
-            css_class = " noavatarset" if AVATAR not in data else ""
+            if AVATAR not in data:
+                return ""
             return f"""<img
                 src="/claims/{self.id}/avatar"
-                class="avatar{css_class}" alt="avatar"
-                hx-get="/claims/new/verb?verb={AVATAR}&claim_ids={self.id}&direction=outgoing&standalone=1"
-                hx-target="#edit-area"
-                style="cursor: copy"
+                class="avatar" alt="avatar"
             >"""
         elif fmt == "raw":
             if context.user.redact:
@@ -1069,6 +1067,12 @@ class Claim(Model):
                         hx-delete="/claims/{self.id}"
                         hx-confirm="Are you sure you want to delete this claim?"
                     >Delete <i>\N{WASTEBASKET}\ufe0e</i></a></li>""")
+                if context.user.can("write", "verb", AVATAR):
+                    parts.append(f"""<li><a
+                    hx-get="/claims/new/verb?verb={AVATAR}&claim_ids={self.id}&direction=outgoing&standalone=1"
+                    hx-target="#edit-area"
+                    >Set avatar <i>\N{FRAME WITH PICTURE}\ufe0e</i></a></li>
+                    """)
             return f"""
             <details class="dropdown hamburger">
                 <summary>☰</summary>
