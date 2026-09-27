@@ -470,7 +470,7 @@ class location(DataType):
                     var map = L.map('map{rand}').setView([{value}], 13);
                     L.tileLayer('{S.map_tile_url}', {{
                         maxZoom: 19,
-                        attribution: '&copy; <a href="{S.map_tile_attribution_link}">{S.map_tile_attribution_label}</a>'
+                        attribution: '&copy; <a href="{S.map_tile_attribution_link}">{S.map_tile_attribution_label}</a>',
                         referrerPolicy: 'origin',
                     }}).addTo(map);
                     L.marker([{value}]).addTo(map);
@@ -500,7 +500,7 @@ class location(DataType):
                 var map = L.map('map{rand}').setView([{map_coords}], 13);
                 L.tileLayer('{S.map_tile_url}', {{
                     maxZoom: 19,
-                    attribution: '&copy; <a href="{S.map_tile_attribution_link}">{S.map_tile_attribution_label}</a>'
+                    attribution: '&copy; <a href="{S.map_tile_attribution_link}">{S.map_tile_attribution_label}</a>',
                     referrerPolicy: 'origin',
                 }}).addTo(map);
                 var marker = null;
