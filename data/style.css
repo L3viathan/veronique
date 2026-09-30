@@ -1,21 +1,96 @@
 html {
   --lightgrey: #f1f1f1;
+
   height: 100%;
   background-color: aliceblue;
 }
+
 body {
   height: unset;
 }
+
+header {
+  position: relative;
+
+  &>.avatar {
+    width: 145px;
+    height: 145px;
+    border: 2px solid white;
+    border-radius: 100px;
+    outline: 2px solid var(--lightgrey);
+    position: absolute;
+    object-fit: cover;
+    top: 20px;
+    left: 20px;
+    background-color: #E5E5F7;
+  }
+}
+
+.handle {
+  text-decoration: none;
+  color: #888;
+  opacity: 0.7;
+  transform: translateY(-3px);
+  display: inline-block;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  &.more {
+    color: black;
+  }
+}
+
+.rename {
+  position: absolute;
+  transform: translateX(-40px);
+  display: none;
+}
+
+article header h2 {
+  margin-top: calc(var(--pico-typography-spacing-vertical) * 0.5) !important;
+  margin-bottom: calc(var(--pico-typography-spacing-vertical) * 0.5) !important;
+  text-align: center;
+  padding-left: 60px;
+  padding-right: 60px;
+
+  &>.svo>.handle {
+    display: none;
+  }
+
+  &:hover .rename {
+    display: inline;
+  }
+
+  & .cats {
+    & .new-cat {
+      display: none;
+    }
+
+    &:hover .new-cat {
+      display: inline;
+    }
+  }
+}
+
+
+.avatar+h2 {
+  padding-left: 155px;
+}
+
+
 a, .clickable {
   cursor: pointer;
 }
 
 .claim-link {
   display: inline-block;
-  background-color: #ddeeff;
+  background-color: #def;
   margin: 3px;
   border: 1px solid #adf;
   border-radius: 2px;
+
   & .avatar {
     width: 30px;
     height: 30px;
@@ -28,21 +103,6 @@ a, .clickable {
   }
 }
 
-.handle {
-  text-decoration: none;
-  color: #888;
-  opacity: 0.7;
-  transform: translateY(-3px);
-  display: inline-block;
-  &:hover {
-    opacity: 1;
-  }
-  &.more {
-    color: black;
-  }
-}
-
-
 .new-item-placeholder {
   width: 100%;
   text-align: center;
@@ -52,6 +112,7 @@ a, .clickable {
   opacity: 0.5;
   cursor: pointer;
   margin-bottom: var(--pico-typography-spacing-vertical);
+
   &:hover {
     opacity: 1;
   }
@@ -68,7 +129,7 @@ table.claims td {
 
 .sv {
   display: inline-block;
-  background-color: #ddffee;
+  background-color: #dfe;
   margin: 3px;
   border: 1px solid #afd;
   border-radius: 2px;
@@ -77,7 +138,7 @@ table.claims td {
 
 .vo {
   display: inline-block;
-  background-color: #ffeedd;
+  background-color: #fed;
   margin: 3px;
   border: 1px solid #fda;
   border-radius: 2px;
@@ -86,19 +147,20 @@ table.claims td {
 
 .svo {
   display: inline-block;
-  background-color: #eeddff;
+  background-color: #edf;
   margin: 3px;
   border: 1px solid #fda;
   border-radius: 2px;
+
   &:has(.date-today) {
-    box-shadow: green 0px 0px 10px;
+    box-shadow: green 0 0 10px;
     border: 4px solid green;
   }
 }
 
 .verb {
   display: inline-block;
-  background-color: #eeffdd;
+  background-color: #efd;
   margin: 3px;
   border: 1px solid #dfa;
   border-radius: 2px;
@@ -121,28 +183,6 @@ table.claims td {
   }
 }
 
-article header h2 {
-  margin-top: calc(var(--pico-typography-spacing-vertical) * 0.5) !important;
-  margin-bottom: calc(var(--pico-typography-spacing-vertical) * 0.5) !important;
-  text-align: center;
-  padding-left: 60px;
-  padding-right: 60px;
-  &>.svo>.handle {
-    display: none;
-  }
-  &:hover .rename {
-    display: inline;
-  }
-  & .cats {
-    & .new-cat {
-      display: none;
-    }
-    &:hover .new-cat {
-      display: inline;
-    }
-  }
-}
-
 header small {
   font-size: 50%;
   color: #2889be;
@@ -157,6 +197,7 @@ header small {
   padding: 3px;
   border: 1px solid lightgrey;
 }
+
 .type-location a {
   text-decoration: none;
 }
@@ -167,6 +208,7 @@ nav {
 
 .invalid {
   opacity: 0.5;
+
   &.invalid-maybe {
     opacity: 0.7;
   }
@@ -180,6 +222,7 @@ nav {
 #container {
   padding: 1em;
   max-width: 1450px;
+
   /* min-width: 1450px; */
   margin: auto;
 }
@@ -203,12 +246,12 @@ article {
 
 hr.date-today {
   border-top: 4px solid green;
-  box-shadow: green 0px 0px 10px;
+  box-shadow: green 0 0 10px;
 }
 
 .ac-result {
   display: block;
-  padding: 10px 0px 10px 20px;
+  padding: 10px 0 10px 20px;
   text-align: left;
 }
 
@@ -216,6 +259,7 @@ hr.date-today {
   border: 1px solid var(--lightgrey);
   border-radius: 10px;
   background-color: var(--lightgrey);
+
   & input {
     margin-bottom: 0;
   }
@@ -230,48 +274,28 @@ hr.date-today {
   margin-bottom: var(--pico-spacing);
 }
 
-header {
-  position: relative;
-  &>.avatar {
-    width: 145px;
-    height: 145px;
-    border: 2px solid white;
-    border-radius: 100px;
-    outline: 2px solid var(--lightgrey);
-    position: absolute;
-    object-fit: cover;
-    top: 20px;
-    left: 20px;
-    background-color: #E5E5F7;
-  }
-}
-
-.avatar+h2 {
-  padding-left: 155px;
-}
-
 .mana-0 {
   display: none;
 }
 
 .mana-1 {
-  opacity: 20%;
+  opacity: 0.2;
 }
 
 .mana-2 {
-  opacity: 40%;
+  opacity: 0.4;
 }
 
 .mana-3 {
-  opacity: 60%;
+  opacity: 0.6;
 }
 
 .mana-4 {
-  opacity: 80%;
+  opacity: 0.8;
 }
 
 .mana-5 {
-  opacity: 100%;
+  opacity: 1;
 }
 
 #cy {
@@ -288,21 +312,59 @@ header {
   color: var(--pico-form-element-invalid-active-border-color);
 }
 
+.hamburger {
+  summary {
+    padding: 5px;
+
+    &::after {
+      background-image: none !important;
+      display: none !important;
+    }
+
+    width: auto;
+    border: 0 !important;
+  }
+
+  top: 10px;
+  right: 10px;
+  position: absolute !important;
+
+  .danger {
+    color: var(--pico-form-element-invalid-active-border-color);
+  }
+
+  li:has(i) {
+    margin-left: 30px;
+  }
+
+  i {
+    font-style: normal;
+    position: absolute;
+    left: 10px;
+    text-align: center;
+    width: 25px;
+  }
+}
+
+
 details.dropdown.clean {
   summary {
     border: none !important;
     width: auto;
     height: auto;
   }
+
   summary::after {
     background: none;
   }
 }
+
 nav details.dropdown {
   display: inline-block !important;
 }
 
 /* BEGIN: syntax highlighting */
+
 /* Please see the article */
 
 #editing, #highlighting {
@@ -318,6 +380,7 @@ nav details.dropdown {
   overflow: auto;
   white-space: pre; /* Allows textarea to scroll horizontally */
 }
+
 #editing, #highlighting, #highlighting * {
   /* Also add text styles to highlighing tokens */
   font-size: 15pt;
@@ -336,11 +399,13 @@ nav details.dropdown {
   caret-color: white; /* Or choose your favourite color */
   resize: none;
 }
+
 #highlighting {
   z-index: 0;
   transform: translateY(calc(-100% - 10px));
   background: #000;  /* same color as the highlighting background */
 }
+
 /* END: syntax highlighting */
 
 #notices {
@@ -383,16 +448,18 @@ table.comments {
   td {
     padding: 2px;
   }
+
   .comment-text {
     position: relative;
     background: #cacaca;
     margin-left: 20px;
     display: inline-block;
     padding: 5px;
-    box-shadow: 0px 1px 0px black;
+    box-shadow: 0 1px 0 black;
     border-radius: 10px;
   }
-  .comment-text:after {
+
+  .comment-text::after {
     content: '';
     position: absolute;
     left: 0;
@@ -403,8 +470,9 @@ table.comments {
     border-bottom: 0;
     margin-top: -10px;
     margin-left: -20px;
-    box-shadow: 0px 1px 0px black;
+    box-shadow: 0 1px 0 black;
   }
+
   .comment-author {
     text-align: right;
   }
@@ -431,6 +499,7 @@ footer {
 .map {
   height: 400px;
   min-width: 400px;
+
   a {
     padding: 0;
     background: transparent;
@@ -445,12 +514,6 @@ footer {
 .leaflet-marker-icon {
   background: transparent !important;
   border: none !important;
-}
-
-.rename {
-  position: absolute;
-  transform: translateX(-40px);
-  display: none;
 }
 
 .type-choice {
@@ -471,16 +534,17 @@ footer {
 
 .input-text {
   padding: 5px;
-  margin: 3px 3px 15px 3px;
+  margin: 3px 3px 15px;
   border: 1px solid grey;
 }
 
 .input-widget-ref {
   display: inline-block;
-  background-color: #ddeeff;
+  background-color: #def;
   margin: 3px;
   border: 1px solid #adf;
   border-radius: 2px;
+
   & .avatar {
     width: 30px;
     height: 30px;
@@ -499,7 +563,6 @@ footer {
   transition-property: translate, opacity, display, overlay;
   transition-duration: 0.5s;
   transition-behavior: allow-discrete;
-
   opacity: 0;
   display: none;
   translate: 10px 0;
@@ -508,6 +571,7 @@ footer {
     opacity: 1;
     display: block;
     translate: 0 0;
+
     @starting-style {
       opacity: 0;
       translate: 0 -20px;
@@ -527,38 +591,11 @@ footer {
 article.network {
   padding-bottom: 0;
   background: transparent;
+
   header {
     margin-bottom: 0;
     background: transparent;
     backdrop-filter: blur(5px);
-  }
-}
-
-.hamburger {
-  summary {
-    padding: 5px;
-    &::after {
-      background-image: none !important;
-      display: none !important;
-    }
-    width: auto;
-    border: 0px !important;
-  }
-  top: 10px;
-  right: 10px;
-  position: absolute !important;
-  .danger {
-    color: var(--pico-form-element-invalid-active-border-color);
-  }
-  li:has(i) {
-    margin-left: 30px;
-  }
-  i {
-    font-style: normal;
-    position: absolute;
-    left: 10px;
-    text-align: center;
-    width: 25px;
   }
 }
 
@@ -571,6 +608,7 @@ article.network {
 .type-file {
   background: white;
   padding: 5px;
+
   a {
     color: #626262;
   }
