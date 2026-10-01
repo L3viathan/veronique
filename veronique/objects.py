@@ -847,9 +847,9 @@ class Claim(Model):
         for cl in claims:
             if cl.verb.id in DATA_LABELS:
                 data.setdefault(cl.verb.id, []).append(cl)
-            if cl.verb.id != SOURCE:
-                # A bit of a lie, but source has special UI anyways so we don't
-                # need to show that it has claims.
+            if cl.verb.id not in (SOURCE, VALID_FROM, VALID_UNTIL):
+                # A bit of a lie, but these verbs have special UI anyways so we
+                # don't need to show that those claims exist.
                 data["has_claims"] = True
         return data
 
