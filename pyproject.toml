@@ -1,6 +1,6 @@
 [project]
 name = "veronique"
-version = "1.0.0"
+version = "1.1.0"
 description = "Private graph DB / social network"
 authors = [
   {name = "L3viathan", email="git@l3vi.de"},
