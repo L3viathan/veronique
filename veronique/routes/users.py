@@ -74,9 +74,6 @@ def _user_form(*, password_input, endpoint, user=None):
     verb_options_w = "\n".join(verb_options_w)
     query_options = "\n".join(query_options)
 
-    if user and user.entity:
-        entity = user.entity
-
     return f"""
         <form
             action="{endpoint}"
