@@ -1,11 +1,11 @@
-from .autocomplete import autocomplete as autocomplete
-from .claims import claims as claims
-from .index import index as index
-from .queries import queries as queries
-from .search import search as search
-from .settings import settings as settings
-from .static import static as static
-from .tools import tools as tools
-from .types import types as types
-from .users import users as users
-from .verbs import verbs as verbs
+from .autocomplete import autocomplete
+from .claims import claims
+from .index import index
+from .queries import queries
+from .search import search
+from .settings import settings
+from .static import static
+from .tools import tools
+from .types import types
+from .users import users
+from .verbs import verbs
