@@ -4,7 +4,8 @@ If you found a vulnerability, I would appreciate disclosing it in private by sen
 
 ## What's in scope
 
-- As an unauthenticated user: Gaining any access to sensitive data.
+- As an unauthenticated user: Gaining any access to user data, including
+  anything that's stored in the database, or `file` claim data.
 - As an authenticated, regular user:
   - Reading claims that the user has no permissions for.
   - Creating claims that the user has no permissions for.
