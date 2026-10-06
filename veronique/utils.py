@@ -131,7 +131,7 @@ def page(fn):
         user = f"""
         <li>
             <details class="dropdown">
-                <summary>{context.user.name}</summary>
+                <summary>{context.user:label}</summary>
                 <ul dir="rtl">
                     {
                     '<li><a href="#" hx-post="/users/stop-impersonating">Stop impersonation</a></li>'

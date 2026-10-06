@@ -827,6 +827,14 @@ def turn_validities_into_daterange(cur):
     )
 
 
+@migration(28)
+def add_entity_id_to_users(cur):
+    cur.execute("""
+        ALTER TABLE users
+        ADD entity_id INTEGER
+    """)
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 

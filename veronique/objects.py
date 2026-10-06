@@ -1013,7 +1013,7 @@ class Claim(Model):
                 text = "..."
             else:
                 text = escape(self.object.value)
-            return f'<tr><td data-placement="right" data-tooltip="{self.created_at}" class="comment-author">{self.owner.name}:</td><td>{self:handle}</td><td class="comment-text">{text}</td></tr>'
+            return f'<tr><td data-placement="right" data-tooltip="{self.created_at}" class="comment-author">{self.owner}:</td><td>{self:handle}</td><td class="comment-text">{text}</td></tr>'
         elif fmt == "rename":
             if self.verb.id == ROOT and (context.user.is_admin or self.owner.id == context.user.id):
                 return f'''<a
@@ -1315,6 +1315,7 @@ class User(Model):
     fields = (
         "name",
         "hash",
+        "entity",
         "is_admin",
         "salt",
         "permissions",
@@ -1328,7 +1329,7 @@ class User(Model):
         row = cur.execute(
             """
                 SELECT
-                    id, name, hash, is_admin, salt, generation, redact, last_session_at
+                    id, name, hash, entity_id, is_admin, salt, generation, redact, last_session_at
                 FROM users
                 WHERE id = ?
             """,
@@ -1342,6 +1343,10 @@ class User(Model):
         self.is_admin = row["is_admin"]
         self.redact = row["redact"]
         self.generation = row["generation"]
+        if row["entity_id"]:
+            self.entity = Claim(row["entity_id"])
+        else:
+            self.entity = None
         if row["last_session_at"]:
             self.last_session_at = datetime.fromisoformat(row["last_session_at"])
         else:
@@ -1379,12 +1384,12 @@ class User(Model):
         return cls(row["id"])
 
     @classmethod
-    def new(cls, *, name, password, readable_verbs, writable_verbs, viewable_queries, redact):
+    def new(cls, *, name, password, readable_verbs, writable_verbs, viewable_queries, redact, entity_id):
         cur = db.conn.cursor()
         hash, salt = hash_password(password)
         cur.execute(
-            "INSERT INTO users (name, hash, salt, is_admin, redact) VALUES (?, ?, ?, ?, ?)",
-            (name, hash, salt, 0, redact),
+            "INSERT INTO users (name, hash, salt, is_admin, redact, entity_id) VALUES (?, ?, ?, ?, ?, ?)",
+            (name, hash, salt, 0, redact, entity_id),
         )
         u_id = cur.lastrowid
         for readable_verb in readable_verbs:
@@ -1405,7 +1410,7 @@ class User(Model):
         db.conn.commit()
         return cls(u_id)
 
-    def update(self, *, name, password, readable_verbs, writable_verbs, viewable_queries, redact):
+    def update(self, *, name, password, readable_verbs, writable_verbs, viewable_queries, redact, entity_id):
         cur = db.conn.cursor()
         to_set, values = ["redact=?"], [redact]
         if name != self.name:
@@ -1417,6 +1422,9 @@ class User(Model):
             values.append(hash)
             to_set.append("salt=?")
             values.append(salt)
+        if entity_id:
+            to_set.append("entity_id=?")
+            values.append(int(entity_id))
         values.append(self.id)
         if to_set:
             cur.execute(
@@ -1449,7 +1457,9 @@ class User(Model):
         self.populate()
 
     def __format__(self, fmt):
-        if not fmt:
+        if fmt == "link":
+            if self.entity:
+                return f'{self.entity} (<a href="/users/{self.id}">{self.name}</a>)'
             return f'<a href="/users/{self.id}">{self.name}</a>'
         elif fmt == "session":
             if not self.last_session_at:
@@ -1483,6 +1493,12 @@ class User(Model):
                 </ul>
             </details>
             """
+        elif fmt == "label":
+            if self.entity:
+                return f"{self.entity:label}"
+            return self.name
+        if self.entity:
+            return f"{self.entity}"
         return self.name
 
     def __str__(self):

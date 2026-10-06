@@ -3,6 +3,7 @@ from secrets import token_urlsafe
 from sanic import Blueprint, html, redirect
 
 import veronique.objects as O
+from veronique.autocomplete import AUTOCOMPLETES
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import IS_A, ROOT
@@ -33,7 +34,7 @@ async def list_users(request):
             more_results = True
         else:
             parts.append(f"<tr><td>{user.id}</td>")
-            parts.append(f"<td>{user}</td>")
+            parts.append(f"<td>{user:link}</td>")
             parts.append(f"<td>{user:session}</td>")
             if context.user.id != user.id:
                 parts.append(f'<td><button hx-post="/users/{user.id}/impersonate" class="danger">Impersonate</button></td>')
@@ -73,6 +74,9 @@ def _user_form(*, password_input, endpoint, user=None):
     verb_options_w = "\n".join(verb_options_w)
     query_options = "\n".join(query_options)
 
+    if user and user.entity:
+        entity = user.entity
+
     return f"""
         <form
             action="{endpoint}"
@@ -99,6 +103,10 @@ def _user_form(*, password_input, endpoint, user=None):
             {query_options}
             </select>
             '''}
+
+            <h3>Corresponding entity</h3>
+            {user.entity or ""}
+            {AUTOCOMPLETES["entity"].widget(None)}
 
             {password_input}
 
@@ -139,6 +147,10 @@ def _write_user(form, endpoint, user=None):
     readable_verbs = {int(v) for v in form["verbs-readable"]} if "verbs-readable" in form else set()
     viewable_queries = {int(v) for v in form["queries-viewable"]} if "queries-viewable" in form else set()
     redact = "redact" in form
+    if "entity_id" in form:
+        [entity_id] = form["entity_id"]
+    else:
+        entity_id = None
     if writable_verbs and redact:
         return redirect(f"{endpoint}?err=For now, users that can write can't have a redacted view.")
     if ROOT in writable_verbs and IS_A not in writable_verbs:
@@ -154,6 +166,7 @@ def _write_user(form, endpoint, user=None):
             writable_verbs=writable_verbs,
             viewable_queries=viewable_queries,
             redact=redact,
+            entity_id=entity_id,
         )
     else:
         user = O.User.new(
@@ -163,6 +176,7 @@ def _write_user(form, endpoint, user=None):
             writable_verbs=writable_verbs,
             viewable_queries=viewable_queries,
             redact=redact,
+            entity_id=entity_id,
         )
     return redirect(f"/users/{user.id}")
 
