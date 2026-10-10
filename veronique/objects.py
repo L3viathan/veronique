@@ -1029,8 +1029,8 @@ class Claim(Model):
             if self.verb.id == ROOT:
                 parts.append(f"<li>{self:rename}</li>")
                 parts.append(f'<li><a href="/claims/{self.id}/network">Network <i>🕸️\ufe0e</i></a></li>')
-            if context.user.is_admin or self.owner.id == context.user.id:
-                if not self.is_entity:
+            if not self.is_entity:
+                if context.user.is_admin or self.owner.id == context.user.id:
                     parts.append(f"""<li><a
                         hx-target="#edit-area"
                         hx-get="/claims/{self.id}/move"
@@ -1043,36 +1043,40 @@ class Claim(Model):
                         hx-target="#edit-area"
                         hx-get="/claims/{self.id}/edit"
                     >Edit object <i>✎</i></a></li>""")
+                if context.user.can("write", "verb", SOURCE):
                     parts.append(f"""<li><a
                         hx-target="#edit-area"
                         hx-get="/claims/new/verb?verb={SOURCE}&claim_ids={self.id}&direction=outgoing&standalone=1"
                         hx-target="#edit-area"
                     >Source <i>\N{SPEECH BALLOON}\ufe0e</i></a></li>""")
+                if context.user.can("write", "verb", VALID_FROM):
                     parts.append(
                         f"""<li><a
                             hx-get="/claims/new/verb?verb={VALID_FROM}&claim_ids={self.id}&direction=outgoing&standalone=1"
                             hx-target="#edit-area"
                         >Valid from <i>⇤</i></a></li>"""
                     )
+                if context.user.can("write", "verb", VALID_UNTIL):
                     parts.append(
                         f"""<li><a
                             hx-get="/claims/new/verb?verb={VALID_UNTIL}&claim_ids={self.id}&direction=outgoing&standalone=1"
                             hx-target="#edit-area"
                         >Valid until <i>⇥</i></a></li>"""
                     )
-                if self.deletable:
-                    parts.append(f"""<li><a
-                        class="danger"
-                        hx-target="#edit-area"
-                        hx-delete="/claims/{self.id}"
-                        hx-confirm="Are you sure you want to delete this claim?"
-                    >Delete <i>\N{WASTEBASKET}\ufe0e</i></a></li>""")
                 if context.user.can("write", "verb", AVATAR):
                     parts.append(f"""<li><a
                     hx-get="/claims/new/verb?verb={AVATAR}&claim_ids={self.id}&direction=outgoing&standalone=1"
                     hx-target="#edit-area"
                     >Set avatar <i>\N{FRAME WITH PICTURE}\ufe0e</i></a></li>
                     """)
+                if context.user.is_admin or self.owner.id == context.user.id:
+                    if self.deletable:
+                        parts.append(f"""<li><a
+                            class="danger"
+                            hx-target="#edit-area"
+                            hx-delete="/claims/{self.id}"
+                            hx-confirm="Are you sure you want to delete this claim?"
+                        >Delete <i>\N{WASTEBASKET}\ufe0e</i></a></li>""")
             if not parts:
                 return ""
             return f"""
