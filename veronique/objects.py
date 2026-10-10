@@ -1268,6 +1268,7 @@ class Query(Model):
                 hx-target="#container"
                 hx-swap="outerMorph"
             ><strong>{self.label}</strong></a>"""
+        return ""
 
     def run(self, page_no, page_size):
         cur = db.conn.cursor()
