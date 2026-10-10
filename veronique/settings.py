@@ -73,7 +73,7 @@ class Setting:
                 (self.key,),
             ).fetchone()
             if row is None:
-                self.value = self.default
+                self.value = self.converter(self.default)
             else:
                 self.value = self.converter(row["value"])
         return self.value
