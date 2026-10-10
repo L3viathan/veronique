@@ -1424,6 +1424,7 @@ class User(Model):
             to_set.append("name=?")
             values.append(name)
         if password:
+            self.increment_generation(skip_populate=True)
             hash, salt = hash_password(password)
             to_set.append("hash=?")
             values.append(hash)
@@ -1519,14 +1520,15 @@ class User(Model):
             "g": self.generation,
         }
 
-    def increment_generation(self):
+    def increment_generation(self, skip_populate=False):
         cur = db.conn.cursor()
         cur.execute(
             "UPDATE users SET generation = generation + 1 WHERE id = ?",
             (self.id,),
         )
         db.conn.commit()
-        self.populate()
+        if not skip_populate:
+            self.populate()
 
     def can(self, do, what, whom):
         if self.is_admin:
