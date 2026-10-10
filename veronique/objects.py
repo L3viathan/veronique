@@ -1069,14 +1069,13 @@ class Claim(Model):
                     hx-target="#edit-area"
                     >Set avatar <i>\N{FRAME WITH PICTURE}\ufe0e</i></a></li>
                     """)
-                if context.user.is_admin or self.owner.id == context.user.id:
-                    if self.deletable:
-                        parts.append(f"""<li><a
-                            class="danger"
-                            hx-target="#edit-area"
-                            hx-delete="/claims/{self.id}"
-                            hx-confirm="Are you sure you want to delete this claim?"
-                        >Delete <i>\N{WASTEBASKET}\ufe0e</i></a></li>""")
+                if context.user.is_admin or self.owner.id == context.user.id and self.deletable:
+                    parts.append(f"""<li><a
+                        class="danger"
+                        hx-target="#edit-area"
+                        hx-delete="/claims/{self.id}"
+                        hx-confirm="Are you sure you want to delete this claim?"
+                    >Delete <i>\N{WASTEBASKET}\ufe0e</i></a></li>""")
             if not parts:
                 return ""
             return f"""
