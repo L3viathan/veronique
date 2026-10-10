@@ -1073,6 +1073,8 @@ class Claim(Model):
                     hx-target="#edit-area"
                     >Set avatar <i>\N{FRAME WITH PICTURE}\ufe0e</i></a></li>
                     """)
+            if not parts:
+                return ""
             return f"""
             <details class="dropdown hamburger">
                 <summary>☰</summary>
