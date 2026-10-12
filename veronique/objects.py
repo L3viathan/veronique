@@ -1063,19 +1063,20 @@ class Claim(Model):
                             hx-target="#edit-area"
                         >Valid until <i>⇥</i></a></li>"""
                     )
+            else:
                 if context.user.can("write", "verb", AVATAR):
                     parts.append(f"""<li><a
                     hx-get="/claims/new/verb?verb={AVATAR}&claim_ids={self.id}&direction=outgoing&standalone=1"
                     hx-target="#edit-area"
                     >Set avatar <i>\N{FRAME WITH PICTURE}\ufe0e</i></a></li>
                     """)
-                if context.user.is_admin or self.owner.id == context.user.id and self.deletable:
-                    parts.append(f"""<li><a
-                        class="danger"
-                        hx-target="#edit-area"
-                        hx-delete="/claims/{self.id}"
-                        hx-confirm="Are you sure you want to delete this claim?"
-                    >Delete <i>\N{WASTEBASKET}\ufe0e</i></a></li>""")
+            if context.user.is_admin or self.owner.id == context.user.id and self.deletable:
+                parts.append(f"""<li><a
+                    class="danger"
+                    hx-target="#edit-area"
+                    hx-delete="/claims/{self.id}"
+                    hx-confirm="Are you sure you want to delete this claim?"
+                >Delete <i>\N{WASTEBASKET}\ufe0e</i></a></li>""")
             if not parts:
                 return ""
             return f"""
