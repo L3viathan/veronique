@@ -127,6 +127,13 @@ table.claims td {
   }
 }
 
+@media(aspect-ratio < 1) {
+  table.claims tr.claims td {
+    width: 200%;  /* I don't understand why not 100% */
+    display: block;
+  }
+}
+
 .sv {
   display: inline-block;
   background-color: #dfe;
@@ -621,4 +628,18 @@ img#logo {
 .type-date a {
   color: black;
   text-decoration: none;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media (aspect-ratio < 1) {
+  .mobile-only {
+    display: inherit;
+  }
+
+  body {
+    font-size: 150%;
+  }
 }

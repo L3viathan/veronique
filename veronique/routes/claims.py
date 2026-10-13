@@ -435,19 +435,22 @@ async def view_claim(request, claim_id: int):
             {claim:hamburger}
             </header>
             <div id="edit-area"></div>
-            <table class="claims"><tr><td>
+            <table class="claims"><tr class="placeholders"><td>
         {
             f'<div hx-swap="outerMorph" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>'
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }
-        {"".join(f'<span class="row">{c:sv}</span>' for c in incoming_claims)}
         </td><td>
         {
             f'<div hx-swap="outerMorph" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>'
             if context.user.is_admin or context.user.writable_verbs
             else ""
         }
+        </td></tr>
+        <tr class="claims"><td>
+        {"".join(f'<span class="row">{c:sv}</span>' for c in incoming_claims)}
+        </td><td>
         {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in outgoing_claims if c.verb.id not in (IS_A, AVATAR, COMMENT))}
         {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in claim.outgoing_inferred_claims())}
         </td></tr></table>
