@@ -30,6 +30,10 @@ def D(multival_dict):
     return {key: val[0] for key, val in multival_dict.items()}
 
 
+def mobile(mob, nomob):
+    return f"""<span class="mobile-only">{mob}</span><span class="no-mobile">{nomob}</span>"""
+
+
 def pagination(url, page_no, *, more_results=True, allow_negative=False):
     if page_no == 1 and not more_results:
         return ""
@@ -97,10 +101,10 @@ def page(fn):
             else:
                 gotos.append(f'<li><a href="/{path}">{page_name}</a></li>')
         if context.user.is_admin:
-            news = """
+            news = f"""
             <li>
                 <details class="dropdown">
-                <summary>New...</summary>
+                <summary>{mobile("New", "New...")}</summary>
                 <ul dir="rtl">
                     <li><a href="/claims/new-entity">Entity</a></li>
                     <li><a href="/verbs/new">Verb</a></li>
@@ -112,10 +116,10 @@ def page(fn):
             </li>
             """
         elif context.user.can("write", "verb", ROOT):
-            news = """
+            news = f"""
             <li>
                 <details class="dropdown">
-                <summary>New...</summary>
+                <summary>{mobile("New", "New...")}</summary>
                 <ul dir="rtl">
                     <li><a href="/claims/new-entity">Entity</a></li>
                     <li><a href="/verbs/new" disabled>Verb</a></li>
@@ -128,10 +132,11 @@ def page(fn):
             """
         else:
             news = ""
+        user_emoji = "\N{BUST IN SILHOUETTE}\N{VARIATION SELECTOR-15}"
         user = f"""
         <li>
             <details class="dropdown">
-                <summary>{context.user:label}</summary>
+                <summary>{mobile(user_emoji, f"{context.user:label}")}</summary>
                 <ul dir="rtl">
                     {
                     '<li><a href="#" hx-post="/users/stop-impersonating">Stop impersonation</a></li>'

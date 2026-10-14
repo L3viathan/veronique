@@ -639,6 +639,10 @@ img#logo {
     display: inherit;
   }
 
+  .no-mobile {
+    display: none;
+  }
+
   body {
     font-size: 150%;
   }
