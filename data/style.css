@@ -650,4 +650,9 @@ img#logo {
   h1, h2, h3, h4, h5, h6 {
     font-size: calc(1.5 * var(--pico-font-size)) !important;
   }
+
+  details.dropdown[open] summary + ul {
+    position: fixed;
+    font-size: 150%;
+  }
 }
