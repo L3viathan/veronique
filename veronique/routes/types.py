@@ -1,3 +1,5 @@
+import urllib.parse
+
 from sanic import Blueprint, HTTPResponse
 
 import veronique.objects as O
@@ -19,14 +21,24 @@ async def type_request_post(request, data_type: str):
 @types.get("/<data_type>/<value>")
 @page
 async def claims_with_value(request, data_type: str, value: str):
+    value = urllib.parse.unquote(value)  # somehow this is not done by the framework
     if not TYPES[data_type].supports_value_query:
         return HTTPResponse(
             body="403 Forbidden",
             status=403,
         )
     page_no = int(request.args.get("page", 1))
-    parts = ["<article>"]
+    parts = ["<article><header>"]
+    parts.append(f"<h2>Claims of {data_type} {TYPES[data_type].display_html(value)}</h2>")
+    if hasattr(TYPES[data_type], "value_query_extra"):
+        parts.append(TYPES[data_type].value_query_extra(value))
+    parts.append("</header>")
     more_results = False
+    if data_type == "date":
+        # In dates, we use question marks to represent an unknown part. Since
+        # we're going to make a LIKE query, we can replace them with
+        # underscores and it should just work
+        value = value.replace("?", "_")
     for i, claim in enumerate(
         O.Claim.all_with_value(
             data_type,

@@ -6,6 +6,7 @@ import re
 import unicodedata
 from datetime import date as dt_date
 from datetime import timedelta
+from types import SimpleNamespace
 from functools import partial
 from html import escape
 from itertools import count
@@ -340,7 +341,9 @@ class color(DataType):
 class date(DataType):
     supports_value_query = True
 
-    def display_html(self, value, prop, **_):
+    def display_html(self, value, prop=None, **_):
+        if prop is None:
+            prop = SimpleNamespace(extra="")
         d = NonOmniscientDate(value, negating_days_allowed="a" not in (prop.extra or ""))
         today = datetime.date.today()
         td = today - d
@@ -386,7 +389,7 @@ class date(DataType):
             value = "unknown"
         else:
             value = value.removeprefix("????-").removesuffix("-??-??")
-        return f"""<span class="type-date {class_}">🗓️<a href="/types/date/{value}">{value}</a>{astro} <em>({td:{fmt_flags}})</em></span>"""
+        return f"""<span class="type-date {class_}">🗓️<a href="/types/date/{value.replace("?", "%3F")}">{value}</a>{astro} <em>({td:{fmt_flags}})</em></span>"""
 
     def extract_value(self, form):
         value = form.get("value")
@@ -437,6 +440,11 @@ class date(DataType):
     def edit_verb(self, verb, form):
         new_extra = self.get_extra(form)
         verb.extra = new_extra
+
+    def value_query_extra(self, value):
+        if "?" in value:
+            return ""
+        return f"(a {dt_date.fromisoformat(value):%A})"
 
 
 class boolean(DataType):
@@ -707,11 +715,14 @@ class file(DataType):
 
 
 class social(DataType):
-    def display_html(self, value, prop, **_):
+    def display_html(self, value, prop=None, **_):
         if context.user.redact:
             value = "someone"
         user = escape(value)
-        value = prop.extra.format(user)
+        if prop is not None:
+            value = prop.extra.format(user)
+        else:
+            value = user
         if value.startswith("http"):
             value = f'<a href="{value}">{user}</a>'
         return f'<span class="type-social">{value}</span>'

@@ -122,7 +122,7 @@ class NonOmniscientDate:
         elif representation == "?":
             representation = "????-??-??"
         else:
-            raise ValueError
+            raise ValueError(f"Unknown representation: {representation!r}")
         self.year, self.month, self.day = representation.split("-")
         self.is_omniscient = "?" not in representation
         self.negating_days_allowed = negating_days_allowed
