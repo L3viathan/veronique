@@ -790,7 +790,7 @@ class alpha2(DataType):
             country = pycountry.countries.lookup(value.upper())
         except LookupError:
             return f'<span class="type-alpha2">invalid country ({value.upper()})</span>'
-        return f'<span class="type-alpha2">{country.flag} {country.name}</span>'
+        return f'<span class="type-alpha2"><a href="/types/alpha2/{value.upper()}">{country.flag} {country.name}</a></span>'
 
     def encode(self, string):
         val = string.upper()

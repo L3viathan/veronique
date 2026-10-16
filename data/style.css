@@ -625,7 +625,7 @@ img#logo {
   width: 300px;
 }
 
-.type-date a {
+.type-date a, .type-alpha2 a {
   color: black;
   text-decoration: none;
 }
