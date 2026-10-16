@@ -6,12 +6,12 @@ import re
 import unicodedata
 from datetime import date as dt_date
 from datetime import timedelta
-from types import SimpleNamespace
 from functools import partial
 from html import escape
 from itertools import count
 from pathlib import Path
 from random import randint
+from types import SimpleNamespace
 from urllib.parse import quote_plus
 from uuid import uuid4
 
