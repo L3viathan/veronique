@@ -239,6 +239,8 @@ async def view_query(request, query_id: int):
                 more_results=more_results,
             )
         )
+    else:
+        parts.append("bindings is None")
     parts.append("</div></article>")
     return query.label, "".join(parts)
 

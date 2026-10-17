@@ -1301,6 +1301,8 @@ class Query(Model):
             assert label.startswith("'") and label.endswith("'")
             value = form.get(f"v{i}")
             if value is not None:
+                if type in ("verb",) or type.startswith("verb:"):
+                    value = int(value)
                 bindings.append(value)
             form_elements.append(self._build_form_input(i, label[1:-1], type, value, f"/queries/{self.id}"))
         return form_elements, tuple(bindings) if len(bindings) == len(form_elements) else None
@@ -1319,8 +1321,9 @@ class Query(Model):
                 >
                 </label>
                 """
-        elif type == "verb":
-            verbs = Verb.all(page_size=9999)
+        elif type == "verb" or type.startswith("verb:"):
+            *_, data_type = type.partition(":")
+            verbs = Verb.all(page_size=9999, **({"data_type": data_type} if data_type else {}))
             return f"""
             <label>
             {label}
