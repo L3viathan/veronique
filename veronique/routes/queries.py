@@ -216,8 +216,7 @@ async def view_query(request, query_id: int):
     form_elements, bindings = query.bind(request.args)
     if form_elements:
         parts.append("<form>")
-        for form_element in form_elements:
-            parts.append(form_element)
+        parts.extend(form_elements)
         parts.append("</form>")
     parts.append('</header><div id="queryresults">')
     if bindings is not None:
