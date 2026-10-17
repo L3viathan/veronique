@@ -1276,16 +1276,80 @@ class Query(Model):
             ><strong>{self.label}</strong></a>"""
         return ""
 
-    def run(self, page_no, page_size):
+    def run(self, bindings, *, page_no, page_size):
         cur = db.conn.cursor()
         cur.execute(
             f"""
-            {self.sql}
+            {self.prepared_sql}
             LIMIT {page_size}
             OFFSET {page_no * page_size}
-            """
+            """,
+            bindings,
         )
         return cur.fetchall()
+
+    def bind(self, form):
+        """
+        Yields (name, form_element, value) triples.
+
+        form_element is HTML for the input, including the value (if given).
+        """
+        form_elements = []
+        bindings = []
+        for i, match in enumerate(re.findall(r"\?\(([^)]+)\)", self.sql)):
+            type, _, label = match.partition(" ")
+            assert label.startswith("'") and label.endswith("'")
+            value = form.get(f"v{i}")
+            if value is not None:
+                bindings.append(value)
+            form_elements.append(self._build_form_input(i, label[1:-1], type, value, f"/queries/{self.id}"))
+        return form_elements, tuple(bindings) if len(bindings) == len(form_elements) else None
+
+    def _build_form_input(self, i, label, type, value, url):
+        if type == "string":
+            return f"""
+                <label>{label}
+                <input
+                    hx-get="{url}"
+                    hx-target="#queryresults"
+                    hx-select="#queryresults"
+                    hx-swap="outerMorph"
+                    name="v{i}"
+                    value="{value or ''}"
+                >
+                </label>
+                """
+        elif type == "verb":
+            verbs = Verb.all(page_size=9999)
+            return f"""
+            <label>
+            {label}
+            <select
+                hx-get="{url}"
+                hx-target="#queryresults"
+                hx-select="#queryresults"
+                hx-swap="outerMorph"
+                name="v{i}"
+            >
+                <option selected disabled>--Verb--</option>
+                {
+                    "".join(
+                        f'''<option
+                            value="{verb.id}"
+                            {'selected' if value is not None and int(value) == verb.id else ''}
+                        >{verb.label} ({verb.data_type})</option>'''
+                        for verb in verbs
+                        if verb.id >= 0 and verb.data_type is not TYPES["inferred"]
+                    )
+                }
+            </select>
+            </label>
+            """
+        raise RuntimeError(f"Unknown type {type}")
+
+    @property
+    def prepared_sql(self):
+        return re.sub(r"\?\([^)]+\)", "?", self.sql)
 
     def update(self, sql, label):
         cur = db.conn.cursor()

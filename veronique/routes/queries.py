@@ -209,27 +209,39 @@ async def view_query(request, query_id: int):
         )
     page_no = int(request.args.get("page", 1))
     query = O.Query(query_id)
-    result = query.run(
-        page_no=page_no - 1,
-        page_size=S.page_size + 1,  # so we know if there would be more results
-    )
-    if len(result) > S.page_size:
-        more_results = True
-        result = result[:-1]
-    else:
-        more_results = False
-    return query.label, f"""
+    parts = [f"""
         <article><header>
-        {query:heading}{query:hamburger}</header>{display_query_result(result, query_id=query_id)}
-        {
+        {query:heading}{query:hamburger}
+    """]
+    form_elements, bindings = query.bind(request.args)
+    if form_elements:
+        parts.append("<form>")
+        for form_element in form_elements:
+            parts.append(form_element)
+        parts.append("</form>")
+    parts.append('</header><div id="queryresults">')
+    if bindings is not None:
+        result = query.run(
+            bindings,
+            page_no=page_no - 1,
+            page_size=S.page_size + 1,  # so we know if there would be more results
+        )
+        if len(result) > S.page_size:
+            more_results = True
+            result = result[:-1]
+        else:
+            more_results = False
+        parts.append(display_query_result(result, query_id=query_id))
+        parts.append(
             pagination(
-                f"/queries/{query_id}",
+                request.url,
                 page_no,
                 more_results=more_results,
             )
-        }
-        </article>
-    """
+        )
+    parts.append("</div></article>")
+    return query.label, "".join(parts)
+
 
 @queries.get("/<query_id>/network/<col>")
 @page

@@ -1,4 +1,5 @@
 import functools
+import re
 from datetime import datetime
 from time import monotonic
 from types import CoroutineType
@@ -38,17 +39,21 @@ def pagination(url, page_no, *, more_results=True, allow_negative=False):
     if page_no == 1 and not more_results:
         return ""
     q = "&" if "?" in url else "?"
+    if "page=" in url or "page=" in url:
+        url_template = re.sub(r"page=\d+", "page={}", url)
+    else:
+        url_template = f"{url}{q}page={{}}"
     return f"""<footer>
         <a
             role="button"
             class="prev"
-            href="{url}{q}page={page_no - 1}"
+            href="{url_template.format(page_no - 1)}"
             {"disabled" if page_no == 1 and not allow_negative else ""}
         >&lt;</a>
         <a
             class="next"
             role="button"
-            href="{url}{q}page={page_no + 1}"
+            href="{url_template.format(page_no + 1)}"
             {"disabled" if not more_results else ""}
         >&gt;</a>
         </footer>
