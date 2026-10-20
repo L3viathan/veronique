@@ -272,7 +272,7 @@ async def delete_query(request, query_id: int):
             status=403,
         )
     query.delete()
-    return H.meta(http_equiv="refresh", content=f"0; url=/queries")
+    return H.meta(http_equiv="refresh", content="0; url=/queries")
 
 
 @queries.post("/remote")

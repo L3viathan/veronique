@@ -14,7 +14,6 @@ settings = Blueprint("settings", url_prefix="/settings")
 @settings.get("/")
 @page
 async def settings_form(request):
-    d = "" if context.user.is_admin else " disabled"
     return "Settings", H.article(
         H.header(H.h2("Settings")),
         H.form(

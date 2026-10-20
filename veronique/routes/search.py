@@ -3,6 +3,7 @@ from sanic import Blueprint
 import veronique.objects as O
 from veronique.context import context
 from veronique.db import conn
+from veronique.html import H
 from veronique.search import find, rebuild_search_index
 from veronique.settings import settings as S
 from veronique.utils import D, admin_only, fragment, page, pagination
