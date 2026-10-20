@@ -6,6 +6,7 @@ import veronique.objects as O
 from veronique import db
 from veronique.context import context
 from veronique.data_types import TYPES
+from veronique.html import H
 from veronique.network import network_widget
 from veronique.settings import settings as S
 from veronique.utils import D, admin_only, fragment, page, pagination
@@ -17,7 +18,7 @@ queries = Blueprint("queries", url_prefix="/queries")
 @page
 async def list_queries(request):
     page_no = int(request.args.get("page", 1))
-    parts = ["<article>"]
+    queries = []
     more_results = False
     for i, query in enumerate(
         O.Query.all(
@@ -28,60 +29,63 @@ async def list_queries(request):
         if i == S.page_size:
             more_results = True
         else:
-            parts.append(f'<span class="row">{query:full}</span>')
-    parts.append(pagination(
-        "/queries",
-        page_no,
-        more_results=more_results,
-    ))
-    parts.append("</article>")
-    return "Queries", "".join(parts)
+            queries.append(H.span(f"{query:full}", cls="row"))
+    return "Queries", H.article(
+        *queries,
+        pagination(
+            "/queries",
+            page_no,
+            more_results=more_results,
+        ),
+    )
 
 
 def _queries_textarea(value=None):
-    return f"""
-        <div>
-        <textarea
-            id="editing"
-            name="sql"
-            spellcheck="false"
-            oninput="update(this.value); sync_scroll(this);"
-            onscroll="sync_scroll(this);"
-            onload="setTimeout(function(){{update(this.value); sync_scroll(this);}}, 100)"
-        >{value or ""}</textarea>
-        <pre id="highlighting" aria-hidden="true"><code
-                class="language-sql"
-                id="highlighting-content"
-            >{value or ""}</code>
-        </pre>
-        </div>
-    """
+    return H.div(
+        H.textarea(
+            str(value or ""),
+            id="editing",
+            name="sql",
+            spellcheck="false",
+            oninput="update(this.value); sync_scroll(this);",
+            onscroll="sync_scroll(this);",
+            onload="setTimeout(function(){{update(this.value); sync_scroll(this);}}, 100)",
+        ),
+        H.pre(
+            H.code(
+                str(value or ""),
+                cls="language-sql",
+                id="highlighting-content",
+            ),
+            id="highlighting",
+            aria_hidden="true",
+        ),
+    )
 
 
 @queries.get("/new")
 @admin_only
 @page
 async def new_query_form(request):
-    return "New query", f"""
-        <form
-            hx-post="/queries/new"
-            hx-encoding="multipart/form-data"
-        >
-            <input name="label" placeholder="label"></input>
-            {_queries_textarea()}
-            <div role="group">
-            <button
-                class="secondary"
-                hx-post="/queries/preview"
-                hx-target="#preview"
-                hx-include="#editing"
-                hx-swap="innerMorph"
-            >Preview</button>
-            <button type="submit">»</button>
-            </div>
-            <div id="preview"></div>
-        </form>
-    """
+    return "New query", H.form(
+        H.input(name="label", placeholder="label"),
+        _queries_textarea(),
+        H.div(
+            H.button(
+                "Preview",
+                cls="secondary",
+                hx_post="/queries/preview",
+                hx_target="#preview",
+                hx_include="#editing",
+                hx_swap="innerMorph",
+            ),
+            H.button("»", type="submit"),
+            role="group",
+        ),
+        H.div("", id="preview"),
+        hx_post="/queries/new",
+        hx_encoding="multipart/form-data",
+    )
 
 
 @queries.get("/<query_id>/edit")
@@ -89,27 +93,26 @@ async def new_query_form(request):
 @page
 async def edit_query_form(request, query_id: int):
     query = O.Query(query_id)
-    return f"Edit {query.label!r}", f"""
-        <form
-            hx-put="/queries/{query_id}"
-            hx-swap="outerMorph"
-            hx-encoding="multipart/form-data"
-        >
-            <input name="label" placeholder="label" value="{query.label}"></input>
-            {_queries_textarea(query.sql)}
-            <div role="group">
-            <button
-                class="secondary"
-                hx-post="/queries/preview"
-                hx-target="#preview"
-                hx-include="#editing"
-                hx-swap="innerMorph"
-            >Preview</button>
-            <button type="submit">»</button>
-            </div>
-            <div id="preview"></div>
-        </form>
-    """
+    return f"Edit {query.label!r}", H.form(
+        H.input(name="label", placeholder="label", value=query.label),
+        _queries_textarea(query.sql),
+        H.div(
+            H.button(
+                "Preview",
+                cls="secondary",
+                hx_post="/queries/preview",
+                hx_target="#preview",
+                hx_include="#editing",
+                hx_swap="innerMorph",
+            ),
+            H.button("»", type="submit"),
+            role="group",
+        ),
+        H.div("", id="preview"),
+        hx_put=f"/queries/{query_id}",
+        hx_swap="outerMorph",
+        hx_encoding="multipart/form-data",
+    )
 
 
 SPECIAL_COL_NAMES = {}
@@ -136,25 +139,29 @@ def display_query_result(result, query_id=None):
                 colmap[col] = {"label": prefix, "display": SPECIAL_COL_NAMES[type_]}
             else:
                 colmap[col] = {"label": col, "display": str}
-        parts = ["<table><thead><tr>"]
+        headers = []
         for col in header:
             if col.endswith("_c") and query_id is not None:
-                parts.append(f'<td>{colmap[col]["label"]} <a href="/queries/{query_id}/network/{col}"><small>[N]</small></a></td>')
+                headers.append(H.td(colmap[col]["label"], H.a(H.small("[N]"), href=f"/queries/{query_id}/network/{col}")))
             else:
-                parts.append(f"<td>{colmap[col]['label']}</td>")
+                headers.append(H.td(colmap[col]["label"]))
 
-        parts.append("</tr></thead><tbody>")
+        rows = []
         for row in result:
-            parts.append("<tr>")
+            new_row = []
             for col in header:
                 try:
-                    parts.append(f"<td>{colmap[col]['display'](row[col])}</td>")
+                    new_row.append(H.td(colmap[col]['display'](row[col])))
                 except (ValueError, TypeError):
-                    parts.append(f"<td>{row[col]}</td>")
-            parts.append("</tr>")
-        parts.append("</tbody></table>")
-        return "".join(parts)
-    return ""
+                    new_row.append(H.td(row[col]))
+            rows.append(H.tr(*new_row))
+        return H.table(
+            H.thead(
+                H.tr(*headers),
+            ),
+            H.tbody(*rows),
+        )
+    return None
 
 
 @queries.post("/preview")
@@ -167,7 +174,7 @@ async def preview_query(request):
         cur = db.conn.cursor()
         res = cur.execute(form["sql"] + " LIMIT 10").fetchall()
     except (sqlite3.Warning, sqlite3.OperationalError) as e:
-        return f"""<article class="error"><strong>Error:</strong> {e.args[0]}</article>"""
+        return H.article(H.strong("Error:"), f" {e.args[0]}", cls="error")
     finally:
         db.conn.rollback()
     return display_query_result(res)
@@ -182,9 +189,7 @@ async def new_query(request):
         form["label"],
         form["sql"],
     )
-    return f"""
-        <meta http-equiv="refresh" content="0; url=/queries/{query.id}">
-    """
+    return H.meta(http_equiv="refresh", content=f"0; url=/queries/{query.id}")
 
 
 @queries.put("/<query_id>")
@@ -194,9 +199,7 @@ async def edit_query(request, query_id: int):
     query = O.Query(query_id)
     form = D(request.form)
     query.update(label=form["label"], sql=form["sql"])
-    return f"""
-        <meta http-equiv="refresh" content="0; url=/queries/{query_id}">
-    """
+    return H.meta(http_equiv="refresh", content=f"0; url=/queries/{query.id}")
 
 
 @queries.get("/<query_id>")
@@ -209,16 +212,11 @@ async def view_query(request, query_id: int):
         )
     page_no = int(request.args.get("page", 1))
     query = O.Query(query_id)
-    parts = [f"""
-        <article><header>
-        {query:heading}{query:hamburger}
-    """]
     form_elements, bindings = query.bind(request.args)
     if form_elements:
-        parts.append("<form>")
-        parts.extend(form_elements)
-        parts.append("</form>")
-    parts.append('</header><div id="queryresults">')
+        form_elements = H.form(*form_elements)
+    else:
+        form_elements = None
     if bindings is not None:
         result = query.run(
             bindings,
@@ -230,18 +228,21 @@ async def view_query(request, query_id: int):
             result = result[:-1]
         else:
             more_results = False
-        parts.append(display_query_result(result, query_id=query_id))
-        parts.append(
+        results = display_query_result(result, query_id=query_id)
+    else:
+        results = None
+    return query.label, H.article(
+        H.header(f"{query:heading}", f"{query:hamburger}", form_elements),
+        H.div(
+            results,
             pagination(
-                request.url,
+                f"/{request.url}",
                 page_no,
                 more_results=more_results,
-            )
-        )
-    else:
-        parts.append("bindings is None")
-    parts.append("</div></article>")
-    return query.label, "".join(parts)
+            ) if results else None,
+            id="queryresults",
+        ),
+    )
 
 
 @queries.get("/<query_id>/network/<col>")
@@ -271,9 +272,7 @@ async def delete_query(request, query_id: int):
             status=403,
         )
     query.delete()
-    return """
-        <meta http-equiv="refresh" content="0; url=/queries">
-    """
+    return H.meta(http_equiv="refresh", content=f"0; url=/queries")
 
 
 @queries.post("/remote")

@@ -8,6 +8,7 @@ from sanic import HTTPResponse, html
 
 from veronique.context import context
 from veronique.db import ROOT
+from veronique.html import Tag
 from veronique.settings import settings as S
 
 startup_time = datetime.now()
@@ -70,6 +71,8 @@ def fragment(fn):
             ret = await ret
         if isinstance(ret, HTTPResponse):
             return ret
+        if isinstance(ret, Tag):
+            ret = str(ret)
         return html(ret)
 
     return wrapper
@@ -87,9 +90,15 @@ def page(fn):
             title = S.app_name
         elif isinstance(ret, HTTPResponse):
             return ret
+        elif isinstance(ret, Tag):
+            title = S.app_name
+            ret = str(ret)
         else:
             title, ret = ret
             title = f"{title} — {S.app_name}"
+
+        if isinstance(ret, Tag):
+            ret = str(ret)
 
         gotos = []
         for page_name, path, restricted in [

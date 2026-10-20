@@ -7,6 +7,7 @@ from veronique.autocomplete import AUTOCOMPLETES
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import IS_A, ROOT
+from veronique.html import H
 from veronique.settings import settings as S
 from veronique.utils import admin_only, page, pagination
 
@@ -18,11 +19,7 @@ users = Blueprint("users", url_prefix="/users")
 @page
 async def list_users(request):
     page_no = int(request.args.get("page", 1))
-    parts = [
-        "<article><header><h3>Users</h3></header><table>",
-        '<thead><tr><th scope="col">ID</th><th scope="col">Name</th><th scope="col">Session</th><th scope="col">Impersonate</th></tr></thead>',
-        "<tbody>",
-    ]
+    users = []
     more_results = False
     for i, user in enumerate(
         O.User.all(
@@ -33,22 +30,39 @@ async def list_users(request):
         if i == S.page_size:
             more_results = True
         else:
-            parts.append(f"<tr><td>{user.id}</td>")
-            parts.append(f"<td>{user:link}</td>")
-            parts.append(f"<td>{user:session}</td>")
-            if context.user.id != user.id:
-                parts.append(f'<td><button hx-post="/users/{user.id}/impersonate" class="danger">Impersonate</button></td>')
-            else:
-                parts.append("<td></td>")
-            parts.append("</tr>")
-    parts.append("</tbody></table>")
-    parts.append(pagination(
-        "/users",
-        page_no,
-        more_results=more_results,
-    ))
-    parts.append("</article>")
-    return "Users", "".join(parts)
+            users.append(
+                H.tr(
+                    H.td(str(user.id)),
+                    H.td(f"{user:link}"),
+                    H.td(f"{user:session}"),
+                    H.td(
+                        H.button(
+                            "Impersonate",
+                            cls="danger",
+                            hx_post=f"/users/{user.id}/impersonate",
+                        )
+                    ) if context.user.id != user.id else H.td("")
+                ),
+            )
+    return "Users", H.article(
+        H.header(H.h3("Users")),
+        H.table(
+            H.thead(
+                H.tr(
+                    H.th("ID", scope="col"),
+                    H.th("Name", scope="col"),
+                    H.th("Session", scope="col"),
+                    H.th("Impersonate", scope="col"),
+                ),
+            ),
+            H.tbody(*users),
+        ),
+        pagination(
+            "/users",
+            page_no,
+            more_results=more_results,
+        ),
+    )
 
 
 def _user_form(*, password_input, endpoint, user=None):
@@ -56,61 +70,63 @@ def _user_form(*, password_input, endpoint, user=None):
     for verb in O.Verb.all(page_size=9999):
         if verb.id < 0:
             verb_options_w.append(
-                f'<option {"selected" if user and user.can("write", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
+                H.option(
+                    verb.label,
+                    selected=user and user.can("write", "verb", verb.id),
+                    value=str(verb.id),
+                )
             )
             continue
         verb_options_r.append(
-            f'<option {"selected" if user and user.can("read", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
+            H.option(
+                verb.label,
+                selected=user and user.can("read", "verb", verb.id),
+                value=str(verb.id),
+            )
         )
         if verb.data_type != TYPES["inferred"]:
             verb_options_w.append(
-                f'<option {"selected" if user and user.can("write", "verb", verb.id) else ""} value="{verb.id}">{verb.label}</option>'
+                H.option(
+                    verb.label,
+                    selected=user and user.can("write", "verb", verb.id),
+                    value=str(verb.id),
+                )
             )
     for query in O.Query.all(page_size=9999):
         query_options.append(
-            f'<option {"selected" if user and user.can("view", "query", query.id) else ""} value="{query.id}">{query.label}</option>'
+            H.option(
+                query.label,
+                selected=user and user.can("view", "query", query.id),
+                value=str(query.id),
+            )
         )
-    verb_options_r = "\n".join(verb_options_r)
-    verb_options_w = "\n".join(verb_options_w)
-    query_options = "\n".join(query_options)
 
-    return f"""
-        <form
-            action="{endpoint}"
-            method="POST"
-        >
-            <input name="name" placeholder="name" value="{user and user.name or ''}">
-            <label>
-                <input name="redact" type="checkbox" role="switch" {'checked' if user and user.redact else ''}>
-                Redact PII for this user
-            </label>
-            {'' if user and user.is_admin else f'''
-            <h3>Readable verbs</h3>
-            <select name="verbs-readable" multiple size="10">
-            {verb_options_r}
-            </select>
-
-            <h3>Writable verbs</h3>
-            <select name="verbs-writable" multiple size="10">
-            {verb_options_w}
-            </select>
-
-            <h3>Viewable queries</h3>
-            <select name="queries-viewable" multiple size="10">
-            {query_options}
-            </select>
-            '''}
-
-            <h3>Corresponding entity</h3>
-            {user.entity or ""}
-            {AUTOCOMPLETES["entity"].widget(None)}
-
-            {password_input}
-
-            <input type="submit" value="{'Save' if user else 'Create'}">
-        </form>
-    """
-
+    return H.form(
+        H.input(
+            name="name",
+            placeholder="name",
+            value=user and user.name or "",
+        ),
+        H.label(
+            H.input(name="redact", type="checkbox", role="switch", checked=bool(user and user.redact)),
+            "Redact PII for this user",
+        ),
+        None if user and user.is_admin else H(
+            H.h3("Readable verbs"),
+            H.select(*verb_options_r, name="verbs-readable", multiple=True, size="10"),
+            H.h3("Writable verbs"),
+            H.select(*verb_options_w, name="verbs-writable", multiple=True, size="10"),
+            H.h3("Viewable queries"),
+            H.select(*query_options, name="queries-viewable", multiple=True, size="10"),
+        ),
+        H.h3("Corresponding entity"),
+        str(user and user.entity or ""),
+        AUTOCOMPLETES["entity"].widget(None),
+        password_input,
+        H.input(type="submit", value="Save" if user else "Create"),
+        action=endpoint,
+        method="POST",
+    )
 
 
 @users.get("/new")
@@ -118,13 +134,15 @@ def _user_form(*, password_input, endpoint, user=None):
 @page
 async def new_user_form(request):
     password = token_urlsafe(16)
-    return "New user", _user_form(endpoint="/users/new", password_input=f"""
-        <fieldset role="group">
-        <input id="password" disabled value="{password}">
-        <input type="hidden" name="password" value="{password}">
-        <input type="button" value="copy" onclick="navigator.clipboard.writeText('{password}')">
-        </fieldset>
-    """)
+    return "New user", _user_form(
+        endpoint="/users/new",
+        password_input=H.fieldset(
+            H.input(id="password", disabled=True, value=password),
+            H.input(type="hidden", name="password", value=password),
+            H.input(type="button", value="copy", onclick=f"navigator.clipboard.writeText('{password}')"),
+            role="group",
+        ),
+    )
 
 
 @users.get("/<user_id>/edit")
@@ -132,11 +150,14 @@ async def new_user_form(request):
 @page
 async def edit_user_form(request, user_id: int):
     user = O.User(user_id)
-    return f"Edit user {user.name}", _user_form(user=user, endpoint=f"/users/{user_id}/edit", password_input="""
-        <label>New password
-        <input type="password" name="password" value="" placeholder="(leave empty to keep as-is)">
-        </label>
-    """)
+    return f"Edit user {user.name}", _user_form(
+        user=user,
+        endpoint=f"/users/{user_id}/edit",
+        password_input=H.label(
+            "New password",
+            H.input(type="password", name="password", value="", placeholder="(leave empty to keep as-is)"),
+        ),
+    )
 
 
 def _write_user(form, endpoint, user=None):
@@ -221,18 +242,17 @@ async def stop_impersonating(request):
 @page
 async def view_user(request, user_id: int):
     user = O.User(user_id)
-    result = f"""
-        <article><header>
-        <h3>{user:heading}</h3>{user:hamburger}
-        </header>
-        <table>
-        <tr><th scope="row">Session</th><td>{user:session}</td></tr>
-        <tr><th scope="row">Admin</th><td>{TYPES["boolean"].display_html(user.is_admin)}</td></tr>
-        <tr><th scope="row">Redact</th><td>{TYPES["boolean"].display_html(user.redact)}</td></tr>
-        <tr><th scope="row">Readable verbs</th><td>{", ".join(str(O.Verb(v)) for v in (user.readable_verbs or []) if v >= 0)}</td></tr>
-        <tr><th scope="row">Writable verbs</th><td>{", ".join(str(O.Verb(v)) for v in (user.writable_verbs or []))}</td></tr>
-        <tr><th scope="row">Viewable queries</th><td>{", ".join(str(O.Query(q)) for q in (user.viewable_queries or []))}</td></tr>
-        </table>
-        </article>
-    """
-    return user.name, result
+    return user.name, H.article(
+        H.header(
+            H.h3(f"{user:heading}"),
+            f"{user:hamburger}",
+        ),
+        H.table(
+            H.tr(H.th("Session", scope="row"), H.td(f"{user:session}")),
+            H.tr(H.th("Admin", scope="row"), H.td(TYPES["boolean"].display_html(user.is_admin))),
+            H.tr(H.th("Redact", scope="row"), H.td(TYPES["boolean"].display_html(user.redact))),
+            H.tr(H.th("Readable verbs", scope="row"), H.td(", ".join(str(O.Verb(v)) for v in (user.readable_verbs or []) if v >= 0))),
+            H.tr(H.th("Writable verbs", scope="row"), H.td(", ".join(str(O.Verb(v)) for v in (user.writable_verbs or []) if v >= 0))),
+            H.tr(H.th("Viewable queries", scope="row"), H.td(", ".join(str(O.Verb(v)) for v in (user.viewable_queries or []) if v >= 0))),
+        )
+    )

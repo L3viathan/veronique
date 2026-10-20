@@ -7,6 +7,7 @@ from sanic import Blueprint, redirect
 import veronique.objects as O
 from veronique.autocomplete import AUTOCOMPLETES
 from veronique.context import context
+from veronique.html import H
 from veronique.network import network_widget
 from veronique.utils import admin_only, page
 
@@ -17,17 +18,19 @@ tools = Blueprint("tools", url_prefix="/tools")
 @page
 async def get_connections_form(request):
     widget = AUTOCOMPLETES["multiselect"].widget()
-    return f"""
-    <h2>What connects these claims?</h2>
-    <form
-        action="/tools/connections"
-        method="POST"
-        enctype="multipart/form-data"
-    >
-        {widget}
-        <button type="submit">Find connections</button>
-    </form>
-    """
+    return H(
+        H.h2("What connects these claims?"),
+        H.form(
+            widget,
+            H.button(
+                "Find connections",
+                type="submit",
+            ),
+            action="/tools/connections",
+            method="POST",
+            enctype="multipart/form-data",
+        ),
+    )
 
 
 @tools.post("connections")
@@ -68,17 +71,19 @@ async def redirect_to_network(request):
 @page
 async def get_merge_form(request):
     widget = AUTOCOMPLETES["merge"].widget()
-    return f"""
-    <h2>Merge claims</h2>
-    <form
-        action="/tools/merge"
-        method="POST"
-        enctype="multipart/form-data"
-    >
-        {widget}
-        <button type="submit">Merge claims</button>
-    </form>
-    """
+    return H(
+        H.h2("Merge claims"),
+        H.form(
+            widget,
+            H.button(
+                "Merge claims",
+                type="submit",
+            ),
+            action="/tools/merge",
+            method="POST",
+            enctype="multipart/form-data",
+        ),
+    )
 
 
 @tools.post("merge")
@@ -93,17 +98,19 @@ async def merge_claims(request):
 @page
 async def get_bulk_claim_form(request):
     widget = AUTOCOMPLETES["multiselect"].widget()
-    return f"""
-    <h2>New bulk claim</h2>
-    <form
-        action="/tools/bulk-claim"
-        method="POST"
-        enctype="multipart/form-data"
-    >
-        {widget}
-        <button type="submit">Make bulk claim</button>
-    </form>
-    """
+    return H(
+        H.h2("New bulk claim"),
+        H.form(
+            widget,
+            H.button(
+                "Make bulk claim",
+                type="submit",
+            ),
+            action="/tools/bulk-claim",
+            method="POST",
+            enctype="multipart/form-data",
+        ),
+    )
 
 
 @tools.post("bulk-claim")
@@ -111,22 +118,30 @@ async def get_bulk_claim_form(request):
 async def start_bulk_claim(request):
     claim_ids = request.form["value"]
     claims = [O.Claim(int(claim_id)) for claim_id in claim_ids]
-    return "New bulk claim", f"""
-        <article>
-            <header><h2>New bulk claim</h2>{' '.join(f"{claim}" for claim in claims)}</header>
-            <table class="claims"><tr><td>
-        {
-            f'<div hx-swap="outerMorph" hx-get="/claims/new/{",".join(claim_ids)}/incoming" class="new-item-placeholder">+</div>'
-            if context.user.is_admin or context.user.writable_verbs
-            else ""
-        }
-        </td><td>
-        {
-            f'<div hx-swap="outerMorph" hx-get="/claims/new/{",".join(claim_ids)}/outgoing" class="new-item-placeholder">+</div>'
-            if context.user.is_admin or context.user.writable_verbs
-            else ""
-        }
-        </table>
-        </article>
-        """
-    return redirect(f"/network?claims={claim_ids}")
+    return "New bulk claim", H.article(
+        H.header(
+            H.h2("New bulk claim"),
+            ' '.join(f"{claim}" for claim in claims),
+        ),
+        H.table(
+            H.tr(
+                H.td(
+                    H.div(
+                        "+",
+                        hx_swap="outerMorph",
+                        hx_get=f'/claims/new/{",".join(claim_ids)}/incoming',
+                        cls="new-item-placeholder",
+                    ) if context.user.is_admin or context.user.writable_verbs else ""
+                ),
+                H.td(
+                    H.div(
+                        "+",
+                        hx_swap="outerMorph",
+                        hx_get=f'/claims/new/{",".join(claim_ids)}/outgoing',
+                        cls="new-item-placeholder",
+                    ) if context.user.is_admin or context.user.writable_verbs else ""
+                ),
+            ),
+            cls="claims",
+        )
+    )

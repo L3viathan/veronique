@@ -8,6 +8,7 @@ import veronique.objects as O
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import AVATAR, COMMENT, IS_A, ROOT
+from veronique.html import H
 from veronique.network import network_widget
 from veronique.settings import settings as S
 from veronique.utils import D, cache_pls_headers, fragment, page, pagination
@@ -31,35 +32,26 @@ async def new_entity_form(request):
         if context.user.can("write", "verb", int(conn_verb_id)):
             conn_verb = O.Verb(int(conn_verb_id))
             conn_claim = O.Claim(int(conn_claim_id))
-            connect_info = f"""
-            <p>After creation, an {conn_dir} {conn_verb} link will be made to {conn_claim}.</p>
-            <input type="hidden" name="connect" value="{connect}">
-            """
-    name = args.get("name", "")
-    return "New entity", f"""
-    <article>
-    <header><h2>New entity</h2></header>
-        <form action="/claims/new-entity" method="POST">
-            <input name="name" placeholder="name" value="{name}"></input>
-            <select
-                name="category"
-            >
-                <option value="">(None)</option>
-                {
-            "".join(
-                f'''<option
-                            value="{cat.id}"
-                            {'selected="selected"' if i == 0 else ""}
-                        >{cat:label}</option>'''
-                for i, cat in enumerate(categories)
+            connect_info = H(
+                H.p(f"After creation, an {conn_dir} {conn_verb} link will be made to {conn_claim}."),
+                H.input(type="hidden", name="connect", value=connect),
             )
-        }
-            </select>
-            {connect_info}
-            <button type="submit">»</button>
-        </form>
-    </article>
-    """
+    name = args.get("name", "")
+    return "New entity", H.article(
+        H.header(H.h2("New entity")),
+        H.form(
+            H.input(name="name", placeholder="name", value=name),
+            H.select(
+                H.option("(None)", value=""),
+                *(H.option(f"{cat:label}", value=str(cat.id), selected=i==0) for i, cat in enumerate(categories)),
+                name="category",
+            ),
+            connect_info,
+            H.button("»", type="submit"),
+            action="/claims/new-entity",
+            method="POST",
+        ),
+    )
 
 
 @claims.post("/new-entity")
@@ -98,32 +90,24 @@ async def new_claim_form(request, claim_ids: list[int], direction: str):
     verbs = O.Verb.all(
         page_size=9999, data_type="directed_link" if direction == "incoming" else None, only_writable=True
     )
-    return f"""
-        <form
-            action="/claims/new/{claim_ids}/{direction}"
-            method="POST"
-            enctype="multipart/form-data"
-        >
-            <select
-                name="verb"
-                hx-get="/claims/new/verb?claim_ids={claim_ids}&direction={direction}"
-                hx-target="#valueinput"
-                hx-swap="innerMorph"
-            >
-                <option selected disabled>--Verb--</option>
-                {
-                    "".join(
-                        f'''<option
-                                        value="{verb.id}"
-                                    >{verb.label} ({verb.data_type})</option>'''
-                        for verb in verbs
-                        if verb.id >= 0 and verb.data_type is not TYPES["inferred"]
-                    )
-                }
-            </select>
-            <span id="valueinput"></span>
-        </form>
-    """
+    return H.form(
+        H.select(
+            H.option("--Verb--", selected=True, disabled=True),
+            *(
+                H.option(f"{verb.label} ({verb.data_type})", value=str(verb.id))
+                for verb in verbs
+                if verb.id >= 0 and verb.data_type is not TYPES["inferred"]
+            ),
+            name="verb",
+            hx_get=f"/claims/new/verb?claim_ids={claim_ids}&direction={direction}",
+            hx_target="#valueinput",
+            hx_swap="innerMorph",
+        ),
+        H.span("", id="valueinput"),
+        action=f"/claims/new/{claim_ids}/{direction}",
+        method="POST",
+        enctype="multipart/form-data",
+    )
 
 
 @claims.get("/new/verb")
@@ -137,22 +121,27 @@ async def new_claim_form_verb_input(request):
         )
     verb = O.Verb(int(args["verb"]))
     if args.get("standalone"):
-        return f"""
-        <form
-            action="/claims/new/{args.get("claim_ids")}/{args.get("direction")}"
-            method="POST"
-            enctype="multipart/form-data"
-        >
-            <input type="hidden" name="verb" value="{verb.id}">
-            {verb.data_type.input_html(claim_ids=args.get("claim_ids"), direction=args.get("direction"), verb_id=verb.id)}
-            <button type="submit">»</button>
-        </form>
-        """
+        return H.form(
+            H.input(type="hidden", name="verb", value=str(verb.id)),
+            verb.data_type.input_html(
+                claim_ids=args.get("claim_ids"),
+                direction=args.get("direction"),
+                verb_id=verb.id,
+            ),
+            H.button("»", type="submit"),
+            action=f'/claims/new/{args.get("claim_ids")}/{args.get("direction")}',
+            method="POST",
+            enctype="multipart/form-data",
+        )
     else:
-        return f"""
-            {verb.data_type.input_html(claim_ids=args.get("claim_ids"), direction=args.get("direction"), verb_id=verb.id)}
-            <button type="submit">»</button>
-        """
+        return H(
+            verb.data_type.input_html(
+                claim_ids=args.get("claim_ids"),
+                direction=args.get("direction"),
+                verb_id=verb.id,
+            ),
+            H.button("»", type="submit"),
+        )
 
 
 @claims.post("/new/<claim_ids>/<direction:incoming|outgoing>")
@@ -206,16 +195,13 @@ async def edit_claim_form(request, claim_id: int):
             body="403 Forbidden",
             status=403,
         )
-    return f"""
-        <form
-            action="/claims/{claim_id}/edit"
-            method="POST"
-            enctype="multipart/form-data"
-        >
-            {claim.verb.data_type.input_html(value=claim.object, verb_id=claim.verb.id)}
-            <button type="submit">»</button>
-        </form>
-        """
+    return H.form(
+        claim.verb.data_type.input_html(value=claim.object, verb_id=claim.verb.id),
+        H.button("»", type="submit"),
+        action=f"/claims/{claim_id}/edit",
+        method="POST",
+        enctype="multipart/form-data",
+    )
 
 
 @claims.get("/<claim_id>/move")
@@ -227,15 +213,12 @@ async def move_claim_form(request, claim_id: int):
             body="403 Forbidden",
             status=403,
         )
-    return f"""
-        <form
-            action="/claims/{claim_id}/move"
-            method="POST"
-        >
-            {TYPES["directed_link"].input_html(value=claim.object, allow_connect=False)}
-            <button type="submit">»</button>
-        </form>
-        """
+    return H.form(
+        TYPES["directed_link"].input_html(value=claim.object, allow_connect=False),
+        H.button("»", type="submit"),
+        action=f"/claims/{claim_id}/move",
+        method="POST",
+    )
 
 
 @claims.get("/<claim_id>/reverb")
@@ -248,28 +231,20 @@ async def reverb_claim_form(request, claim_id: int):
             status=403,
         )
     verbs = O.Verb.all(page_size=9999)
-    verbs = [v for v in verbs if v.id >= 0 and claim.verb.can_turn_into(v)]
-    parts = [
-        f"""
-        <form
-            action="/claims/{claim_id}/reverb"
-            method="POST"
-        >
-            <select name="verb">
-        """
+    verbs = [
+        H.option(f"{v} ({v.data_type})", value=str(v.id), selected=v.id==claim.verb.id)
+        for v in verbs
+        if v.id >= 0 and claim.verb.can_turn_into(v)
     ]
-    for verb in verbs:
-        parts.append(f"""
-            <option value="{verb.id}" {"selected" if verb.id == claim.verb.id else ""}>{verb} ({verb.data_type})</option>
-        """)
-    parts.append(
-        """
-            </select>
-            <button type="submit">»</button>
-        </form>
-        """
+    return H.form(
+        H.select(
+            *verbs,
+            name="verb",
+        ),
+        H.button("»", type="submit"),
+        action=f"/claims/{claim_id}/reverb",
+        method="POST",
     )
-    return "".join(parts)
 
 
 @claims.delete("/<claim_id>")
@@ -287,9 +262,7 @@ async def delete_claim(request, claim_id: int):
         redirect = "/"
 
     claim.delete()
-    return f"""
-        <meta http-equiv="refresh" content="0; url={redirect}">
-    """
+    return H.meta(http_equiv="refresh", content=f"0; url={redirect}")
 
 
 @claims.post("/<claim_id>/edit")
@@ -345,7 +318,7 @@ async def move_claim(request, claim_id: int):
 @page
 async def list_labelled_claims(request):
     page_no = int(request.args.get("page", 1))
-    parts = ["<article>"]
+    claims = []
     more_results = False
     for i, claim in enumerate(
         O.Claim.all_labelled(
@@ -357,14 +330,15 @@ async def list_labelled_claims(request):
         if i == S.page_size:
             more_results = True
         else:
-            parts.append(f'<span class="row">{claim}</span>')
-    parts.append(pagination(
-        "/claims",
-        page_no,
-        more_results=more_results,
-    ))
-    parts.append("</article>")
-    return "Claims", "".join(parts)
+            claims.append(H.span(str(claim), cls="row"))
+    return "Claims", H.article(
+        *claims,
+        pagination(
+            "/claims",
+            page_no,
+            more_results=more_results,
+        ),
+    )
 
 
 @claims.get("/network")
@@ -391,12 +365,11 @@ async def view_claim_network(request, claim_id: int):
                 claims.append(outgoing.subject)
     colormap = defaultdict(lambda: 1)
     colormap[claim_id] = 2
-    return f"{claim:label}", f"""
-        <article class="network">
-            <header>{claim:handle}{claim:heading}</header>
-            {network_widget(claims, links_go_to="network", colormap=colormap, freeze_after=log(len(claims)))}
-        </article>
-        """
+    return f"{claim:label}", H.article(
+        H.header(f"{claim:handle}", f"{claim:heading}"),
+        network_widget(claims, links_go_to="network", colormap=colormap, freeze_after=log(len(claims))),
+        cls="network",
+    )
 
 
 @claims.get("/<claim_id>")
@@ -429,50 +402,73 @@ async def view_claim(request, claim_id: int):
         more_results = True
     else:
         more_results = False
-    return f"{claim:label}", f"""
-        <article>
-            <header>{claim:heading}{f"{claim:avatar}" if claim.is_entity else ""}
-            {claim:hamburger}
-            </header>
-            <div id="edit-area"></div>
-            <table class="claims"><tr class="placeholders"><td>
-        {
-            f'<div hx-swap="outerMorph" hx-get="/claims/new/{claim_id}/incoming" class="new-item-placeholder">+</div>'
-            if context.user.is_admin or context.user.writable_verbs
-            else ""
-        }
-        </td><td>
-        {
-            f'<div hx-swap="outerMorph" hx-get="/claims/new/{claim_id}/outgoing" class="new-item-placeholder">+</div>'
-            if context.user.is_admin or context.user.writable_verbs
-            else ""
-        }
-        </td></tr>
-        <tr class="claims"><td>
-        {"".join(f'<span class="row">{c:sv}</span>' for c in incoming_claims)}
-        </td><td>
-        {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in outgoing_claims if c.verb.id not in (IS_A, AVATAR, COMMENT))}
-        {"".join(f'<span class="row">{c:vo:{claim_id}}</span>' for c in claim.outgoing_inferred_claims())}
-        </td></tr></table>
-        {"<hr><h3>Mentions</h3>" + "".join(f'<span class="row">{c}</span>' for c in incoming_mentions) if incoming_mentions else ""}
-        <footer>
-        {'<table class="comments">' + "".join(f"{c:comment}" for c in comments) + "</table>" if comments else ""}
-        {
-        f'''<form method="POST" action="/claims/new/{claim_id}/outgoing">
-            <input type="hidden" name="verb" value="{COMMENT}">
-            <input name="value" placeholder="Add comment...">
-            <input type="submit" hidden>
-        </form>''' if context.user.can("write", "verb", COMMENT) else ""
-        }
-        <small class="dim">Created at: {claim.created_at}{f", updated at: {claim.updated_at}" if claim.updated_at != claim.created_at else ""}{f", by {claim.owner}" if claim.owner else ""}</small>
-        </footer>
-        {pagination(
+    return f"{claim:label}", H.article(
+        H.header(f"{claim:heading}", f"{claim:avatar}" if claim.is_entity else None, f"{claim:hamburger}"),
+        H.div("", id="edit-area"),
+        H.table(
+            H.tr(
+                H.td(
+                    H.div(
+                        "+",
+                        hx_swap="outerMorph",
+                        hx_get=f"/claims/new/{claim_id}/incoming",
+                        cls="new-item-placeholder",
+                    ) if context.user.is_admin or context.user.writable_verbs else None
+                ),
+                H.td(
+                    H.div(
+                        "+",
+                        hx_swap="outerMorph",
+                        hx_get=f"/claims/new/{claim_id}/outgoing",
+                        cls="new-item-placeholder",
+                    ) if context.user.is_admin or context.user.writable_verbs else None
+                ),
+                cls="placeholders",
+            ),
+            H.tr(
+                H.td(
+                    *(H.span(f"{c:sv}", cls="row") for c in incoming_claims),
+                ),
+                H.td(
+                    *(H.span(f"{c:vo:{claim_id}}", cls="row") for c in outgoing_claims if c.verb.id not in (IS_A, AVATAR, COMMENT)),
+                    *(H.span(f"{c:vo:{claim_id}}", cls="row") for c in claim.outgoing_inferred_claims()),
+                ),
+                cls="claims",
+            ),
+            cls="claims",
+        ),
+        H.hr(),
+        H(
+            H.h3("Mentions"),
+            *(H.span(str(c), cls="row") for c in incoming_mentions)
+        ) if incoming_mentions else None,
+        H.footer(
+            H(
+                H.table(
+                    *(f"{c:comment}" for c in comments),
+                    cls="comments",
+                ),
+            ) if comments else None,
+            H.form(
+                H.input(type="hidden", name="verb", value=str(COMMENT)),
+                H.input(name="value", placeholder="Add comment..."),
+                H.input(type="submit", hidden=True),
+                method="POST",
+                action=f"/claims/new/{claim_id}/outgoing",
+            ) if context.user.can("write", "verb", COMMENT) else None,
+            H.small(
+                f"Created at: {claim.created_at}",
+                f", updated at: {claim.updated_at}" if claim.updated_at != claim.created_at else None,
+                f", by {claim.owner}" if claim.owner else None,
+                cls="dim",
+            ),
+        ),
+        pagination(
             f"/claims/{claim_id}",
             page_no,
             more_results=more_results,
-        )}
-        </article>
-    """
+        )
+    )
 
 
 @claims.get("/<claim_id>/avatar")
@@ -513,13 +509,16 @@ async def list_comments(request):
         )
     ):
         if i:
-            parts.append("<br>")
+            parts.append(H.br())
         if i == S.page_size:
             more_results = True
         else:
             parts.append(f"{claim}")
-    return "Comments", "".join(parts) + pagination(
-        "/claims/comments",
-        page_no,
-        more_results=more_results,
+    return "Comments", H(
+        *parts,
+        pagination(
+            "/claims/comments",
+            page_no,
+            more_results=more_results,
+        ),
     )

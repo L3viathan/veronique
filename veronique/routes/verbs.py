@@ -4,6 +4,7 @@ import veronique.objects as O
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import ROOT
+from veronique.html import H
 from veronique.settings import settings as S
 from veronique.utils import D, admin_only, fragment, page, pagination
 
@@ -15,16 +16,14 @@ verbs = Blueprint("verbs", url_prefix="/verbs")
 @fragment
 async def delete_verb(request, verb_id: int):
     O.Verb(verb_id).delete()
-    return """
-        <meta http-equiv="refresh" content="0; url=/">
-    """
+    return H.meta(http_equiv="refresh", content="0; url=/")
 
 
 @verbs.get("/")
 @page
 async def list_verbs(request):
     page_no = int(request.args.get("page", 1))
-    parts = ["<article>"]
+    verbs = []
     more_results = False
     for i, verb in enumerate(
         O.Verb.all(
@@ -35,47 +34,39 @@ async def list_verbs(request):
         if i == S.page_size:
             more_results = True
         elif verb.id != ROOT:
-            parts.append(f'<span class="row">{verb:full}</span>')
-    parts.append(pagination(
-        "/verbs",
-        page_no,
-        more_results=more_results,
-    ))
-    parts.append("</article>")
-    return "Verbs", "".join(parts)
+            verbs.append(H.span(f"{verb:full}", cls="row"))
+    return "Verbs", H.article(
+        *verbs,
+        pagination(
+            "/verbs",
+            page_no,
+            more_results=more_results,
+        ),
+    )
 
 
 @verbs.get("/new")
 @admin_only
 @page
 async def new_verb_form(request):
-    return "New verb", f"""
-    <article>
-    <header><h2>New verb</h2></header>
-        <form
-            action="/verbs/new"
-            method="POST"
-        >
-            <input name="label" placeholder="label"></input>
-            <select
-                name="data_type"
-                hx-get="/verbs/new/steps"
-                hx-target="#steps"
-                hx-swap="innerMorph"
-                hx-include="closest form"
-            >
-                <option selected disabled>--Type--</option>
-                {
-            "".join(
-                f'''<option value="{data_type}">{data_type}</option>'''
-                for data_type in TYPES
-            )
-        }
-            </select>
-            <span id="steps"></span>
-        </form>
-    </article>
-    """
+    return "New verb", H.article(
+        H.header(H.h2("New verb")),
+        H.form(
+            H.input(name="label", placeholder="label"),
+            H.select(
+                H.option("--Type--", selected=True, disabled=True),
+                *(H.option(data_type, value=data_type) for data_type in TYPES),
+                name="data_type",
+                hx_get="/verbs/new/steps",
+                hx_target="#steps",
+                hx_swap="innerMorph",
+                hx_include="closest form",
+            ),
+            H.span("", id="steps"),
+            action="/verbs/new",
+            method="POST",
+        ),
+    )
 
 
 @verbs.get("/new/steps")
@@ -86,7 +77,7 @@ async def new_verb_form_steps(request):
     type = TYPES[args["data_type"]]
     if response := type.next_step(args):
         return response
-    return '<button type="submit">Create</button>'
+    return H.button("Create", type="submit")
 
 
 @verbs.post("/new")
@@ -113,7 +104,7 @@ async def view_verb(request, verb_id: int):
             status=403,
         )
     verb = O.Verb(verb_id)
-    parts = [f'<article><header>{verb:heading}{verb:hamburger}{verb:detail}</header><div id="edit-area"></div>']
+    claims = []
     more_results = False
     for i, claim in enumerate(
         verb.claims(
@@ -124,14 +115,17 @@ async def view_verb(request, verb_id: int):
         if i == S.page_size:
             more_results = True
         else:
-            parts.append(f'<span class="row">{claim}</span>')
-    parts.append(pagination(
-        f"/verbs/{verb_id}",
-        page_no,
-        more_results=more_results,
-    ))
-    parts.append("</article>")
-    return verb.label, "".join(parts)
+            claims.append(H.span(str(claim), cls="row"))
+    return verb.label, H.article(
+        H.header(f"{verb:heading}", f"{verb:hamburger}", f"{verb:detail}"),
+        H.div("", id="edit-area"),
+        *claims,
+        pagination(
+            f"/verbs/{verb_id}",
+            page_no,
+            more_results=more_results,
+        ),
+    )
 
 
 @verbs.get("/<verb_id>/edit")
@@ -139,16 +133,13 @@ async def view_verb(request, verb_id: int):
 @fragment
 async def edit_verb_form(request, verb_id: int):
     verb = O.Verb(verb_id)
-    return f"""
-        <form
-            action="/verbs/{verb_id}/edit"
-            method="POST"
-        >
-            <input name="label" value="{verb.label}">
-            {verb:edit}
-            <button type="submit">»</button>
-        </form>
-        """
+    return H.form(
+        H.input(name="label", value=verb.label),
+        f"{verb:edit}",
+        H.button("»", type="submit"),
+        action=f"/verbs/{verb_id}/edit",
+        method="POST",
+    )
 
 
 @verbs.post("/<verb_id>/edit")

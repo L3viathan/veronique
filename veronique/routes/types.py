@@ -4,6 +4,7 @@ from sanic import Blueprint, HTTPResponse
 
 import veronique.objects as O
 from veronique.data_types import TYPES
+from veronique.html import H
 from veronique.settings import settings as S
 from veronique.utils import page, pagination
 
@@ -28,11 +29,7 @@ async def claims_with_value(request, data_type: str, value: str):
             status=403,
         )
     page_no = int(request.args.get("page", 1))
-    parts = ["<article><header>"]
-    parts.append(f"<h2>Claims of {data_type} {TYPES[data_type].display_html(value)}</h2>")
-    if hasattr(TYPES[data_type], "value_query_extra"):
-        parts.append(TYPES[data_type].value_query_extra(value))
-    parts.append("</header>")
+    claims = []
     more_results = False
     if data_type == "date":
         # In dates, we use question marks to represent an unknown part. Since
@@ -50,11 +47,16 @@ async def claims_with_value(request, data_type: str, value: str):
         if i == S.page_size:
             more_results = True
         else:
-            parts.append(f'<span class="row">{claim}</span>')
-    parts.append(pagination(
-        "/types/{data_type}/{value}",
-        page_no,
-        more_results=more_results,
-    ))
-    parts.append("</article>")
-    return "Claims", "".join(parts)
+            claims.append(H.span(str(claim), cls="row"))
+    return "Claims", H.article(
+        H.header(
+            H.h2(f"Claims of {data_type} {TYPES[data_type].display_html(value)}"),
+            TYPES[data_type].value_query_extra(value) if hasattr(TYPES[data_type], "value_query_extra") else None,
+        ),
+        *claims,
+        pagination(
+            "/types/{data_type}/{value}",
+            page_no,
+            more_results=more_results,
+        ),
+    )

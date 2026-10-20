@@ -19,11 +19,11 @@ async def perform_search(request):
     hits = find(
         cur, query, page_size=S.page_size + 1, page_no=page_no - 1
     )
-    parts = ["<article>"]
+    parts = []
     more_results = False
     for i, hit in enumerate(hits):
         if i:
-            parts.append("<br>")
+            parts.append(H.br())
         if i == S.page_size:
             more_results = True
         else:
@@ -37,15 +37,14 @@ async def perform_search(request):
                     parts.append(f"{O.Verb(hit['id'])}")
             else:
                 parts.append(f"TODO: implement for {hit['table_name']}")
-    parts.append(
+    return H.article(
+        *parts,
         pagination(
             f"/search?q={query}",
             page_no=page_no,
             more_results=more_results,
-        )
+        ),
     )
-    parts.append("</article>")
-    return "".join(parts)
 
 
 @search.post("/rebuild")
@@ -54,4 +53,4 @@ async def perform_search(request):
 async def rebuild_search(request):
     cur = conn.cursor()
     rebuild_search_index(cur)
-    return "<em>successfully rebuilt</em>"
+    return H.em("successfully rebuilt")
