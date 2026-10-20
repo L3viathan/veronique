@@ -40,36 +40,29 @@ async def list_queries(request):
     )
 
 
-def _queries_textarea(value=None):
-    return H.div(
-        H.textarea(
-            str(value or ""),
-            id="editing",
-            name="sql",
-            spellcheck="false",
-            oninput="update(this.value); sync_scroll(this);",
-            onscroll="sync_scroll(this);",
-            onload="setTimeout(function(){{update(this.value); sync_scroll(this);}}, 100)",
-        ),
-        H.pre(
-            H.code(
-                str(value or ""),
-                cls="language-sql",
-                id="highlighting-content",
+def _queries_form_elements(query=None):
+    return H(
+        H.input(name="label", placeholder="label", value=query and query.label),
+        H.div(
+            H.textarea(
+                str(query and query.sql or ""),
+                id="editing",
+                name="sql",
+                spellcheck="false",
+                oninput="update(this.value); sync_scroll(this);",
+                onscroll="sync_scroll(this);",
+                onload="setTimeout(function(){{update(this.value); sync_scroll(this);}}, 100)",
             ),
-            id="highlighting",
-            aria_hidden="true",
+            H.pre(
+                H.code(
+                    str(query and query.sql or ""),
+                    cls="language-sql",
+                    id="highlighting-content",
+                ),
+                id="highlighting",
+                aria_hidden="true",
+            ),
         ),
-    )
-
-
-@queries.get("/new")
-@admin_only
-@page
-async def new_query_form(request):
-    return "New query", H.form(
-        H.input(name="label", placeholder="label"),
-        _queries_textarea(),
         H.div(
             H.button(
                 "Preview",
@@ -83,6 +76,15 @@ async def new_query_form(request):
             role="group",
         ),
         H.div("", id="preview"),
+    )
+
+
+@queries.get("/new")
+@admin_only
+@page
+async def new_query_form(request):
+    return "New query", H.form(
+        _queries_form_elements(),
         hx_post="/queries/new",
         hx_encoding="multipart/form-data",
     )
@@ -94,21 +96,7 @@ async def new_query_form(request):
 async def edit_query_form(request, query_id: int):
     query = O.Query(query_id)
     return f"Edit {query.label!r}", H.form(
-        H.input(name="label", placeholder="label", value=query.label),
-        _queries_textarea(query.sql),
-        H.div(
-            H.button(
-                "Preview",
-                cls="secondary",
-                hx_post="/queries/preview",
-                hx_target="#preview",
-                hx_include="#editing",
-                hx_swap="innerMorph",
-            ),
-            H.button("»", type="submit"),
-            role="group",
-        ),
-        H.div("", id="preview"),
+        _queries_form_elements(query),
         hx_put=f"/queries/{query_id}",
         hx_swap="outerMorph",
         hx_encoding="multipart/form-data",
