@@ -219,6 +219,10 @@ async def view_query(request, query_id: int):
         results = display_query_result(result, query_id=query_id)
     else:
         results = None
+    if request.host:
+        qpath = request.url.partition(request.host)[2]
+    else:
+        qpath = request.url.removeprefix("https://").removeprefix("http://")
     return query.label, H.article(
         H.header(
             query.html("heading"),
@@ -228,11 +232,10 @@ async def view_query(request, query_id: int):
         H.div(
             results,
             pagination(
-                request.path,
+                qpath,
                 page_no,
                 more_results=more_results,
             ) if results else None,
-            H.p(f"{request.url=!r}, {request.host=!r}, {request.path=!r}"),
             id="queryresults",
         ),
     )
