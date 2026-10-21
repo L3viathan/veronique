@@ -228,10 +228,11 @@ async def view_query(request, query_id: int):
         H.div(
             results,
             pagination(
-                request.url.partition(request.host)[2],
+                request.path,
                 page_no,
                 more_results=more_results,
             ) if results else None,
+            H.p(f"{request.url=!r}, {request.host=!r}, {request.path=!r}"),
             id="queryresults",
         ),
     )
