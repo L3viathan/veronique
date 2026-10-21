@@ -1717,6 +1717,7 @@ class User(Model):
                         self.name,
                         href=f"/users/{self.id}",
                     ),
+                    ")",
                 )
             return H.a(self.name, href=f"/users/{self.id}")
         elif fmt == "session":

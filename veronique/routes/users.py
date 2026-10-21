@@ -7,7 +7,7 @@ from veronique.autocomplete import AUTOCOMPLETES
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import IS_A, ROOT
-from veronique.html import H
+from veronique.html import H, join
 from veronique.settings import settings as S
 from veronique.utils import admin_only, page, pagination
 
@@ -33,8 +33,8 @@ async def list_users(request):
             users.append(
                 H.tr(
                     H.td(str(user.id)),
-                    H.td(f"{user:link}"),
-                    H.td(f"{user:session}"),
+                    H.td(user.html("link")),
+                    H.td(user.html("session")),
                     H.td(
                         H.button(
                             "Impersonate",
@@ -244,15 +244,15 @@ async def view_user(request, user_id: int):
     user = O.User(user_id)
     return user.name, H.article(
         H.header(
-            H.h3(f"{user:heading}"),
-            f"{user:hamburger}",
+            H.h3(user.html("heading")),
+            user.html("hamburger"),
         ),
         H.table(
-            H.tr(H.th("Session", scope="row"), H.td(f"{user:session}")),
+            H.tr(H.th("Session", scope="row"), H.td(user.html("session"))),
             H.tr(H.th("Admin", scope="row"), H.td(TYPES["boolean"].display_html(user.is_admin))),
             H.tr(H.th("Redact", scope="row"), H.td(TYPES["boolean"].display_html(user.redact))),
-            H.tr(H.th("Readable verbs", scope="row"), H.td(", ".join(str(O.Verb(v)) for v in (user.readable_verbs or []) if v >= 0))),
-            H.tr(H.th("Writable verbs", scope="row"), H.td(", ".join(str(O.Verb(v)) for v in (user.writable_verbs or []) if v >= 0))),
-            H.tr(H.th("Viewable queries", scope="row"), H.td(", ".join(str(O.Verb(v)) for v in (user.viewable_queries or []) if v >= 0))),
+            H.tr(H.th("Readable verbs", scope="row"), H.td(*join(", ", (O.Verb(v).html() for v in (user.readable_verbs or []) if v >= 0)))),
+            H.tr(H.th("Writable verbs", scope="row"), H.td(*join(", ", (O.Verb(v).html() for v in (user.writable_verbs or []) if v >= 0)))),
+            H.tr(H.th("Viewable queries", scope="row"), H.td(*join(", ", (O.Verb(v).html() for v in (user.viewable_queries or []) if v >= 0)))),
         )
     )
