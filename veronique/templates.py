@@ -23,7 +23,7 @@ def TEMPLATE(title, news, gotos, user, content, errors):
                     function update(text) {
                       let result_element = document.querySelector("#highlighting-content");
                       // Handle final newlines (see https://css-tricks.com/creating-an-editable-textarea-that-supports-syntax-highlighted-code/)
-                      if(text[text.length-1] == "\n") {
+                      if(text[text.length-1] == "\\n") {
                         text += " ";
                       }
                       result_element.innerHTML = text.replace(new RegExp("&", "g"), "&amp;").replace(new RegExp("<", "g"), "&lt;");

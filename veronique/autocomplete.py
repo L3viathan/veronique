@@ -1,3 +1,5 @@
+from veronique.html import H
+
 AUTOCOMPLETES = {}
 
 
@@ -8,25 +10,30 @@ class Autocomplete:
 
 class input_ref_widget(Autocomplete):
     def widget(self, data=None):
-        return f"""
-            <div class="ac-widget">
-                <fieldset role="group">
-                <input
-                    name="ac-query"
-                    placeholder="Start typing..."
-                    hx-get="/autocomplete/input_ref_widget/query/{data}"
-                    hx-target="next .ac-results"
-                    hx-swap="innerMorph"
-                    hx-trigger="input changed delay:200ms, search"
-                    autocomplete="pleaseno"
-                    autofocus
-                >
-                <input type="button" value="x" hx-swap="outerMorph" hx-target=".ac-widget" hx-get="/types/text">
-                </fieldset>
-                <div class="ac-results">
-                </div>
-            </div>
-        """
+        return H.div(
+            H.fieldset(
+                H.input(
+                    name="ac-query",
+                    placeholder="Start typing...",
+                    hx_get=f"/autocomplete/input_ref_widget/query/{data}",
+                    hx_target="next .ac-results",
+                    hx_swap="innerMorph",
+                    hx_trigger="input changed delay:200ms, search",
+                    autocomplete="pleaseno",
+                    autofocus=True,
+                ),
+                H.input(
+                    type="button",
+                    value="x",
+                    hx_swap="outerMorph",
+                    hx_target=".ac-widget",
+                    hx_get="/types/text",
+                ),
+                role="group",
+            ),
+            H.div("", cls="ac-results"),
+            cls="ac-widget",
+        )
 
     def get_results(self, query, connect):
         import veronique.objects as O
@@ -36,38 +43,39 @@ class input_ref_widget(Autocomplete):
             q=query,
             page_size=5,
         )
-        return f"""
-        {"".join(f'''<a
-            class="clickable ac-result"
-            hx-target="closest .ac-widget"
-            hx-swap="outerMorph"
-            hx-get="/autocomplete/input_ref_widget/accept/{claim.id}"
-        >{claim:label}</a>
-        ''' for claim in claims)}
-        """
+        return H(
+            *(
+                H.a(
+                    claim.html("label"),
+                    cls="clickable ac-result",
+                    hx_target="closest .ac-widget",
+                    hx_swap="outerMorph",
+                    hx_get=f"/autocomplete/input_ref_widget/accept/{claim.id}",
+                )
+                for claim in claims
+            )
+        ),
 
     def accept(self, claim_id):
         import veronique.objects as O
         claim = O.Claim(int(claim_id))
-        return f"{claim:input-widget-ref}&nbsp;"
+        return H(claim.html("input-widget-ref"), "&nbsp;")
 
 
 class link(Autocomplete):
     def widget(self, data=None):
-        return f"""
-            <div class="ac-widget">
-                <input
-                    name="ac-query"
-                    placeholder="Start typing..."
-                    hx-get="/autocomplete/link/query/{data}"
-                    hx-target="next .ac-results"
-                    hx-swap="innerMorph"
-                    hx-trigger="input changed delay:200ms, search"
-                >
-                <div class="ac-results">
-                </div>
-            </div>
-        """
+        return H.div(
+            H.input(
+                name="ac-query",
+                placeholder="Start typing...",
+                hx_get=f"/autocomplete/link/query/{data}",
+                hx_target="next .ac-results",
+                hx_swap="innerMorph",
+                hx_trigger="input changed delay:200ms, search",
+            ),
+            H.div("", cls="ac-results"),
+            cls="ac-widget",
+        )
 
     def get_results(self, query, connect):
         import veronique.objects as O
@@ -77,46 +85,51 @@ class link(Autocomplete):
             q=query,
             page_size=5,
         )
-        return f"""
-        {"".join(f'''<a
-            class="clickable ac-result"
-            hx-target="closest .ac-widget"
-            hx-swap="outerMorph"
-            hx-get="/autocomplete/link/accept/{claim.id}"
-        >{claim:label}</a>
-        ''' for claim in claims)}
-        {f'''<a class="clickable" href="/claims/new-entity?connect={connect}&name={query}">
-            <em>Create</em> {query} <em> claim...</em>
-        </a>''' if connect is not None else ''}
-        """
+        return H(
+            *(
+                H.a(
+                    claim.html("label"),
+                    cls="clickable ac-result",
+                    hx_target="closest .ac-widget",
+                    hx_swap="outerMorph",
+                    hx_get=f"/autocomplete/link/accept/{claim.id}",
+                ) for claim in claims
+            ),
+            H.a(
+                H.em("Create"),
+                f" {query} ",
+                H.em("claim..."),
+                cls="clickable",
+                href=f"/claims/new-entity?connect={connect}&name={query}",
+            ) if connect is not None else None
+        )
 
     def accept(self, claim_id):
         import veronique.objects as O
         claim = O.Claim(int(claim_id))
-        return f"""
-        <span class="ac-result">{claim}</span>
-        <input type="hidden" name="value" value="{claim_id}">
-        """
+        return H(
+            H.span(claim.html(), cls="ac-result"),
+            H.input(type="hidden", name="value", value=str(claim_id)),
+        )
 
 
 class multiselect(Autocomplete):
     def widget(self, data=None):
-        return f"""
-            <div class="ac-widget">
-                <input
-                    name="ac-query"
-                    placeholder="Start typing..."
-                    hx-get="/autocomplete/multiselect/query/{data}"
-                    hx-target="next .ac-results"
-                    hx-swap="innerMorph"
-                    hx-trigger="input changed delay:200ms, search"
-                >
-                <div class="ac-results">
-                </div>
-            </div>
-            <div class="ac-hits">
-            </div>
-        """
+        return H(
+            H.div(
+                H.input(
+                    name="ac-query",
+                    placeholder="Start typing...",
+                    hx_get=f"/autocomplete/multiselect/query/{data}",
+                    hx_target="next .ac-results",
+                    hx_swap="innerMorph",
+                    hx_trigger="input changed delay:200ms, search",
+                ),
+                H.div("", cls="ac-results"),
+                cls="ac-widget",
+            ),
+            H.div("", cls="ac-hits"),
+        )
 
     def get_results(self, query, connect):
         import veronique.objects as O
@@ -126,53 +139,45 @@ class multiselect(Autocomplete):
             q=query,
             page_size=5,
         )
-        return "".join(f'''<a
-            class="clickable ac-result"
-            hx-target="next .ac-hits"
-            hx-swap="beforeend"
-            hx-get="/autocomplete/multiselect/accept/{claim.id}"
-        >{claim:label}</a>
-        ''' for claim in claims)
+        return H(
+            *(
+                H.a(
+                    claim.html("label"),
+                    cls="clickable ac-result",
+                    hx_target="next .ac-hits",
+                    hx_swap="beforeend",
+                    hx_get=f"/autocomplete/multiselect/accept/{claim.id}",
+                )
+                for claim in claims
+            )
+        )
 
     def accept(self, claim_id):
         import veronique.objects as O
         claim = O.Claim(int(claim_id))
-        return f"""
-        <span class="ac-result">{claim}</span>
-        <input type="hidden" name="value" value="{claim_id}">
-        """
+        H(
+            H.span(claim.html(), cls="ac-result"),
+            H.input(type="hidden", name="value", value=str(claim_id)),
+        )
 
 
 class merge(Autocomplete):
     def widget(self, data=None):
-        return f"""
-            <fieldset class="grid">
-            <div class="ac-widget">
-                <input
-                    name="ac-query"
-                    placeholder="start typing..."
-                    hx-get="/autocomplete/merge/query/{data}"
-                    hx-target="next .ac-results"
-                    hx-swap="innerhtml"
-                    hx-trigger="input changed delay:200ms, search"
-                >
-                <div class="ac-results">
-                </div>
-            </div>
-            <div class="ac-widget">
-                <input
-                    name="ac-query"
-                    placeholder="start typing..."
-                    hx-get="/autocomplete/merge/query/{data}"
-                    hx-target="next .ac-results"
-                    hx-swap="innerhtml"
-                    hx-trigger="input changed delay:200ms, search"
-                >
-                <div class="ac-results">
-                </div>
-            </div>
-            </fieldset>
-        """
+        return H.fieldset(
+            *([H.div(
+                H.input(
+                    name="ac-query",
+                    placeholder="start typing...",
+                    hx_get=f"/autocomplete/merge/query/{data}",
+                    hx_target="next .ac-results",
+                    hx_swap="innerhtml",
+                    hx_trigger="input changed delay:200ms, search",
+                ),
+                H.div("", cls="ac-results"),
+                cls="ac-widget",
+            )]*2),
+            cls="grid",
+        )
 
     def get_results(self, query, connect):
         import veronique.objects as O
@@ -182,62 +187,67 @@ class merge(Autocomplete):
             q=query,
             page_size=5,
         )
-        return "".join(f'''<a
-            class="clickable ac-result"
-            hx-target="closest .ac-widget"
-            hx-swap="outerMorph"
-            hx-get="/autocomplete/merge/accept/{claim.id}"
-        >{claim:label}</a>
-        ''' for claim in claims)
+        return H(
+            *(
+                H.a(
+                    claim.html("label"),
+                    cls="clickable ac-result",
+                    hx_target="closest .ac-widget",
+                    hx_swap="outerMorph",
+                    hx_get=f"/autocomplete/merge/accept/{claim.id}",
+                ) for claim in claims
+            )
+        )
 
     def accept(self, claim_id):
         import veronique.objects as O
         claim = O.Claim(int(claim_id))
-        return f"""
-        <span class="ac-result">{claim}</span>
-        <input type="hidden" name="value" value="{claim_id}">
-        """
+        return H(
+            H.span(claim.html(), cls="ac-result"),
+            H.input(type="hidden", name="value", value=str(claim_id)),
+        )
 
 
 class entity(Autocomplete):
     def widget(self, data=None):
-        return f"""
-            <div class="ac-widget">
-                <input
-                    name="ac-query"
-                    placeholder="Start typing..."
-                    hx-get="/autocomplete/entity/query/{data}"
-                    hx-target="next .ac-results"
-                    hx-swap="innerMorph"
-                    hx-trigger="input changed delay:200ms, search"
-                >
-                <div class="ac-results">
-                </div>
-            </div>
-        """
+        return H.div(
+            H.input(
+                name="ac-query",
+                placeholder="Start typing...",
+                hx_get=f"/autocomplete/entity/query/{data}",
+                hx_target="next .ac-results",
+                hx_swap="innerMorph",
+                hx_trigger="input changed delay:200ms, search",
+            ),
+            H.div("", cls="ac-results"),
+            cls="ac-widget",
+        )
 
     def get_results(self, query, connect):
         import veronique.objects as O
         if not query:
-            return ""
+            return None
         claims = O.Claim.search(
             q=query,
             page_size=5,
         )
-        return f"""
-        {"".join(f'''<a
-            class="clickable ac-result"
-            hx-target="closest .ac-widget"
-            hx-swap="outerMorph"
-            hx-get="/autocomplete/entity/accept/{claim.id}"
-        >{claim:label}</a>
-        ''' for claim in claims)}
-        """
+        return H(
+            *(
+                H.a(
+                    claim.html("label"),
+                    cls="clickable ac-result",
+                    hx_target="closest .ac-widget",
+                    hx_swap="outerMorph",
+                    hx_get="/autocomplete/entity/accept/{claim.id}",
+                )
+                for claim in claims
+            )
+        )
 
     def accept(self, claim_id):
         import veronique.objects as O
         claim = O.Claim(int(claim_id))
-        return f"""
-        <span class="ac-result">{claim}</span>
-        <input type="hidden" name="entity_id" value="{claim_id}">
-        """
+        return H(
+            H.span(claim.html(), cls="ac-result"),
+            H.input(type="hidden", name="entity_id", value=str(claim_id)),
+        )
