@@ -108,7 +108,7 @@ for singular, plural, model in (
     ("c", "cs", O.Claim),
     ("v", "vs", O.Verb),
 ):
-    SPECIAL_COL_NAMES[singular] = lambda value, model=model: model(int(value))
+    SPECIAL_COL_NAMES[singular] = lambda value, model=model: str(model(int(value)))
     SPECIAL_COL_NAMES[plural] = lambda value, model=model: ", ".join(
         str(model(int(part))) for part in value.split(",")
     )
