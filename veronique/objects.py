@@ -1,3 +1,4 @@
+import graphlib
 import json
 import re
 from collections import Counter
@@ -1890,6 +1891,17 @@ class Inferable:
 
             conditions.append((n, subj, verb_id, obj))
 
+        graph = {}
+        for c1, c2 in combinations(conditions, 2):
+            if {c1[1], c1[3]} & {c2[1], c2[3]}:  # shared references
+                graph.setdefault(min(c1[0], c2[0]), set()).add(max(c1[0], c2[0]))
+
+        new_conditions = []
+        for n in graphlib.TopologicalSorter(graph).static_order():
+            new_conditions.append(conditions[n-1])
+
+        conditions = new_conditions
+
         parts = []
 
         for conditions in self._get_condition_variants(conditions):
@@ -1930,7 +1942,7 @@ class Inferable:
             labels[slab] = f"cond{cid}.subject_id"
             labels[olab] = f"cond{cid}.object_id"
         parts = [
-            f"SELECT DISTINCT({labels['that']}) AS id FROM claims cond1"
+            f"SELECT DISTINCT({labels['that']}) AS id FROM claims cond{conditions[0][0]}"
         ]
         for cond_id, db_join in joins:
             parts.append(f"LEFT JOIN claims cond{cond_id} ON {db_join}")
