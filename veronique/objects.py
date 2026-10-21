@@ -1929,8 +1929,8 @@ class Inferable:
         parts = [
             f"SELECT DISTINCT({labels['that']}) AS id FROM claims cond1"
         ]
-        for cond_id, join in joins:
-            parts.append(f"LEFT JOIN claims cond{cond_id} ON {join}")
+        for cond_id, db_join in joins:
+            parts.append(f"LEFT JOIN claims cond{cond_id} ON {db_join}")
         parts.append(f"WHERE {labels['this']}=:this")
         for cond_id, sname, vid, oname in conditions:
             parts.append(f"AND cond{cond_id}.verb_id = {vid}")

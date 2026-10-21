@@ -150,7 +150,7 @@ class inferred(DataType):
                         **hxall,
                     ),
                     H.select(
-                        *(H.option(verb.label, value=str(verb.id), selected=verb.id==selected_verb) for verb in verbs),
+                        *(H.option(verb.label, value=str(verb.id), selected=verb.id==selected_verb_id) for verb in verbs),
                         name=f"g{n}v",
                         **hxall,
                     ),
@@ -718,7 +718,7 @@ class email(DataType):
             return H.span(
                 H.a(
                     "mail@example.com",
-                    href=f"mailto:mail@example.com",
+                    href="mailto:mail@example.com",
                 ),
                 cls="type-email",
             )

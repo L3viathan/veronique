@@ -242,6 +242,24 @@ async def stop_impersonating(request):
 @page
 async def view_user(request, user_id: int):
     user = O.User(user_id)
+    readable_verbs, writable_verbs, viewable_queries = [], [], []
+    for v in user.readable_verbs or []:
+        if v < 0:
+            continue
+        try:
+            readable_verbs.append(O.Verb(v))
+        except ValueError:
+            continue
+    for v in user.writable_verbs or []:
+        try:
+            writable_verbs.append(O.Verb(v))
+        except ValueError:
+            continue
+    for v in user.viewable_queries or []:
+        try:
+            viewable_queries.append(O.Query(v))
+        except ValueError:
+            continue
     return user.name, H.article(
         H.header(
             H.h3(user.html("heading")),
@@ -251,8 +269,8 @@ async def view_user(request, user_id: int):
             H.tr(H.th("Session", scope="row"), H.td(user.html("session"))),
             H.tr(H.th("Admin", scope="row"), H.td(TYPES["boolean"].display_html(user.is_admin))),
             H.tr(H.th("Redact", scope="row"), H.td(TYPES["boolean"].display_html(user.redact))),
-            H.tr(H.th("Readable verbs", scope="row"), H.td(*join(", ", (O.Verb(v).html() for v in (user.readable_verbs or []) if v >= 0)))),
-            H.tr(H.th("Writable verbs", scope="row"), H.td(*join(", ", (O.Verb(v).html() for v in (user.writable_verbs or []) if v >= 0)))),
-            H.tr(H.th("Viewable queries", scope="row"), H.td(*join(", ", (O.Verb(v).html() for v in (user.viewable_queries or []) if v >= 0)))),
+            H.tr(H.th("Readable verbs", scope="row"), H.td(*join(", ", (v.html() for v in readable_verbs)))),
+            H.tr(H.th("Writable verbs", scope="row"), H.td(*join(", ", (v.html() for v in writable_verbs)))),
+            H.tr(H.th("Viewable queries", scope="row"), H.td(*join(", ", (q.html() for q in viewable_queries)))),
         )
     )
