@@ -10,11 +10,9 @@ from veronique.context import context
 from veronique.db import ROOT
 from veronique.html import Tag, H
 from veronique.settings import settings as S
+from veronique.templates import TEMPLATE
 
 startup_time = datetime.now()
-
-with open("data/template.html") as f:
-    TEMPLATE = f.read().format
 
 def _error(msg):
     return H.aside(
@@ -169,14 +167,14 @@ def page(fn):
             ),
         )
         return html(
-            TEMPLATE(
+            str(TEMPLATE(
                 title=title,
-                content=str(ret),
-                gotos=str(H(*gotos)),
-                news=str(news),
-                user=str(user),
-                errors=str(_error(request.args["err"][0]) if "err" in request.args else ""),
-            )
+                content=ret,
+                gotos=gotos,
+                news=news,
+                user=user,
+                errors=_error(request.args["err"][0]) if "err" in request.args else None,
+            ))
         )
 
     return wrapper

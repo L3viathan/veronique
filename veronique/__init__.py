@@ -1,7 +1,8 @@
 import re
 from datetime import datetime
 
-from sanic import Sanic, file, html, redirect
+from sanic import Sanic, file, redirect
+from sanic import html as sanic_html  # Why the fuck is this needed?
 
 import veronique.objects as O
 from veronique import security
@@ -21,6 +22,7 @@ from veronique.routes import (
     verbs,
 )
 from veronique.utils import D
+from veronique.templates import LOGIN
 
 app = Sanic("Veronique")
 app.blueprint(claims)
@@ -34,9 +36,6 @@ app.blueprint(search)
 app.blueprint(tools)
 app.blueprint(types)
 app.blueprint(autocomplete)
-
-with open("data/login.html") as f:
-    LOGIN = f.read().format
 
 
 @app.on_request
@@ -100,7 +99,7 @@ async def login(request):
         then = request.args.get("then")
     else:
         then = ""
-    return html(LOGIN(then=then))
+    return sanic_html(str(LOGIN(then=then)))
 
 
 @app.post("/login")
