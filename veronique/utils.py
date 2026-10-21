@@ -8,7 +8,7 @@ from sanic import HTTPResponse, html
 
 from veronique.context import context
 from veronique.db import ROOT
-from veronique.html import Tag, H
+from veronique.html import H, Tag
 from veronique.settings import settings as S
 from veronique.templates import TEMPLATE
 

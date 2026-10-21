@@ -21,8 +21,8 @@ from veronique.routes import (
     users,
     verbs,
 )
-from veronique.utils import D
 from veronique.templates import LOGIN
+from veronique.utils import D
 
 app = Sanic("Veronique")
 app.blueprint(claims)

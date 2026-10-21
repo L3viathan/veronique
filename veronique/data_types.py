@@ -8,7 +8,7 @@ from datetime import date as dt_date
 from datetime import timedelta
 from functools import partial
 from html import escape
-from itertools import count, combinations
+from itertools import combinations, count
 from pathlib import Path
 from random import randint
 from types import SimpleNamespace
