@@ -46,7 +46,7 @@ def TEMPLATE(title, news, gotos, user, content, errors):
                             H.li(
                                 H.a(
                                     H.img(id="logo", src="/static/veronique.svg", alt="Logo"),
-                                    "/",
+                                    href="/",
                                 ),
                             ),
                         ),
