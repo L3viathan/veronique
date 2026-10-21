@@ -39,7 +39,7 @@ class Tag:
                 yield from child.serialize()
             else:
                 yield child  # strings
-        if self.children:
+        if self.children and self.tag is not None:
             yield f"</{self.tag}>"
 
 
