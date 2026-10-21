@@ -34,7 +34,7 @@ async def list_verbs(request):
         if i == S.page_size:
             more_results = True
         elif verb.id != ROOT:
-            verbs.append(H.span(f"{verb:full}", cls="row"))
+            verbs.append(H.span(verb.html("full"), cls="row"))
     return "Verbs", H.article(
         *verbs,
         pagination(
@@ -117,7 +117,11 @@ async def view_verb(request, verb_id: int):
         else:
             claims.append(H.span(str(claim), cls="row"))
     return verb.label, H.article(
-        H.header(f"{verb:heading}", f"{verb:hamburger}", f"{verb:detail}"),
+        H.header(
+            verb.html("heading"),
+            verb.html("hamburger"),
+            verb.html("detail"),
+        ),
         H.div("", id="edit-area"),
         *claims,
         pagination(
@@ -135,7 +139,7 @@ async def edit_verb_form(request, verb_id: int):
     verb = O.Verb(verb_id)
     return H.form(
         H.input(name="label", value=verb.label),
-        f"{verb:edit}",
+        verb.html("edit"),
         H.button("»", type="submit"),
         action=f"/verbs/{verb_id}/edit",
         method="POST",

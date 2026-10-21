@@ -7,7 +7,7 @@ class Tag:
         self.tag = tag
         self.children = children
         self.attributes = {
-            k.replace("_", "-"): v
+            k.replace("__", ":").replace("_", "-"): v
             for k, v in attributes.items()
         }
         if "cls" in self.attributes:
@@ -54,3 +54,12 @@ class H:
         pseudo-tag None, which can't otherwise exist.
         """
         return Tag(None, *children)
+
+
+def join(joiner, joinees):
+    yielded = False
+    for joinee in joinees:
+        if yielded:
+            yield joiner
+        yield joinee
+        yielded = True

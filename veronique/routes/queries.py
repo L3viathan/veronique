@@ -29,7 +29,7 @@ async def list_queries(request):
         if i == S.page_size:
             more_results = True
         else:
-            queries.append(H.span(f"{query:full}", cls="row"))
+            queries.append(H.span(query.html("full"), cls="row"))
     return "Queries", H.article(
         *queries,
         pagination(
@@ -220,7 +220,11 @@ async def view_query(request, query_id: int):
     else:
         results = None
     return query.label, H.article(
-        H.header(f"{query:heading}", f"{query:hamburger}", form_elements),
+        H.header(
+            query.html("heading"),
+            query.html("hamburger"),
+            form_elements,
+        ),
         H.div(
             results,
             pagination(

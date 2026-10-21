@@ -150,7 +150,7 @@ def page(fn):
         user = f"""
         <li>
             <details class="dropdown">
-                <summary>{mobile(user_emoji, f"{context.user:label}")}</summary>
+                <summary>{mobile(user_emoji, f"{context.user.html('label')}")}</summary>
                 <ul dir="rtl">
                     {
                     '<li><a href="#" hx-post="/users/stop-impersonating">Stop impersonation</a></li>'

@@ -43,7 +43,7 @@ async def new_entity_form(request):
             H.input(name="name", placeholder="name", value=name),
             H.select(
                 H.option("(None)", value=""),
-                *(H.option(f"{cat:label}", value=str(cat.id), selected=i==0) for i, cat in enumerate(categories)),
+                *(H.option(cat.html("label"), value=str(cat.id), selected=i==0) for i, cat in enumerate(categories)),
                 name="category",
             ),
             connect_info,
@@ -365,8 +365,8 @@ async def view_claim_network(request, claim_id: int):
                 claims.append(outgoing.subject)
     colormap = defaultdict(lambda: 1)
     colormap[claim_id] = 2
-    return f"{claim:label}", H.article(
-        H.header(f"{claim:handle}", f"{claim:heading}"),
+    return claim.html("label"), H.article(
+        H.header(claim.html("handle"), claim.html("heading")),
         network_widget(claims, links_go_to="network", colormap=colormap, freeze_after=log(len(claims))),
         cls="network",
     )
@@ -402,8 +402,12 @@ async def view_claim(request, claim_id: int):
         more_results = True
     else:
         more_results = False
-    return f"{claim:label}", H.article(
-        H.header(f"{claim:heading}", f"{claim:avatar}" if claim.is_entity else None, f"{claim:hamburger}"),
+    return claim.html("label"), H.article(
+        H.header(
+            claim.html("heading"),
+            claim.html("avatar") if claim.is_entity else None,
+            claim.html("hamburger"),
+        ),
         H.div("", id="edit-area"),
         H.table(
             H.tr(
@@ -427,11 +431,11 @@ async def view_claim(request, claim_id: int):
             ),
             H.tr(
                 H.td(
-                    *(H.span(f"{c:sv}", cls="row") for c in incoming_claims),
+                    *(H.span(c.html("sv"), cls="row") for c in incoming_claims),
                 ),
                 H.td(
-                    *(H.span(f"{c:vo:{claim_id}}", cls="row") for c in outgoing_claims if c.verb.id not in (IS_A, AVATAR, COMMENT)),
-                    *(H.span(f"{c:vo:{claim_id}}", cls="row") for c in claim.outgoing_inferred_claims()),
+                    *(H.span(c.html(f"vo:{claim_id}"), cls="row") for c in outgoing_claims if c.verb.id not in (IS_A, AVATAR, COMMENT)),
+                    *(H.span(c.html(f"vo:{claim_id}"), cls="row") for c in claim.outgoing_inferred_claims()),
                 ),
                 cls="claims",
             ),
@@ -445,7 +449,7 @@ async def view_claim(request, claim_id: int):
         H.footer(
             H(
                 H.table(
-                    *(f"{c:comment}" for c in comments),
+                    *(c.html("comment") for c in comments),
                     cls="comments",
                 ),
             ) if comments else None,

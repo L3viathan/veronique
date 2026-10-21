@@ -20,6 +20,7 @@ from veronique.db import (
     VALID_FROM,
     VALID_UNTIL,
 )
+from veronique.html import H, join
 from veronique.nomnidate import NonOmniscientDate
 from veronique.search import find, update_index_for_doc
 from veronique.security import hash_password, sign
@@ -210,52 +211,66 @@ class Verb(Model):
         ).fetchall():
             yield cls(row["id"])
 
-    def __format__(self, fmt):
+    def html(self, fmt=None):
         if not context.user.can("read", "verb", self.id):
-            return "(unknown verb)"
+            return H("(unknown verb)")
         if fmt == "full":
-            return f"""<span class="verb">
-                <a class="clickable" href="/verbs/{self.id}">{self.name}</a>
-                {self.data_type}</span>"""
+            return H.span(
+                H.a(
+                    self.name,
+                    href=f"/verbs/{self.id}",
+                    cls="clickable",
+                ),
+                " ",
+                str(self.data_type),
+                cls="verb",
+            )
         elif fmt == "hamburger":
             parts = []
             if context.user.is_admin:
-                parts.append(f'''<li><a
-                        hx-target="#edit-area"
-                        hx-get="/verbs/{self.id}/edit"
-                    ><i>✎</i> Edit</a></li>'''
-                )
+                parts.append(H.li(
+                    H.a(
+                        H.i("✎"),
+                        " Edit",
+                        hx_target="#edit-area",
+                        hx_get=f"/verbs/{self.id}/edit",
+                    ),
+                ))
                 if self.deletable:
-                    parts.append(f'''<li><a
-                            hx-target="#edit-area"
-                            hx-delete="/verbs/{self.id}"
-                            hx-confirm="Are you sure you want to delete this verb?"
-                        ><i>\N{WASTEBASKET}\ufe0e</i> Delete</a></li>'''
-                    )
+                    parts.append(H.li(
+                        H.a(
+                            H.i("\N{WASTEBASKET}\ufe0e"),
+                            " Delete",
+                            hx_target="#edit-area",
+                            hx_delete=f"/verbs/{self.id}",
+                            hx_confirm="Are you sure you want to delete this verb?",
+                        )
+                    ))
             if parts:
-                return f"""
-                <details class="dropdown hamburger">
-                    <summary>☰</summary>
-                    <ul dir="rtl">
-                        {"".join(parts)}
-                    </ul>
-                </details>
-                """
+                return H.details(
+                    H.summary("☰"),
+                    H.ul(
+                        *parts,
+                        dir="rtl",
+                    ),
+                    cls="dropdown hamburger",
+                )
             else:
-                return ""
+                return None
         elif fmt == "heading":
-            return f"""<h2>{self.name}</h2>"""
+            return H.h2(self.name)
         elif fmt == "detail":
             return self.data_type.detail_for(self)
         elif fmt == "edit":
             if hasattr(self.data_type, "edit_verb_form"):
                 return self.data_type.edit_verb_form(self)
-            return ""
+            return None
         else:
-            return f"""<a
-                class="clickable verb"
-                href="/verbs/{self.id}"
-            >{self.name}</a>"""
+            return H.a(
+                self.name,
+                cls="clickable verb",
+                href=f"/verbs/{self.id}",
+            )
 
     def edit(self, form):
         self.data_type.edit_verb(self, form)
@@ -302,9 +317,6 @@ class Verb(Model):
         # This is needed because even though we clear the _verb_ cache cached
         # users can still have permissions for now dead verbs.
         User._cache.clear()
-
-    def __str__(self):
-        return f"{self}"
 
     def can_turn_into(self, other):
         dt_name1 = type(self.data_type).__name__
@@ -859,19 +871,26 @@ class Claim(Model):
         src_id = f"--source-{self.id}"
         sources = []
         for source in data[SOURCE]:
-            sources.append(f"{source:handle} {source.object}")
-        return (
-            f""" <button
-                class="source-button"
-                command="toggle-popover"
-                commandfor="source-{self.id}"
-                interestfor="source-{self.id}"
-                style="anchor-name: {src_id};"
-            >\N{SPEECH BALLOON}</button>""",
-            f"""<div id="source-{self.id}" popover="hint" class="inline-source" style="position-anchor: {src_id};">
-                {"<br>".join(sources)}
-            </div>
-            """
+            if sources:
+                sources.append(H.br())
+            sources.append(H(
+                source.html("handle"),
+                " ",
+                source.object.html(),
+            ))
+        return H.button(
+            "\N{SPEECH BALLOON}",
+            cls="source-button",
+            command="toggle-popover",
+            commandfor=f"source-{self.id}",
+            interestfor=f"source-{self.id}",
+            style=f"anchor-name: {src_id};",
+        ), H.div(
+            *sources,
+            id=f"source-{self.id}",
+            popover="hint",
+            cls="inline-source",
+            style=f"position-anchor: {src_id};",
         )
 
     def _get_remarks(self, data):
@@ -890,9 +909,9 @@ class Claim(Model):
         remarks.sort(key=lambda s: s.split()[-1])
 
         if remarks:
-            remarks = f' data-tooltip="{", ".join(remarks)}"'
+            remarks = {"data_tooltip": ", ".join(remarks)}
         else:
-            remarks = ""
+            remarks = {}
         return f" {' '.join(css_classes)}" if css_classes else "", remarks
 
     def _is_valid(self, data):
@@ -936,74 +955,171 @@ class Claim(Model):
     def is_entity(self):
         return self.verb.id == ROOT
 
-    def __format__(self, fmt):
+    def html(self, fmt=None):
         if not context.user.can("read", "verb", self.verb.id):
-            return "(unknown claim)"
+            return H("(unknown claim)")
         data = self.get_data()
         css_classes, remarks = self._get_remarks(data)
         source_button, source_popover = self._get_source(data)
         if fmt == "label":
             if self.is_entity and not context.user.redact:
-                return self.object.value
+                return H(self.object.value)
             else:
-                return f"Claim #{self.id}"
+                return H(f"Claim #{self.id}")
         elif not fmt or fmt == "nested":
             if self.is_entity and not context.user.redact:
-                return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatarsmall}{escape(self.object.value)}</a>'
+                return H.a(
+                    self.html("avatarsmall"),
+                    escape(self.object.value),
+                    **remarks,
+                    cls=f"claim-link{css_classes}",
+                    href=f"/claims/{self.id}",
+                )
             elif self.is_entity:
-                return f'<a{remarks} class="claim-link{css_classes}" href="/claims/{self.id}">{self:avatarsmall}Claim #{self.id}</a>'
+                return H.a(
+                    self.html("avatarsmall"),
+                    f"Claim #{self.id}",
+                    **remarks,
+                    cls=f"claim-link{css_classes}",
+                    href=f"/claims/{self.id}",
+                )
             elif fmt == "nested":
-                return f'<span{remarks} class="svo nested{css_classes}">{self:handle}{self.subject:nested} {self.verb:nested} {self.object:nested}</span>'
+                return H.span(
+                    self.html("handle"),
+                    self.subject.html("nested"),
+                    " ",
+                    self.verb.html("nested"),
+                    " ",
+                    self.object.html("nested"),
+                    cls=f"svo nested{css_classes}",
+                    **remarks,
+                )
             else:
-                return f'<span{remarks} class="svo{css_classes}">{self:handle}{self.subject:nested} {self.verb:nested} {self.object:nested}{source_button}</span>{source_popover}'
+                return H(
+                    H.span(
+                        self.html("handle"),
+                        self.subject.html("nested"),
+                        " ",
+                        self.verb.html("nested"),
+                        " ",
+                        self.object.html("nested"),
+                        source_button,
+                        cls=f"svo{css_classes}",
+                        **remarks,
+                    ),
+                    source_popover,
+                )
         elif fmt == "input-widget-ref":
             if self.is_entity and not context.user.redact:
-                return f'<span contenteditable="false" data-claim-ref="{self.id}" class="input-widget-ref">{self:avatarsmall}{escape(self.object.value)}</span>'
+                return H.span(
+                    self.html("avatarsmall"),
+                    escape(self.object.value),
+                    contenteditable="false",
+                    data_claim_ref=str(self.id),
+                    cls="input-widget-ref",
+                )
             else:
-                return f'<span contenteditable="false" data-claim-ref="{self.id}" class="input-widget-ref">Claim #{self.id}</span>'
+                return H.span(
+                    f"Claim #{self.id}",
+                    contenteditable="false",
+                    data_claim_ref=str(self.id),
+                    cls="input-widget-ref",
+                )
         elif fmt == "heading":
             if context.user.can("write", "verb", IS_A):
-                new_cat = f"""<span
-                    class="clickable new-cat"
-                    hx-get="/claims/new/verb?verb={IS_A}&claim_ids={self.id}&direction=outgoing&standalone=1"
-                    hx-target="#edit-area"
-                >, +</span>"""
+                new_cat = H.span(
+                    ", +",
+                    cls="clickable new-cat",
+                    hx_get=f"/claims/new/verb?verb={IS_A}&claim_ids={self.id}&direction=outgoing&standalone=1",
+                    hx_target="#edit-area",
+                )
             else:
-                new_cat = ""
+                new_cat = None
             if IS_A in data:
-                cat = f"""<br><small class="cats">&lt;{", ".join(f"<span>{c:handle}{c.object}</span>" for c in data[IS_A])}{new_cat}&gt;</small>"""
+                cat = H(
+                    H.br(),
+                    H.small(
+                        "&lt;",
+                        *join(",", (H.span(c.html("handle"), c.object.html()) for c in data[IS_A])),
+                        new_cat,
+                        "&gt;",
+                        cls="cats",
+                    ),
+                )
             else:
-                cat = f"""<br><small class="cats">&lt;{new_cat}&gt;</small>"""
+                cat = H(
+                    H.br(),
+                    H.small(
+                        "&lt;",
+                        new_cat,
+                        "&gt;",
+                        cls="cats",
+                    ),
+                )
             if self.is_entity:
                 if context.user.redact:
                     text = f"Claim #{self.id}"
                 else:
                     text = escape(self.object.value)
-                return f"""<h2>{text}{cat}</h2>"""
+                return H.h2(text, cat)
             else:
-                return f"""<h2>{self}</h2>"""
+                return H.h2(self.html())
         elif fmt.startswith("vo:"):
             subj_id = int(fmt[3:])
             # Handle undirected links properly (always display the _other_ claim)
             if self.subject.id == subj_id:
-                return f'<span{remarks} class="vo{css_classes}">{self:handle}{self.verb} {self.object}{source_button}</span>{source_popover}'
+                return H(
+                    H.span(
+                        self.html("handle"),
+                        self.verb.html(),
+                        " ",
+                        self.object.html(),
+                        source_button,
+                        **remarks,
+                        cls=f"vo{css_classes}",
+                    ),
+                    source_popover,
+                )
             else:
-                return f'<span{remarks} class="vo{css_classes}">{self:handle}{self.verb} {self.subject}{source_button}</span>{source_popover}'
+                return H(
+                    H.span(
+                        self.html("handle"),
+                        self.verb.html(),
+                        " ",
+                        self.subject.html(),
+                        source_button,
+                        **remarks,
+                        cls=f"vo{css_classes}",
+                    ),
+                    source_popover,
+                )
         elif fmt == "sv":
-            return f'<span{remarks} class="sv{css_classes}">{self:handle}{self.subject} {self.verb}{source_button}</span>{source_popover}'
+            return H(
+                H.span(
+                    self.html("handle"),
+                    self.subject.html(),
+                    " ",
+                    self.verb.html(),
+                    source_button,
+                    **remarks,
+                    cls=f"sv{css_classes}",
+                ),
+                source_popover,
+            )
         elif fmt == "handle":
-            return f'<a class="handle{" more" if "has_claims" in data else ""}" href="/claims/{self.id}">↱</a>'
+            return H.a(
+                "↱",
+                cls=f"handle{' more' if 'has_claims' in data else ''}",
+                href=f"/claims/{self.id}",
+            )
         elif fmt == "avatarsmall":
             if AVATAR not in data or context.user.redact:
-                return ""
-            return f'<img src="/claims/{self.id}/avatar" class="avatar">'
+                return None
+            return H.img(src=f"/claims/{self.id}/avatar", cls="avatar")
         elif fmt == "avatar":
             if AVATAR not in data:
-                return ""
-            return f"""<img
-                src="/claims/{self.id}/avatar"
-                class="avatar" alt="avatar"
-            >"""
+                return None
+            return H.img(src=f"/claims/{self.id}/avatar", cls="avatar", alt="avatar")
         elif fmt == "raw":
             if context.user.redact:
                 return f"Claim #{self.id}"
@@ -1013,80 +1129,135 @@ class Claim(Model):
                 text = "..."
             else:
                 text = escape(self.object.value)
-            return f'<tr><td data-placement="right" data-tooltip="{self.created_at}" class="comment-author">{self.owner}:</td><td>{self:handle}</td><td class="comment-text">{text}</td></tr>'
+            return H.tr(
+                H.td(
+                    self.owner.html(),
+                    ":",
+                    data_placement="right",
+                    data_tooltip=str(self.created_at),
+                    cls="comment-author",
+                ),
+                H.td(self.html("handle")),
+                H.td(text, cls="comment-text"),
+            )
         elif fmt == "rename":
             if self.verb.id == ROOT and (context.user.is_admin or self.owner.id == context.user.id):
-                return f'''<a
-                    hx-get="/claims/{self.id}/edit"
-                    hx-target="#edit-area"
-                >Rename <i>✎</i></a>'''
+                return H.a(
+                    "Rename ",
+                    H.i("✎"),
+                    hx_get=f"/claims/{self.id}/edit",
+                    hx_target="#edit-area",
+                )
             else:
-                return '''<a
-                    disabled
-                >Rename <i>✎</i></a>'''
+                return H.a(
+                    "Rename ",
+                    H.i("✎"),
+                    disabled=True,
+                )
         elif fmt == "hamburger":
             parts = []
             if self.verb.id == ROOT:
-                parts.append(f"<li>{self:rename}</li>")
-                parts.append(f'<li><a href="/claims/{self.id}/network">Network <i>🕸️\ufe0e</i></a></li>')
+                parts.append(H.li(self.html("rename")))
+                parts.append(H.li(H.a("Network ", H.i("🕸️\ufe0e"), href=f"/claims/{self.id}/network")))
             if not self.is_entity:
                 if context.user.is_admin or self.owner.id == context.user.id:
-                    parts.append(f"""<li><a
-                        hx-target="#edit-area"
-                        hx-get="/claims/{self.id}/move"
-                    >Edit subject <i>→</i></a></li>""")
-                    parts.append(f"""<li><a
-                        hx-target="#edit-area"
-                        hx-get="/claims/{self.id}/reverb"
-                    >Edit verb <i>→</i></a></li>""")
-                    parts.append(f"""<li><a
-                        hx-target="#edit-area"
-                        hx-get="/claims/{self.id}/edit"
-                    >Edit object <i>✎</i></a></li>""")
+                    parts.append(
+                        H.li(
+                            H.a(
+                                "Edit subject ",
+                                H.i("→"),
+                                hx_target="#edit-area",
+                                hx_get=f"/claims/{self.id}/move",
+                            ),
+                        )
+                    )
+                    parts.append(
+                        H.li(
+                            H.a(
+                                "Edit verb ",
+                                H.i("→"),
+                                hx_target="#edit-area",
+                                hx_get=f"/claims/{self.id}/reverb",
+                            ),
+                        )
+                    )
+                    parts.append(
+                        H.li(
+                            H.a(
+                                "Edit object ",
+                                H.i("✎"),
+                                hx_target="#edit-area",
+                                hx_get=f"/claims/{self.id}/edit",
+                            ),
+                        )
+                    )
                 if context.user.can("write", "verb", SOURCE):
-                    parts.append(f"""<li><a
-                        hx-target="#edit-area"
-                        hx-get="/claims/new/verb?verb={SOURCE}&claim_ids={self.id}&direction=outgoing&standalone=1"
-                        hx-target="#edit-area"
-                    >Source <i>\N{SPEECH BALLOON}\ufe0e</i></a></li>""")
+                    parts.append(
+                        H.li(
+                            H.a(
+                                "Source ",
+                                H.i("\N{SPEECH BALLOON}\ufe0e"),
+                                hx_target="#edit-area",
+                                hx_get=f"/claims/new/verb?verb={SOURCE}&claim_ids={self.id}&direction=outgoing&standalone=1",
+                            ),
+                        )
+                    )
                 if context.user.can("write", "verb", VALID_FROM):
                     parts.append(
-                        f"""<li><a
-                            hx-get="/claims/new/verb?verb={VALID_FROM}&claim_ids={self.id}&direction=outgoing&standalone=1"
-                            hx-target="#edit-area"
-                        >Valid from <i>⇤</i></a></li>"""
+                        H.li(
+                            H.a(
+                                "Valid from ",
+                                H.i("⇤"),
+                                hx_target="#edit-area",
+                                hx_get=f"/claims/new/verb?verb={VALID_FROM}&claim_ids={self.id}&direction=outgoing&standalone=1",
+                            ),
+                        )
                     )
                 if context.user.can("write", "verb", VALID_UNTIL):
                     parts.append(
-                        f"""<li><a
-                            hx-get="/claims/new/verb?verb={VALID_UNTIL}&claim_ids={self.id}&direction=outgoing&standalone=1"
-                            hx-target="#edit-area"
-                        >Valid until <i>⇥</i></a></li>"""
+                        H.li(
+                            H.a(
+                                "Valid until ",
+                                H.i("⇥"),
+                                hx_target="#edit-area",
+                                hx_get=f"/claims/new/verb?verb={VALID_UNTIL}&claim_ids={self.id}&direction=outgoing&standalone=1",
+                            ),
+                        )
                     )
             else:
                 if context.user.can("write", "verb", AVATAR):
-                    parts.append(f"""<li><a
-                    hx-get="/claims/new/verb?verb={AVATAR}&claim_ids={self.id}&direction=outgoing&standalone=1"
-                    hx-target="#edit-area"
-                    >Set avatar <i>\N{FRAME WITH PICTURE}\ufe0e</i></a></li>
-                    """)
+                    parts.append(
+                        H.li(
+                            H.a(
+                                "Set avatar ",
+                                H.i("\N{FRAME WITH PICTURE}\ufe0e"),
+                                hx_target="#edit-area",
+                                hx_get=f"/claims/new/verb?verb={AVATAR}&claim_ids={self.id}&direction=outgoing&standalone=1",
+                            ),
+                        )
+                    )
             if context.user.is_admin or self.owner.id == context.user.id and self.deletable:
-                parts.append(f"""<li><a
-                    class="danger"
-                    hx-target="#edit-area"
-                    hx-delete="/claims/{self.id}"
-                    hx-confirm="Are you sure you want to delete this claim?"
-                >Delete <i>\N{WASTEBASKET}\ufe0e</i></a></li>""")
+                parts.append(
+                    H.li(
+                        H.a(
+                            "Delete ",
+                            H.i("\N{WASTEBASKET}\ufe0e"),
+                            hx_target="#edit-area",
+                            hx_delete=f"/claims/{self.id}",
+                            hx_confirm="Are you sure you want to delete this claim?",
+                        ),
+                    )
+                )
             if not parts:
-                return ""
-            return f"""
-            <details class="dropdown hamburger">
-                <summary>☰</summary>
-                <ul dir="rtl">
-                    {"".join(parts)}
-                </ul>
-            </details>
-            """
+                return None
+            return H.details(
+                H.summary("☰"),
+                H.ul(
+                    *parts,
+                    dir="rtl",
+                ),
+                cls="dropdown hamburger",
+            )
         return f"TODO: {fmt!r}"
 
     @property
@@ -1098,12 +1269,15 @@ class Claim(Model):
         )
 
     def __str__(self):
-        return f"{self}"
+        tags = self.html()
+        if tags:
+            return "".join(tags.serialize())
+        return ""
 
     def graph_elements(self, verbs=None):
         data = self.get_data()
         node = {
-            "label": f"{self:label}".replace('"', "'"),
+            "label": str(self.html("label")).replace('"', "'"),
             "id": str(self.id),
             "cat": data[IS_A][0].object.id if data.get(IS_A) else None,
         }
@@ -1241,40 +1415,44 @@ class Query(Model):
         db.conn.commit()
         self.label = label
 
-    def __format__(self, fmt):
+    def html(self, fmt=None):
         if fmt == "heading":
-            return f"""<h2>{self.label}</h2>"""
+            return H.h2(self.label)
         elif fmt == "hamburger":
             parts = []
             if context.user.is_admin:
-                parts.append(f"""
-                <li><a href="/queries/{self.id}/edit"><i>✎</i> Edit</a></li>
-                """)
-                parts.append(f"""<li><a
-                    hx-delete="/queries/{self.id}"
-                    hx-confirm="Are you sure you want to delete this query?"
-                    class="danger"
-                ><i>⌫</i> Delete</a></li>
-                """)
+                parts.append(
+                    H.li(H.a(H.i("✎"), " Edit", href=f"/queries/{self.id}/edit"))
+                )
+                parts.append(
+                    H.li(H.a(
+                        H.i("⌫"),
+                        " Delete",
+                        hx_delete=f"/queries/{self.id}",
+                        hx_confirm="Are you sure you want to delete this query?",
+                        cls="danger",
+                    ))
+                )
             if parts:
-                return f"""
-                <details class="dropdown hamburger">
-                    <summary>☰</summary>
-                    <ul dir="rtl">
-                        {"".join(parts)}
-                    </ul>
-                </details>
-                """
+                return H.details(
+                    H.summary("☰"),
+                    H.ul(
+                        *parts,
+                        dir="rtl",
+                    ),
+                    cls="dropdown hamburger",
+                )
         else:
-            return f"""<a
-                class="clickable query"
-                hx-push-url="true"
-                href="/queries/{self.id}"
-                hx-select="#container"
-                hx-target="#container"
-                hx-swap="outerMorph"
-            ><strong>{self.label}</strong></a>"""
-        return ""
+            return H.a(
+                H.strong(self.label),
+                cls="clickable query",
+                hx_push_url="true",
+                href=f"/queries/{self.id}",
+                hx_select="#container",
+                hx_target="#container",
+                hx_swap="outerMorph",
+            )
+        return None
 
     def run(self, bindings, *, page_no, page_size):
         cur = db.conn.cursor()
@@ -1309,45 +1487,40 @@ class Query(Model):
 
     def _build_form_input(self, i, label, type, value, url):
         if type == "string":
-            return f"""
-                <label>{label}
-                <input
-                    hx-get="{url}"
-                    hx-target="#queryresults"
-                    hx-select="#queryresults"
-                    hx-swap="outerMorph"
-                    name="v{i}"
-                    value="{value or ''}"
-                >
-                </label>
-                """
+            return H.label(
+                label,
+                H.input(
+                    hx_get=url,
+                    hx_target="#queryresults",
+                    hx_select="#queryresults",
+                    hx_swap="outerMorph",
+                    name=f"v{i}",
+                    value=str(value or ''),
+                )
+            )
         elif type == "verb" or type.startswith("verb:"):
             *_, data_type = type.partition(":")
             verbs = Verb.all(page_size=9999, **({"data_type": data_type} if data_type else {}))
-            return f"""
-            <label>
-            {label}
-            <select
-                hx-get="{url}"
-                hx-target="#queryresults"
-                hx-select="#queryresults"
-                hx-swap="outerMorph"
-                name="v{i}"
-            >
-                <option selected disabled>--Verb--</option>
-                {
-                    "".join(
-                        f'''<option
-                            value="{verb.id}"
-                            {'selected' if value is not None and int(value) == verb.id else ''}
-                        >{verb.label} ({verb.data_type})</option>'''
+            return H.label(
+                label,
+                H.select(
+                    H.option("--Verb--", selected=True, disabled=True),
+                    *(
+                        H.option(
+                            f"{verb.label} ({verb.data_type})",
+                            value=str(verb.id),
+                            selected=value is not None and int(value) == verb.id,
+                        )
                         for verb in verbs
                         if verb.id >= 0 and verb.data_type is not TYPES["inferred"]
-                    )
-                }
-            </select>
-            </label>
-            """
+                    ),
+                    hx_get=url,
+                    hx_target="#queryresults",
+                    hx_select="#queryresults",
+                    hx_swap="outerMorph",
+                    name=f"v{i}",
+                ),
+            )
         raise RuntimeError(f"Unknown type {type}")
 
     @property
@@ -1381,7 +1554,10 @@ class Query(Model):
 
 
     def __str__(self):
-        return f"{self}"
+        tags = self.html()
+        if tags:
+            return "".join(tags.serialize())
+        return ""
 
 
 class User(Model):
@@ -1531,14 +1707,21 @@ class User(Model):
         db.conn.commit()
         self.populate()
 
-    def __format__(self, fmt):
+    def html(self, fmt=None):
         if fmt == "link":
             if self.entity:
-                return f'{self.entity} (<a href="/users/{self.id}">{self.name}</a>)'
-            return f'<a href="/users/{self.id}">{self.name}</a>'
+                return H(
+                    self.entity.html(),
+                    " (",
+                    H.a(
+                        self.name,
+                        href=f"/users/{self.id}",
+                    ),
+                )
+            return H.a(self.name, href=f"/users/{self.id}")
         elif fmt == "session":
             if not self.last_session_at:
-                return "no active session"
+                return H("no active session")
             else:
                 delta = datetime.now() - self.last_session_at
                 if delta.days == 0:
@@ -1550,34 +1733,44 @@ class User(Model):
                     diff = date.today() - NonOmniscientDate(str(self.last_session_at.date()))
                 if delta > SESSION_MAX_AGE:
                     delta = f"{delta} (expired)"
-                return f"last refreshed {diff}"
+                return H(f"last refreshed {diff}")
             return str(type(self.last_session_at).__name__) + str(self.last_session_at)
         elif fmt == "hamburger":
-            parts = []
-            parts.append(f"""<li><a href="/users/{self.id}/edit"><i>✎</i> Edit</a></li>""")
-            parts.append('''<li><a
-                    disabled
-                    class="danger"
-                ><i>\N{WASTEBASKET}\ufe0e</i> Delete</a></li>'''
+            return H.details(
+                H.summary("☰"),
+                H.ul(
+                    H.li(
+                        H.a(
+                            H.i("✎"),
+                            " Edit",
+                            href=f"/users/{self.id}/edit",
+                        ),
+                    ),
+                    H.li(
+                        H.a(
+                            H.i("\N{WASTEBASKET}\ufe0e"),
+                            " Delete",
+                            cls="danger",
+                            disabled=True,
+                        ),
+                    ),
+                    dir="rtl",
+                ),
+                cls="dropdown hamburger",
             )
-            return f"""
-            <details class="dropdown hamburger">
-                <summary>☰</summary>
-                <ul dir="rtl">
-                    {"".join(parts)}
-                </ul>
-            </details>
-            """
         elif fmt == "label":
             if self.entity:
-                return f"{self.entity:label}"
-            return self.name
+                return self.entity.html("label")
+            return H(self.name)
         if self.entity:
-            return f"{self.entity}"
-        return self.name
+            return self.entity.html()
+        return H(self.name)
 
     def __str__(self):
-        return f"{self}"
+        tags = self.html()
+        if tags:
+            return "".join(tags.serialize())
+        return ""
 
     @property
     def payload(self):
@@ -1654,11 +1847,14 @@ class Plain:
     def encode(self):
         return self.prop.data_type.encode(self.value)
 
-    def __format__(self, fmt):
+    def html(self, fmt=None):
         return self.prop.data_type.display_html(self.value, prop=self.prop, fmt=fmt)
 
     def __str__(self):
-        return self.prop.data_type.display_html(self.value, prop=self.prop)
+        tags = self.html()
+        if tags:
+            return "".join(tags.serialize())
+        return ""
 
 
 class Inferable:
@@ -1748,16 +1944,16 @@ class InferredClaim:
         self.verb = verb
         self.object = obj
 
-    def __format__(self, fmt):
+    def html(self, fmt=None):
         if fmt == "handle":
-            return ""
-        return Claim.__format__(self, fmt)
+            return None
+        return Claim.html(self, fmt)
 
     def get_data(self):
         return {}
 
     def _get_remarks(self, data):
-        return "", ""
+        return "", {}
 
     def _get_source(self, data):
         return "", ""

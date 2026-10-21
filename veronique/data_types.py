@@ -22,6 +22,7 @@ from nh3 import clean as clean_html
 
 from veronique.autocomplete import AUTOCOMPLETES
 from veronique.context import context
+from veronique.html import H, join
 from veronique.nomnidate import NonOmniscientDate
 from veronique.settings import settings as S
 from veronique.utils import D, fragment
@@ -48,13 +49,13 @@ class DataType:
         TYPES[cls.__name__] = cls()
 
     def display_html(self, value, **_):
-        return f"placeholder, not implemented for data type {type(self).__name__}."
+        return H(f"placeholder, not implemented for data type {type(self).__name__}.")
 
     def input_html(self, value=None, **_):
-        return f"placeholder, not implemented for data type {type(self).__name__}."
+        return H(f"placeholder, not implemented for data type {type(self).__name__}.")
 
     def edit_verb(self, verb, form):
-        return ""
+        pass
 
     def next_step(self, args):
         return None
@@ -80,7 +81,7 @@ class DataType:
         return form.get("value")
 
     def detail_for(self, verb):
-        return ""
+        return None
 
     def __str__(self):
         return f"<em>{self.name}</em>"
@@ -108,7 +109,13 @@ class undirected_link(directed_link):
 class inferred(DataType):
     def next_step(self, args):
         import veronique.objects as O
-        hxall = 'hx-select="#autoform" hx-swap="outerMorph" hx-target="#autoform" hx-get="/verbs/new/steps" hx-include="closest form"'
+        hxall = {
+            "hx_select": "#autoform",
+            "hx_swap": "outerMorph",
+            "hx_target": "#autoform",
+            "hx_get": "/verbs/new/steps",
+            "hx_include": "closest form",
+        }
         verbs = list(O.Verb.all(data_type="%directed_link", page_size=999))
         if "g1s" not in args:
             conditions = [("this", verbs[0].id, "that")]
@@ -132,54 +139,62 @@ class inferred(DataType):
 
         label = args.get("label", "")
 
-        parts = [f"""
-            <div id="autoform">
-            <p>There will be a new relation
-    <span class="svo"><tt class="claim-link">this</tt><span class="inline verb">{label}</span><tt class="claim-link">that</tt></span> if:
-        """]
+        rules = []
 
         for n, (subj, selected_verb_id, obj) in enumerate(conditions, start=1):
-            parts.append(
-                f"""
-                <fieldset role="group">
-                    <select name="g{n}s" {hxall}>
-                """
-            )
-            for symbol in alphabet:
-                parts.append(f"<option {'selected' if symbol == args.get(f'g{n}s') else ''}>{symbol}</option>")
-            parts.append(
-                f"""
-                </select>
-                <select name="g{n}v" {hxall}>
-                """
-            )
-            for verb in verbs:
-                parts.append(f"""
-                    <option value="{verb.id}" {"selected" if verb.id == selected_verb_id else ""}>{verb.label}</option>
-                """)
-            parts.append(
-                f"""
-                    </select>
-                    <select name="g{n}o" {hxall}>
-                """
-            )
-            for symbol in alphabet:
-                parts.append(f"<option {'selected' if symbol == args.get(f'g{n}o') else ''}>{symbol}</option>")
-            parts.append("""
-                </select>
-                </fieldset>
-                """
+            rules.append(
+                H.fieldset(
+                    H.select(
+                        *(H.option(symbol, selected=symbol==args.get(f"g{n}s")) for symbol in alphabet),
+                        name=f"g{n}s",
+                        **hxall,
+                    ),
+                    H.select(
+                        *(H.option(verb.label, value=str(verb.id), selected=verb.id==selected_verb) for verb in verbs),
+                        name=f"g{n}v",
+                        **hxall,
+                    ),
+                    H.select(
+                        *(H.option(symbol, selected=symbol==args.get(f"g{n}o")) for symbol in alphabet),
+                        name=f"g{n}o",
+                        **hxall,
+                    ),
+                    role="group",
+                )
             )
 
-        parts.append(f"""
-            <fieldset role="group">
-                <button data-tooltip="Fewer conditions" class="outline" {hxall.replace("steps", "steps?less=true")} {"disabled" if len(conditions) == 1 else ""}>-</button>
-                <button style="width: 100%;" type="submit">Create</button>
-                <button data-tooltip="More conditions" class="outline" {hxall.replace("steps", "steps?more=true")} {"disabled" if len(conditions) >= 5 else ""}>+</button>
-            </fieldset>
-            </div>
-        """)
-        return "".join(parts)
+        return H.div(
+            H.p(
+                "There will be a new relation ",
+                H.span(
+                    H.tt("this", cls="claim-link"),
+                    H.span(label, cls="inline verb"),
+                    H.tt("that", cls="claim-link"),
+                    cls="svo",
+                ),
+                " if:",
+                *rules,
+                H.fieldset(
+                    H.button(
+                        "-",
+                        data_tooltip="Fewer conditions",
+                        cls="outline",
+                        **(hxall | {"hx_get": "/verbs/new/steps?less=true"}),
+                        disabled=len(conditions)==1,
+                    ),
+                    H.button("Create", type="submit", style="width: 100%;"),
+                    H.button(
+                        "+",
+                        data_tooltip="More conditions",
+                        cls="outline",
+                        **(hxall | {"hx_get": "/verbs/new/steps?more=true"}),
+                        disabled=len(conditions)>=5,
+                    ),
+                    role="group",
+                )
+            ),
+            id="autoform",
+        )
 
     def get_extra(self, args):
         payload = args.copy()
@@ -190,37 +205,59 @@ class inferred(DataType):
     def detail_for(self, verb):
         import veronique.objects as O
         extra = json.loads(verb.extra)
-        parts = [f"""
-            <hr>
-            <p><span class="svo"><tt class="claim-link">this</tt><span class="inline verb">{verb.label}</span><tt class="claim-link">that</tt></span> if:
-            </p>
-            <ul>
-        """]
+        parts = []
         for i in count(start=1):
             if f"g{i}s" not in extra:
                 break
             s, v_id, o = extra[f"g{i}s"], extra[f"g{i}v"], extra[f"g{i}o"]
             v = O.Verb(int(v_id))
-            parts.append(f"""
-                <li><span class="svo"><tt class="claim-link">{s}</tt><span class="inline verb">{v.label}</span><tt class="claim-link">{o}</tt></span></li>
-            """)
-        parts.append("</ul>")
-        return "".join(parts)
+            parts.append(
+                H.li(
+                    H.span(
+                        H.tt(
+                            s,
+                            cls="claim-link",
+                        ),
+                        H.span(
+                            v.label,
+                            cls="inline verb",
+                        ),
+                        H.tt(
+                            o,
+                            cls="claim-link",
+                        ),
+                        cls="svo",
+                    )
+                )
+            )
+        return H(
+            H.hr(),
+            H.p(
+                H.span(
+                    H.tt("this", cls="claim-link"),
+                    H.span(verb.label, cls="inline verb"),
+                    H.tt("that", cls="claim-link"),
+                    cls="svo",
+                ),
+                " if:",
+            ),
+            H.ul(*parts),
+        )
 
 
 class string(DataType):
     can_turn_into = ("text", "source")
     def display_html(self, value, **_):
         if context.user.redact:
-            return '<span class="type-string">"..."</span>'
-        return f'<span class="type-string">"{escape(value)}"</span>'
+            return H.span('"..."', cls="type-string")
+        return H.span(escape(value), cls="type-string")
 
     def input_html(self, value=None, **_):
         if value:
-            value = f' value="{escape(value.value)}"'
+            value = {"value": escape(value.value)}
         else:
-            value = ""
-        return f"""<input type="text" name="value"{value}></input>"""
+            value = {}
+        return H.input(type="text", name="value", **value)
 
 
 class source(string):
@@ -229,25 +266,31 @@ class source(string):
     def display_html(self, value, **_):
         import veronique.objects as O
         if context.user.redact:
-            return '<span class="type-source">"..."</span>'
+            return H.span('"..."', cls="type-source")
         variant, value = value[0], value[1:]
         if variant == "T":
-            return f'<span class="type-source type-source-text">"{escape(value)}"</span>'
+            return H.span(
+                f'"{escape(value)}"',
+                cls="type-source type-source-text",
+            )
         if variant == "U":
-            return f'<span class="type-source type-source-url"><a href="{escape(value)}">{escape(value)}</a></span>'
+            return H.span(
+                H.a(escape(value), href=escape(value)),
+                cls="type-source type-source-url",
+            )
         if variant == "E":
             entity = O.Claim(int(value))
-            return f'<span class="type-source type-source-entity">{entity}</span>'
+            return H.span(entity.html(), cls="type-source type-source-entity")
 
     def _input_for_variant(self, variant, value):
         if variant == "T":
             if value:
-                return f"""<input type="text" name="value" value="{escape(value)}">"""
-            return """<input type="text" name="value">"""
+                return H.input(type="text", name="value", value=escape(value))
+            return H.input(type="text", name="value")
         elif variant == "U":
             if value:
-                return f"""<input type="url" name="value" value="{escape(value)}">"""
-            return """<input type="url" name="value">"""
+                return H.input(type="url", name="value", value=escape(value))
+            return H.input(type="url", name="value")
         elif variant == "E":
             return AUTOCOMPLETES["link"].widget(None)
 
@@ -270,45 +313,49 @@ class source(string):
             variant = S.default_source_type
 
         input = self._input_for_variant(variant, value)
-        return f"""
-        <fieldset hx-trigger="change" hx-get="/types/source" hx-target="#source-value-container" hx-include="this">
-            <legend>Type of source:</legend>
-            <label>
-                <input type="radio" name="variant" value="T" {"checked" if variant == "T" else ""}>
-                Text
-            </label>
-            <label>
-                <input type="radio" name="variant" value="U" {"checked" if variant == "U" else ""}>
-                Website
-            </label>
-            <label>
-                <input type="radio" name="variant" value="E" {"checked" if variant == "E" else ""}>
-                Entity
-            </label>
-        </fieldset>
-        <div id="source-value-container">
-            {input}
-        </div>
-        """
-        return f"""<input type="text" name="value"{value}></input>"""
+        return H(
+            H.fieldset(
+                H.legend("Type of source:"),
+                H.label(
+                    H.input(type="radio", name="variant", value="T", checked=variant=="T"),
+                    "Text",
+                ),
+                H.label(
+                    H.input(type="radio", name="variant", value="U", checked=variant=="U"),
+                    "Website",
+                ),
+                H.label(
+                    H.input(type="radio", name="variant", value="E", checked=variant=="E"),
+                    "Entity",
+                ),
+                hx_trigger="change",
+                hx_get="/types/source",
+                hx_target="#source-value-container",
+                hx_include="this",
+            ),
+            H.div(
+                input,
+                id="source-value-container",
+            ),
+        )
 
     @fragment
     async def request(self, request, *, method):
         if method == "GET":
             return self._input_for_variant(D(request.args)["variant"], value=None)
-        return "@"
+        return H("@")
 
 
 class number(DataType):
     def display_html(self, value, **_):
-        return f'<span class="type-number">{value}</span>'
+        return H.span(str(value), cls="type-number")
 
     def input_html(self, value=None, **_):
         if value:
-            value = f' value="{value.value}"'
+            value = {"value": str(value.value)}
         else:
-            value = ""
-        return f"""<input type="number" step="any" name="value"{value}></input>"""
+            value = {}
+        return H.input(type="number", step="any", name="value", **value)
 
     def decode(self, encoded):
         return float_int(encoded)
@@ -319,17 +366,17 @@ class color(DataType):
     supports_value_query = True
 
     def display_html(self, value, **_):
-        return f"""
-            <span style="color: {value}; text-shadow: 0 0 3px black;">&#9632;</span>
-            {value}
-        """
+        return H(
+            H.span("&#9632;", style=f"color: {value}; text-shadow: 0 0 3px black;"),
+            value,
+        )
 
     def input_html(self, value=None, **_):
         if value:
-            value = f' value="{escape(value.value)}"'
+            value = {"value": escape(value.value)}
         else:
-            value = ""
-        return f"""<input type="color" name="value"{value}></input>"""
+            value = {}
+        return H.input(type="color", name="value", **value)
 
     def extract_value(self, form):
         value = form.get("value")
@@ -359,29 +406,65 @@ class date(DataType):
         if "s" in (prop.extra or "") and "?" not in value[-5:]:
             # we have day and month and want zodiac signs
             if (astronum := int(value[-5:].replace("-", ""))) < 120 or astronum > 1221:
-                astro = '<span data-tooltip="Capricorn">♑︎</span>'
+                astro = H.span(
+                    "♑︎",
+                    data_tooltip="Capricorn",
+                )
             elif astronum < 219:
-                astro = '<span data-tooltip="Aquarius">♒︎</span>'
+                astro = H.span(
+                    "♒︎",
+                    data_tooltip="Aquarius",
+                )
             elif astronum < 321:
-                astro = '<span data-tooltip="Pisces">♓︎</span>'
+                astro = H.span(
+                    "♓︎",
+                    data_tooltip="Pisces",
+                )
             elif astronum < 420:
-                astro = '<span data-tooltip="Aries">♈︎</span>'
+                astro = H.span(
+                    "♈︎",
+                    data_tooltip="Aries",
+                )
             elif astronum < 521:
-                astro = '<span data-tooltip="Taurus">♉︎</span>'
+                astro = H.span(
+                    "♉︎",
+                    data_tooltip="Taurus",
+                )
             elif astronum < 622:
-                astro = '<span data-tooltip="Gemini">♊︎</span>'
+                astro = H.span(
+                    "♊︎",
+                    data_tooltip="Gemini",
+                )
             elif astronum < 723:
-                astro = '<span data-tooltip="Cancer">♋︎</span>'
+                astro = H.span(
+                    "♋︎",
+                    data_tooltip="Cancer",
+                )
             elif astronum < 823:
-                astro = '<span data-tooltip="Leo">♌︎</span>'
+                astro = H.span(
+                    "♌︎",
+                    data_tooltip="Leo",
+                )
             elif astronum < 923:
-                astro = '<span data-tooltip="Virgo">♍︎</span>'
+                astro = H.span(
+                    "♍︎",
+                    data_tooltip="Virgo",
+                )
             elif astronum < 1024:
-                astro = '<span data-tooltip="Libra">♎︎</span>'
+                astro = H.span(
+                    "♎︎",
+                    data_tooltip="Libra",
+                )
             elif astronum < 1122:
-                astro = '<span data-tooltip="Scorpio">♏︎</span>'
+                astro = H.span(
+                    "♏︎",
+                    data_tooltip="Scorpio",
+                )
             elif astronum < 1222:
-                astro = '<span data-tooltip="Sagittarius">♐︎</span>'
+                astro = H.span(
+                    "♐︎",
+                    data_tooltip="Sagittarius",
+                )
             else:
                 raise RuntimeError("Unexpected date")
         fmt_flags = "a" if "a" in (prop.extra or "") else ""
@@ -389,7 +472,17 @@ class date(DataType):
             value = "unknown"
         else:
             value = value.removeprefix("????-").removesuffix("-??-??")
-        return f"""<span class="type-date {class_}">🗓️<a href="/types/date/{value.replace("?", "%3F")}">{value}</a>{astro} <em>({td:{fmt_flags}})</em></span>"""
+        return H.span(
+            "🗓️",
+            H.a(
+                value,
+                href=f'/types/date/{value.replace("?", "%3F")}',
+            ),
+            astro,
+            " ",
+            H.em(f"({td:{fmt_flags}})"),
+            cls=f"type-date {class_}",
+        )
 
     def extract_value(self, form):
         value = form.get("value")
@@ -404,16 +497,35 @@ class date(DataType):
 
     def input_html(self, value=None, **_):
         if value:
-            value = f' value="{value.value}"'
+            value = {"value": str(value.value)}
         else:
-            value = ""
-        return f"""<input
-            type="text"
-            size=10
-            pattern="[0-9?]{{4}}-[0-9?]{{2}}-[0-9?]{{2}}|[0-9?]{{4}}|[0-9?]{{2}}-[0-9?]{{2}}|[?]|today|yesterday|tomorrow"
-            name="value"{value}
-        ><small>Possible formats: <tt>YYYY-mm-dd</tt>, <tt>YYYY</tt>, <tt>mm-dd</tt>, <tt>?</tt>. Any digit can also be replaced by a question mark. You may also use any of these short hands: <tt>yesterday</tt>, <tt>today</tt>, <tt>tomorrow</tt></small>.
-        """
+            value = {}
+        return H(
+            H.input(
+                type="text",
+                size="10",
+                pattern="[0-9?]{4}-[0-9?]{2}-[0-9?]{2}|[0-9?]{4}|[0-9?]{2}-[0-9?]{2}|[?]|today|yesterday|tomorrow",
+                name="value",
+                **value,
+            ),
+            H.small(
+                "Possible formats: ",
+                H.tt("YYYY-mm-dd"),
+                ", ",
+                H.tt("YYYY"),
+                ", ",
+                H.tt("mm-dd"),
+                ", ",
+                H.tt("?"),
+                ". Any digit can also be replaced by a question mark. You may also use any of these short hands: ",
+                H.tt("yesterday"),
+                ", ",
+                H.tt("today"),
+                ", ",
+                H.tt("tomorrow"),
+            ),
+        )
+
 
     def get_extra(self, args):
         return "".join(
@@ -422,20 +534,18 @@ class date(DataType):
 
     def edit_verb_form(self, verb):
         flags = verb.extra or ""
-        return f"""
-            <fieldset>
-            <legend>Options</legend>
-            <label>
-              <input type="checkbox" name="starsign" {"checked" if "s" in flags else ""} />
-              Show star sign when possible
-            </label>
-            <label>
-              <input type="checkbox" name="age" {"checked" if "a" in flags else ""} />
-              Show as age
-            </label>
-              <small>Will always show correct age when possible, never e.g. "5 years ago, in 3 days".</small>
-            </fieldset>
-        """
+        return H.fieldset(
+            H.legend("Options"),
+            H.label(
+                H.input(type="checkbox", name="starsign", checked="s" in flags),
+                "Show star sign when possible",
+            ),
+            H.label(
+                H.input(type="checkbox", name="age", checked="a" in flags),
+                "Show as age",
+            ),
+            H.small('Will always show correct age when possible, never e.g. "5 years ago, in 3 days".'),
+        )
 
     def edit_verb(self, verb, form):
         new_extra = self.get_extra(form)
@@ -450,13 +560,12 @@ class date(DataType):
 class boolean(DataType):
     def display_html(self, value, **_):
         if value:
-            return """<span style="color: green">✔</span>"""
+            return H.span("✔", style="color: green;")
         else:
-            return """<span style="color: red">✘</span>"""
+            return H.span("✘", style="color: red;")
 
     def input_html(self, value=None, **_):
-        checked = " checked" if value and value.value else ""
-        return f"""<input type="checkbox" name="value"{checked}></input>"""
+        return H.input(type="checkbox", name="value", checked=value and value.value)
 
     def encode(self, value):
         return value or "off"
@@ -469,12 +578,11 @@ class location(DataType):
     def display_html(self, value, **_):
         if context.user.redact:
             value = "Point Nemo"
-        newline = "\n"
         if COORDS.match(value):
             rand = randint(1, 10000)
-            return f"""
-                <div id="map{rand}" class="map"></div>
-                <script>
+            return H(
+                H.div("", id=f"map{rand}", cls="map"),
+                H.script(f"""
                     var map = L.map('map{rand}').setView([{value}], 13);
                     L.tileLayer('{S.map_tile_url}', {{
                         maxZoom: 19,
@@ -482,14 +590,15 @@ class location(DataType):
                         referrerPolicy: 'origin',
                     }}).addTo(map);
                     L.marker([{value}]).addTo(map);
-                </script>
-            """
+                """),
+            )
         else:
-            return f"""<span class="type-location">{escape(value).replace(newline, "<br>")} <a
-                href="{S.location_link_template.format(
-                quote_plus(value.replace(newline, ", "))
-                )}"
-            >🌍</a></span>"""
+            return H.span(
+                *join(H.br(), escape(value).split("\n")),
+                " ",
+                H.a("🌍", href=S.location_link_template.format(quote_plus(value.replace("\n", ", ")))),
+                cls="type-location",
+            )
 
     def input_html(self, value=None, **_):
         if value:
@@ -501,10 +610,14 @@ class location(DataType):
             map_coords = value
         else:
             map_coords = "0, 0"
-        return f"""
-            <textarea name="value" id="input{rand}">{value}</textarea>
-            <div id="map{rand}" class="map"></div>
-            <script>
+        return H(
+            H.textarea(
+                value,
+                name="value",
+                id=f"input{rand}",
+            ),
+            H.div("", id=f"map{rand}", cls="map"),
+            H.script(f"""
                 var map = L.map('map{rand}').setView([{map_coords}], 13);
                 L.tileLayer('{S.map_tile_url}', {{
                     maxZoom: 19,
@@ -520,8 +633,8 @@ class location(DataType):
                     marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
                 }}
                 map.on('click', onMapClick);
-            </script>
-        """
+            """),
+        )
 
 
 class text(DataType):
@@ -532,7 +645,7 @@ class text(DataType):
     def _sub(self, match, fmt=None):
         import veronique.objects as O
         if fmt == "input-widget-ref":
-            return f"{O.Claim(int(match.group(1))):{fmt}}"
+            return str(O.Claim(int(match.group(1))).html(fmt))
         elif fmt == "date":
             value = match.group(0)
             return f"""<span class="type-date">🗓️<a href="/types/date/{value}">{value}</a></span>"""
@@ -549,7 +662,10 @@ class text(DataType):
         # TODO: more reference types
         value = re.sub(TEXT_REF, self._sub, value)
         value = re.sub(DATE_REF, partial(self._sub, fmt="date"), value)
-        return f"""<span class="type-text">{value}</span>"""
+        return H.span(
+            value,
+            cls="type-text",
+        )
 
     def _encode_input_widget_refs(self, match):
         return f'[@{match.group(1)}]'
@@ -570,53 +686,76 @@ class text(DataType):
         value = re.sub(TEXT_REF, partial(self._sub, fmt="input-widget-ref"), value)
         if value.endswith(">"):
             value = f"{value}&nbsp;"
-        return f"""
-            <div
-                class="input-text"
-                onkeyup="document.getElementsByName('value')[0].innerHTML = this.innerHTML"
-                onchange="document.getElementsByName('value')[0].innerHTML = this.innerHTML"
-                hx-on:keydown="if(event.key==='@'){{ event.preventDefault(); htmx.trigger(this, 'at-key'); }}"
-                hx-trigger="at-key"
-                hx-post="/types/text"
-                hx-swap="beforeend"
-                contenteditable>{value}</div>
-            <textarea style="display: none;" name="value">{value}</textarea>
-        """
+        return H(
+            H.div(
+                value,
+                cls="input-text",
+                onkeyup="document.getElementsByName('value')[0].innerHTML = this.innerHTML",
+                onchange="document.getElementsByName('value')[0].innerHTML = this.innerHTML",
+                hx_on__keydown="if(event.key==='@'){{ event.preventDefault(); htmx.trigger(this, 'at-key'); }}",
+                hx_trigger="at-key",
+                hx_post="/types/text",
+                hx_swap="beforeend",
+                contenteditable=True,
+            ),
+            H.textarea(
+                value,
+                style="display: none;",
+                name="value",
+            ),
+        )
 
     @fragment
     async def request(self, request, *, method):
         if method == "POST":
             return AUTOCOMPLETES["input_ref_widget"].widget(None)
-        return "@"
+        return H("@")
 
 
 class email(DataType):
     def display_html(self, value, **_):
         if context.user.redact:
-            return '<span class="type-email"><a href="mailto:mail@example.com">mail@example.com</a></span>'
-        return f'<span class="type-email"><a href="mailto:{escape(value)}">{escape(value)}</a></span>'
+            return H.span(
+                H.a(
+                    "mail@example.com",
+                    href=f"mailto:mail@example.com",
+                ),
+                cls="type-email",
+            )
+        return H.span(
+            H.a(
+                escape(value),
+                href=f"mailto:{escape(value)}",
+            ),
+            cls="type-email",
+        )
 
     def input_html(self, value=None, **_):
         if value:
-            value = f' value="{escape(value.value)}"'
+            value = escape(value.value)
         else:
-            value = ""
-        return f"""<input type="email" name="value"{value}></input>"""
+            value = {}
+        return H.input(type="email", name="value", **value)
 
 
 class website(DataType):
     def display_html(self, value, **_):
         if context.user.redact:
             value = "https://example.com"
-        return f'<span class="type-website"><a href="{escape(value)}">{escape(value)}</a></span>'
+        return H.span(
+            H.a(
+                escape(value),
+                href=escape(value),
+            ),
+            cls="type-website",
+        )
 
     def input_html(self, value=None, **_):
         if value:
-            quot = '"'
-            value = f' value="{value.value.replace(quot, "&quot;")}"'
+            value = {"value": value.value.replace('"', "&quot;")}
         else:
-            value = ""
-        return f"""<input type="url" name="value"{value}></input>"""
+            value = {}
+        return H.input(type="url", name="value", **value)
 
 
 class phonenumber(DataType):
@@ -637,22 +776,26 @@ class phonenumber(DataType):
             pn,
             phonenumbers.PhoneNumberFormat.INTERNATIONAL,
         )
-        return f"""<span
-            class="type-phonenumber"
-        >
-            {flag} <a href="tel:{value}">{display}</a>
-        </span>"""
+        return H.span(
+            flag,
+            " ",
+            H.a(display, href=f"tel:{value}"),
+            cls="type-phonenumber",
+        )
 
     def input_html(self, value=None, **_):
         if value:
-            quot = '"'
-            value = f' value="{value.value.replace(quot, "&quot;")}"'
+            value = {"value": value.value.replace('"', "&quot;")}
         else:
-            value = ""
-        return f"""
-            <input type="tel" name="value"{value}>
-            <small>Non-international phone numbers (without the <tt>+</tt> prefix) will be interpreted as being from region {S.default_phone_region}.</small>
-        """
+            value = {}
+        return H(
+            H.input(type="tel", name="value", **value),
+            H.small(
+                "Non-international phone numbers (without the ",
+                H.tt("+"),
+                f" prefix) will be interpreted as being from region {S.default_phone_region}.",
+            ),
+        )
 
     def encode(self, value):
         pn = phonenumbers.parse(value, region=S.default_phone_region)
@@ -662,15 +805,15 @@ class phonenumber(DataType):
 class picture(DataType):
     def display_html(self, value, **_):
         if context.user.redact:
-            return ""
-        return f'<img class="type-picture" src="{value}">'
+            return None
+        return H.img(cls="type-picture", src=value)
 
     def extract_value(self, form):
         f = form["value"]
         return f"data:{f.type};base64,{base64.b64encode(f.body).decode()}"
 
     def input_html(self, value=None, **_):
-        return """<input name="value" type="file"></input>"""
+        return H.input(name="value", type="file")
 
 
 class file(DataType):
@@ -682,12 +825,18 @@ class file(DataType):
 
     def display_html(self, value, **_):
         if context.user.redact:
-            return ""
+            return None
         mime, filename, ref = value.split(":")
         if mime in file.EMBED_MIME_TYPES:
-            return f'<img class="type-file" src="/user-content/{ref}/{filename}">'
+            return H.img(
+                cls="type-file",
+                src=f"/user-content/{ref}/{filename}",
+            )
         else:
-            return f'<span class="type-file"><a href="/user-content/{ref}/{filename}">\N{PAPERCLIP} {filename}</a></span>'
+            return H.span(
+                H.a(f"\N{PAPERCLIP} {filename}", href=f"/user-content/{ref}/{filename}"),
+                cls="type-file",
+            )
 
     # TODO: figure out how to delete files. Perhaps just via "GC" by finding
     # files with no references to them.
@@ -711,7 +860,7 @@ class file(DataType):
         ).replace(" ", "_")
 
     def input_html(self, value=None, **_):
-        return """<input name="value" type="file"></input>"""
+        return H.input(name="value", type="file")
 
 
 class social(DataType):
@@ -724,34 +873,28 @@ class social(DataType):
         else:
             value = user
         if value.startswith("http"):
-            value = f'<a href="{value}">{user}</a>'
-        return f'<span class="type-social">{value}</span>'
+            value = H.a(user, href=value)
+        return H.span(value, cls="type-social")
 
     def input_html(self, verb_id, value=None, **_):
         import veronique.objects as O
         if value:
-            value = f' value="{escape(value.value)}"'
+            value = {"value": escape(value.value)}
         else:
-            value = ""
+            value = {}
         before, _, after  = O.Verb(verb_id).extra.partition("{}")
-        parts = ['<fieldset role="group">']
-        if before:
-            parts.append(f'<input value="{before}" disabled>')
-        parts.append(f'<input name="value"{value}>')
-        if after:
-            parts.append(f'<input value="{after}" disabled>')
-        parts.append("</fieldset>")
-        return "".join(parts)
+        return H.fieldset(
+            H.input(value=before, disabled=True) if before else None,
+            H.input(name="value", **value),
+            H.input(value=after, disabled=True) if after else None,
+            role="group",
+        )
 
     def next_step(self, args):
-        return """
-            <input
-                name="template"
-                placeholder="template, put {} in there somewhere"
-                type="url"
-            ></input>
-            <button type="submit">»</button>
-        """
+        return H(
+            H.input(name="template", placeholder="template, put {} in there somewhere", type="url"),
+            H.button("»", type="submit"),
+        )
 
     def get_extra(self, args):
         return args["template"]
@@ -759,10 +902,12 @@ class social(DataType):
 
 class mtgcolors(DataType):
     def display_html(self, value, **_):
-        return "".join(
-            f'<span class="mana s{color} small mana-{value[color]}"></span>'
-            for color in "wubrg"
-            if value.get(color) not in (None, 0, "0")
+        return H(
+            *(
+                H.span("", cls=f"mana s{color} small mana-{value[color]}")
+                for color in "wubrg"
+                if value.get(color) not in (None, 0, "0")
+            )
         )
 
     def extract_value(self, form):
@@ -777,13 +922,11 @@ class mtgcolors(DataType):
             value = value.value
         else:
             value = {color: 0 for color in "wubrg"}
-        return "".join(
-            f"""
-            <label><span class="mana s{color} medium"></span>
-                <input type="range" name="mana-{color}" min="0" max="5" value="{value.get(color, 0)}">
-            </label>
-            """
-            for color in "wubrg"
+        return H(
+            *(H.label(
+                H.span("", cls=f"mana s{color} medium"),
+                H.input(type="range", name=f"mana-{color}", min="0", max="5", value=str(value.get(color, 0))),
+            ) for color in "wubrg")
         )
 
     def decode(self, encoded):
@@ -800,8 +943,14 @@ class alpha2(DataType):
         try:
             country = pycountry.countries.lookup(value.upper())
         except LookupError:
-            return f'<span class="type-alpha2">invalid country ({value.upper()})</span>'
-        return f'<span class="type-alpha2"><a href="/types/alpha2/{value.upper()}">{country.flag} {country.name}</a></span>'
+            return H.span(f"invalid country ({value.upper()})", cls="type-alpha2")
+        return H.span(
+            H.a(
+                f"{country.flag} {country.name}",
+                href=f"/types/alpha2/{value.upper()}",
+            ),
+            cls="type-alpha2",
+        )
 
     def encode(self, string):
         val = string.upper()
@@ -813,17 +962,22 @@ class alpha2(DataType):
         if value:
             if not isinstance(value, str):
                 value = value.value
-            quot = '"'
-            value = f' value="{value.replace(quot, "&quot;")}"'
+            value = {"value": value.replace('"', "&quot;")}
         else:
-            value = ""
-        return f"""
-            <div class="ac-widget">
-            <input hx-trigger="keyup" hx-get="/types/alpha2" hx-target="#alpha2-results" name="value"{value} autocomplete="off">
-            <small>Enter a two-uppercase-letter region code here (ISO 3166-1 alpha 2), e.g. "DE".</small>
-            <div id="alpha2-results" class="ac-results"></div>
-            </div>
-        """
+            value = {}
+        return H.div(
+            H.input(
+                cls="ac-widget",
+                hx_trigger="keyup",
+                hx_get="/types/alpha2",
+                hx_target="#alpha2-results",
+                name="value",
+                autocomplete="off",
+                **value,
+            ),
+            H.small('Enter a two-uppercase-letter region code here (ISO 3166-1 alpha 2), e.g. "DE".'),
+            H.div("", id="alpha2-results", cls="ac-results"),
+        )
 
     @fragment
     async def request(self, request, *, method):
@@ -831,20 +985,22 @@ class alpha2(DataType):
         if "accept" in args:
             return self.input_html(value=args["accept"])
         if "value" not in args:
-            return ""
+            return None
         value = args["value"]
 
         try:
             results = pycountry.countries.search_fuzzy(value)
         except LookupError:
             results = []
-        return "".join(f'''<a
-            class="clickable ac-result"
-            hx-target="closest .ac-widget"
-            hx-swap="outerMorph"
-            hx-get="/types/alpha2/?accept={c.alpha_2}"
-        >{c.flag} {c.name}</a>
-        ''' for c in results[:5])
+        return H(
+            *(H.a(
+                f"{c.flag} {c.name}",
+                cls="clickable ac-result",
+                hx_target="closest .ac-widget",
+                hx_swap="outerMorph",
+                hx_get=f"/types/alpha2/?accept={c.alpha_2}",
+            ) for c in results[:5]),
+        )
 
 
 class age(DataType):
@@ -854,7 +1010,10 @@ class age(DataType):
             date_range = earliest
         else:
             date_range = f"{earliest}–{latest}"
-        return f"{self.possible_ages(value)} years old <small>({date_range})</small>"
+        return H(
+            f"{self.possible_ages(value)} years old ",
+            H.small(f"({date_range})"),
+        )
 
     def encode(self, value):
         return "--".join(dt.isoformat() for dt in value)
@@ -903,16 +1062,28 @@ class age(DataType):
         if value:
             # value is now a tuple of earliest and latest possible date
             earliest, latest = value.value
-            return f"""
-            <input name="value" value="{self.possible_ages(value.value)}">
-            <small>Format: <tt>optional-date:age</tt>. The age can also be a range. E.g.: <tt>2026-03-05:42-44</tt>. Updates restrict further.</small>
-            <input type="hidden" name="previous" value="{earliest:%Y-%m-%d}--{latest:%Y-%m-%d}">
-            """
+            return H(
+                H.input(name="value", value=str(self.possible_ages(value.value))),
+                H.small(
+                    "Format: ",
+                    H.tt("optional-date:age"),
+                    ". The age can also be a range. E.g.: ",
+                    H.tt("2026-03-05:42-44"),
+                    ". Updates restrict further.",
+                ),
+                H.input(type="hidden", name="previous", value=f"{earliest:%Y-%m-%d}--{latest:%Y-%m-%d}"),
+            )
         else:
-            return """
-                <input name="value">
-                <small>Format: <tt>optional-date:age</tt>. The age can also be a range. E.g.: <tt>2026-03-05:42-44</tt></small>
-            """
+            return H(
+                H.input(name="value"),
+                H.small(
+                    "Format: ",
+                    H.tt("optional-date:age"),
+                    ". The age can also be a range. E.g.: ",
+                    H.tt("2026-03-05:42-44"),
+                    ".",
+                ),
+            )
 
 
 class daterange(DataType):
@@ -923,13 +1094,13 @@ class daterange(DataType):
         elif str(earliest).endswith("-01-01") and str(latest).endswith("-12-31"):
             # full years
             if earliest.year == latest.year:
-                return str(earliest.year)
+                return H(str(earliest.year))
             else:
-                return f"{earliest.year} – {latest.year}"
+                return H(f"{earliest.year} – {latest.year}")
         else:
             date_range = f"{earliest} – {latest}"
         # TODO: add nice form for full months as well
-        return date_range
+        return H(date_range)
 
     encode = age.encode
     decode = age.decode
@@ -945,55 +1116,54 @@ class daterange(DataType):
             # value is now a tuple of earliest and latest possible date
             earliest, latest = value.value
             if earliest == latest:
-                latest = ""
+                latest = {}
             else:
-                latest = f' value="{latest}"'
-            earliest = f' value="{earliest}"'
+                latest = {"value": str(latest)}
+            earliest = {"value": str(earliest)}
         else:
-            earliest = latest = ""
+            earliest = latest = {}
 
         pattern = r"[0-9?]{4}-[0-9?]{2}-[0-9?]{2}"
-        return f"""
-            <fieldset role="group">
-            <input name="value_earliest" pattern="{pattern}" placeholder="Date, or earliest possible date"{earliest}>
-            <input value="–" style="width: 50px;" disabled>
-            <input name="value_latest" pattern="{pattern}" placeholder="Latest date (optional)"{latest}>
-            </fieldset>
-        """
+        return H.fieldset(
+            H.input(name="value_earliest", pattern=pattern, placeholder="Date, or earliest possible date", **earliest),
+            H.input(value="–", style="width: 50px;", disabled=True),
+            H.input(name="value_latest", pattern=pattern, placeholder="Latest date (optional)", **latest),
+            role="group",
+        )
 
 
 class choice(DataType):
     def display_html(self, value, **_):
-        return f'<span class="type-choice">{escape(value)}</span>'
+        return H.span(escape(value), cls="type-choice")
 
     def next_step(self, args):
-        return """
-            <label>Enter possible choices. One choice per line.
-            <textarea name="choices"></textarea>
-            </label>
-            <button type="submit">Create</button>
-        """
+        return H(
+            H.label(
+                "Enter possible choices. One choice per line.",
+                H.textarea("", name="choices"),
+            ),
+            H.button("Create", type="submit"),
+        )
 
     def get_extra(self, args):
         return json.dumps([choice.strip() for choice in args["choices"].split("\n") if choice.strip()])
 
     def detail_for(self, verb):
         choices = json.loads(verb.extra)
-        return f"""
-            <h4>Choices:</h4>
-            <ul>
-                {"".join(f"<li>{choice}</li>" for choice in choices)}
-            </ul>
-        """
+        return H(
+            H.h4("Choices:"),
+            H.ul(
+                *(H.li(choice) for choice in choices)
+            ),
+        )
 
     def input_html(self, verb_id, value=None, **_):
         import veronique.objects as O
         choices = json.loads(O.Verb(verb_id).extra)
-        return f"""
-            <select name="value">
-                {"".join(f'<option name="{choice}" {"selected" if choice == value else ""}>{choice}</option>' for choice in choices)}
-            </select>
-        """
+        return H.select(
+            *(H.option(str(choice), name=str(choice), selected=choice==value) for choice in choices),
+            name="value",
+        )
 
     @property
     def compatible_types(self):
@@ -1003,12 +1173,13 @@ class choice(DataType):
 
     def edit_verb_form(self, verb):
         choices = [c.strip() for c in json.loads(verb.extra)]
-        newline = "\n"
-        return f"""
-            <label>Enter possible choices. One choice per line.
-            <textarea name="choices">{newline.join(choices)}</textarea>
-            </label>
-        """
+        return H.label(
+            "Enter possible choices. One choice per line.",
+            H.textarea(
+                "\n".join(choices),
+                name="choices",
+            ),
+        )
 
     def edit_verb(self, verb, form):
         new_extra = self.get_extra(form)
@@ -1020,16 +1191,16 @@ class choice(DataType):
 
 class choices(choice):
     def display_html(self, value, **_):
-        return ", ".join(f'<span class="type-choice">{escape(choice)}</span>' for choice in value)
+        return join(", ", (H.span(escape(choice), cls="type-choice") for choice in value))
 
     def input_html(self, verb_id, value=None, **_):
         import veronique.objects as O
         choices = json.loads(O.Verb(verb_id).extra)
-        return f"""
-            <select name="value" multiple>
-                {"".join(f'<option name="{choice}" {"selected" if value and choice in value.value else ""}>{choice}</option>' for choice in choices)}
-            </select>
-        """
+        return H.select(
+            *(H.option(str(choice), name=str(choice), selected=value and choice in value.value) for choice in choices),
+            name="value",
+            multiple=True,
+        )
 
     def extract_value(self, form):
         """
