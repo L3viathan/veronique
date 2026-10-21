@@ -331,7 +331,7 @@ class Verb(Model):
         return self.label
 
     def __str__(self):
-        return self.html()
+        return str(self.html())
 
 
 class Claim(Model):

@@ -8,7 +8,7 @@ from datetime import date as dt_date
 from datetime import timedelta
 from functools import partial
 from html import escape
-from itertools import count
+from itertools import count, combinations
 from pathlib import Path
 from random import randint
 from types import SimpleNamespace
@@ -200,6 +200,24 @@ class inferred(DataType):
         payload = args.copy()
         payload.pop("label")
         payload.pop("data_type")
+        # Determine connectedness:
+        buckets = set()
+        for k, v in payload.items():
+            if k.endswith("v"):
+                continue
+            n = k.strip("gos")
+            buckets.add(frozenset({n, v}))
+        for i in range(len(buckets)):
+            for a, b in combinations(buckets, 2):
+                if a & b:
+                    buckets.remove(a)
+                    buckets.remove(b)
+                    buckets.add(frozenset({*a, *b}))
+                    break
+        if len(buckets) != 1:
+            raise ValueError("Inferred verb isn't fully connected")
+        if {"this", "that"} - buckets.pop():
+            raise ValueError("Inferred verb needs to have this and that.")
         return json.dumps(payload)
 
     def detail_for(self, verb):
