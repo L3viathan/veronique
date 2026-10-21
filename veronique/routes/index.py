@@ -50,7 +50,10 @@ def _recent_events_page(request, include_validity=False):
                 allow_negative=True,
             ),
         ),
-        _notice('There are <a href="/claims/comments">unresolved comments</a>') if context.user.is_admin and list(O.Claim.all_comments()) else "",
+        _notice(H(
+            "There are ",
+            H.a("unresolved comments", href="/claims/comments"),
+        )) if context.user.is_admin and list(O.Claim.all_comments()) else None,
     )
 
 

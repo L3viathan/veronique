@@ -228,7 +228,7 @@ async def view_query(request, query_id: int):
         H.div(
             results,
             pagination(
-                f"/{request.url}",
+                request.url.partition(request.host)[2],
                 page_no,
                 more_results=more_results,
             ) if results else None,
