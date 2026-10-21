@@ -232,7 +232,7 @@ async def reverb_claim_form(request, claim_id: int):
         )
     verbs = O.Verb.all(page_size=9999)
     verbs = [
-        H.option(f"{v} ({v.data_type})", value=str(v.id), selected=v.id==claim.verb.id)
+        H.option(f"{v.html()} ({v.data_type})", value=str(v.id), selected=v.id==claim.verb.id)
         for v in verbs
         if v.id >= 0 and claim.verb.can_turn_into(v)
     ]

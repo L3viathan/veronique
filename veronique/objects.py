@@ -329,6 +329,9 @@ class Verb(Model):
             return "root (allows creating new entities)"
         return self.label
 
+    def __str__(self):
+        return self.html()
+
 
 class Claim(Model):
     fields = (
