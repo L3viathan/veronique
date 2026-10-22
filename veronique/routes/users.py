@@ -3,7 +3,7 @@ from secrets import token_urlsafe
 from sanic import Blueprint, html, redirect
 
 import veronique.objects as O
-from veronique.autocomplete import AUTOCOMPLETES
+from veronique.autocomplete import Tags, widget
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import IS_A, ROOT
@@ -121,7 +121,7 @@ def _user_form(*, password_input, endpoint, user=None):
         ),
         H.h3("Corresponding entity"),
         str(user and user.entity or ""),
-        AUTOCOMPLETES["entity"].widget(None),
+        widget(Tags("")),
         password_input,
         H.input(type="submit", value="Save" if user else "Create"),
         action=endpoint,

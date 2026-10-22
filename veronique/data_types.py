@@ -20,7 +20,7 @@ import pycountry
 from markdown_it import MarkdownIt
 from nh3 import clean as clean_html
 
-from veronique.autocomplete import AUTOCOMPLETES
+from veronique.autocomplete import Tags, widget
 from veronique.context import context
 from veronique.html import H, join
 from veronique.nomnidate import NonOmniscientDate
@@ -97,8 +97,8 @@ class DataType:
 
 class directed_link(DataType):
     def input_html(self, value=None, claim_ids=None, direction=None, verb_id=None, allow_connect=True, **_):
-        return AUTOCOMPLETES["link"].widget(
-            data=f"{claim_ids}:{direction}:{verb_id}" if allow_connect else None
+        return widget(
+            Tags(f"connect={claim_ids}:{direction}:{verb_id}" if allow_connect else ""),
         )
 
 
@@ -310,7 +310,7 @@ class source(string):
                 return H.input(type="url", name="value", value=escape(value))
             return H.input(type="url", name="value")
         elif variant == "E":
-            return AUTOCOMPLETES["link"].widget(None)
+            return widget(Tags())
 
     def extract_value(self, form):
         """
@@ -726,8 +726,7 @@ class text(DataType):
     @fragment
     async def request(self, request, *, method):
         if method == "POST":
-            return AUTOCOMPLETES["input_ref_widget"].widget(None)
-        return H("@")
+            return widget(Tags("ir"))
 
 
 class email(DataType):

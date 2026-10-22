@@ -5,7 +5,7 @@ from time import monotonic
 from sanic import Blueprint, redirect
 
 import veronique.objects as O
-from veronique.autocomplete import AUTOCOMPLETES
+from veronique.autocomplete import Tags, widget
 from veronique.context import context
 from veronique.html import H
 from veronique.network import network_widget
@@ -17,11 +17,11 @@ tools = Blueprint("tools", url_prefix="/tools")
 @tools.get("connections")
 @page
 async def get_connections_form(request):
-    widget = AUTOCOMPLETES["multiselect"].widget()
     return H(
         H.h2("What connects these claims?"),
         H.form(
             widget,
+            widget(Tags("eh")),
             H.button(
                 "Find connections",
                 type="submit",
@@ -74,8 +74,8 @@ async def get_merge_form(request):
         H.h2("Merge claims"),
         H.form(
             H.fieldset(
-                AUTOCOMPLETES["link"].widget(),
-                AUTOCOMPLETES["link"].widget(),
+                widget(Tags("")),
+                widget(Tags("")),
                 cls="grid",
             ),
             H.button(
@@ -100,11 +100,11 @@ async def merge_claims(request):
 @tools.get("bulk-claim")
 @page
 async def get_bulk_claim_form(request):
-    widget = AUTOCOMPLETES["multiselect"].widget()
     return H(
         H.h2("New bulk claim"),
         H.form(
             widget,
+            widget(Tags("eh")),
             H.button(
                 "Make bulk claim",
                 type="submit",
