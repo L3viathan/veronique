@@ -2,6 +2,8 @@ import random
 from collections import Counter, defaultdict
 from itertools import cycle
 
+from veronique.html import H
+
 
 def network_widget(claims, *, links_go_to="detail", force_labels=False, colormap=None, freeze_after=None):
     nodes_seen, edges_seen = set(), set()
@@ -26,14 +28,7 @@ def network_widget(claims, *, links_go_to="detail", force_labels=False, colormap
         and edge["target"] in nodes_seen
     ]
 
-    parts = []
-    if not freeze_after:
-        parts.append("""
-        <button id="playpause" onclick="handlePlayPause()" style="position: fixed; z-index: 2;">■</button>
-        """)
-    parts.append("""
-    <div id="cy"></div>
-    <script>
+    script = ["""
         var active = true;
         function handlePlayPause() {
           if (active) {
@@ -48,9 +43,9 @@ def network_widget(claims, *, links_go_to="detail", force_labels=False, colormap
         var graph = new graphology.Graph();
         var fa2Layout = new graphologyLibrary.FA2Layout(graph);
         var draggedNode = null;
-    """)
+    """]
     if freeze_after:
-        parts.append(f"window.setTimeout(() => {{fa2Layout.stop();}}, {freeze_after * 1000});")
+        script.append(f"window.setTimeout(() => {{fa2Layout.stop();}}, {freeze_after * 1000});")
 
     maybe_force_labels = (
         ", forceLabel: true"
@@ -59,12 +54,12 @@ def network_widget(claims, *, links_go_to="detail", force_labels=False, colormap
     )
     colors = defaultdict(cycle(["red", "green", "blue", "orange", "purple"]).__next__)
     for node in all_nodes:
-        parts.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: {1 if len(all_nodes) > 30 else 10}, color: "{colors[node["cat"] if not colormap else colormap[int(node["id"])]]}"{maybe_force_labels}}});\n')
+        script.append(f'graph.addNode("{node["id"]}", {{label: "{node["label"]}", x: {random.random()}, y: {random.random()}, size: {1 if len(all_nodes) > 30 else 10}, color: "{colors[node["cat"] if not colormap else colormap[int(node["id"])]]}"{maybe_force_labels}}});\n')
 
     for edge in all_edges:
-        parts.append(f'graph.addEdge("{edge["source"]}", "{edge["target"]}", {{label: "{edge["label"]}", size: {1 if len(all_edges) > 30 else 5}, color: "grey", type: "{edge["type"]}"}});\n')
+        script.append(f'graph.addEdge("{edge["source"]}", "{edge["target"]}", {{label: "{edge["label"]}", size: {1 if len(all_edges) > 30 else 5}, color: "grey", type: "{edge["type"]}"}});\n')
 
-    parts.append(f"""
+    script.append(f"""
         var sig = new Sigma(graph, document.getElementById("cy"), {{renderEdgeLabels: true, allowInvalidContainer: true}});
         sig.on("downNode", (e) => {{
           draggedNode = e.node;
@@ -79,6 +74,9 @@ def network_widget(claims, *, links_go_to="detail", force_labels=False, colormap
         }});
 
         fa2Layout.start();
-    </script>
     """)
-    return "".join(parts)
+    return H(
+        H.button("■", id="playpause", onclick="handlePlayPause()", style="position: fixed; z-index: 2;") if not freeze_after else None,
+        H.div("", id="cy"),
+        H.script(*script),
+    )
