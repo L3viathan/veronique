@@ -70,11 +70,14 @@ async def redirect_to_network(request):
 @tools.get("merge")
 @page
 async def get_merge_form(request):
-    widget = AUTOCOMPLETES["merge"].widget()
     return H(
         H.h2("Merge claims"),
         H.form(
-            widget,
+            H.fieldset(
+                AUTOCOMPLETES["link"].widget(),
+                AUTOCOMPLETES["link"].widget(),
+                cls="grid",
+            ),
             H.button(
                 "Merge claims",
                 type="submit",

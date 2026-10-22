@@ -1332,7 +1332,7 @@ class Claim(Model):
             mention.set_value(value)
         cur.execute(
             """
-            DELETE claims
+            DELETE FROM claims
             WHERE id = ?
             """,
             (other.id,),

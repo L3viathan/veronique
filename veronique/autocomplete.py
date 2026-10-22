@@ -161,53 +161,6 @@ class multiselect(Autocomplete):
         )
 
 
-class merge(Autocomplete):
-    def widget(self, data=None):
-        return H.fieldset(
-            *([H.div(
-                H.input(
-                    name="ac-query",
-                    placeholder="start typing...",
-                    hx_get=f"/autocomplete/merge/query/{data}",
-                    hx_target="next .ac-results",
-                    hx_swap="innerhtml",
-                    hx_trigger="input changed delay:200ms, search",
-                ),
-                H.div("", cls="ac-results"),
-                cls="ac-widget",
-            )]*2),
-            cls="grid",
-        )
-
-    def get_results(self, query, connect):
-        import veronique.objects as O
-        if not query:
-            return ""
-        claims = O.Claim.search(
-            q=query,
-            page_size=5,
-        )
-        return H(
-            *(
-                H.a(
-                    claim.html("label"),
-                    cls="clickable ac-result",
-                    hx_target="closest .ac-widget",
-                    hx_swap="outerMorph",
-                    hx_get=f"/autocomplete/merge/accept/{claim.id}",
-                ) for claim in claims
-            )
-        )
-
-    def accept(self, claim_id):
-        import veronique.objects as O
-        claim = O.Claim(int(claim_id))
-        return H(
-            H.span(claim.html(), cls="ac-result"),
-            H.input(type="hidden", name="value", value=str(claim_id)),
-        )
-
-
 class entity(Autocomplete):
     def widget(self, data=None):
         return H.div(
