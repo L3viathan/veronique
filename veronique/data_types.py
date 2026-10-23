@@ -310,7 +310,7 @@ class source(string):
                 return H.input(type="url", name="value", value=escape(value))
             return H.input(type="url", name="value")
         elif variant == "E":
-            return widget(Tags())
+            return widget(Tags(""))
 
     def extract_value(self, form):
         """
