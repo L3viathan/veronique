@@ -976,48 +976,19 @@ class alpha2(DataType):
         raise ValueError("Needs to be two-letter ASCII")
 
     def input_html(self, value=None, **_):
-        if value:
-            if not isinstance(value, str):
-                value = value.value
-            value = {"value": value.replace('"', "&quot;")}
-        else:
-            value = {}
-        return H.div(
-            H.input(
-                cls="ac-widget",
-                hx_trigger="keyup",
-                hx_get="/types/alpha2",
-                hx_target="#alpha2-results",
-                name="value",
-                autocomplete="off",
-                **value,
-            ),
-            H.small('Enter a two-uppercase-letter region code here (ISO 3166-1 alpha 2), e.g. "DE".'),
-            H.div("", id="alpha2-results", cls="ac-results"),
-        )
+        if value and not isinstance(value, str):
+            value = value.value
+        return widget(Tags("dt=alpha2"), value=value)
 
-    @fragment
-    async def request(self, request, *, method):
-        args = D(request.args)
-        if "accept" in args:
-            return self.input_html(value=args["accept"])
-        if "value" not in args:
-            return None
-        value = args["value"]
-
+    def autocomplete(self, query):
         try:
-            results = pycountry.countries.search_fuzzy(value)
+            results = pycountry.countries.search_fuzzy(query)
         except LookupError:
             results = []
-        return H(
-            *(H.a(
-                f"{c.flag} {c.name}",
-                cls="clickable ac-result",
-                hx_target="closest .ac-widget",
-                hx_swap="outerMorph",
-                hx_get=f"/types/alpha2/?accept={c.alpha_2}",
-            ) for c in results[:5]),
-        )
+        return [
+            (c.alpha_2, f"{c.flag} {c.name}")
+            for c in results[:5]
+        ]
 
 
 class age(DataType):

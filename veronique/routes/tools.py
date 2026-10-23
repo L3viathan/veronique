@@ -20,7 +20,6 @@ async def get_connections_form(request):
     return H(
         H.h2("What connects these claims?"),
         H.form(
-            widget,
             widget(Tags("eh")),
             H.button(
                 "Find connections",
@@ -36,7 +35,8 @@ async def get_connections_form(request):
 @tools.post("connections")
 @page
 async def redirect_to_network(request):
-    claim_ids = [int(claim_id) for claim_id in request.form["value"]]
+    # Need to skip the first hit — it's the value of the query
+    claim_ids = [int(claim_id) for claim_id in request.form["value"][1:]]
     colormap = defaultdict(lambda: 0)
     for claim_id in claim_ids:
         colormap[str(claim_id)] = 1

@@ -18,7 +18,7 @@ class Tags:
         return ",".join(k if v is None else f"{k}={v}" for k, v in self._data.items())
 
 
-def widget(tags):
+def widget(tags, value=None):
     """
     Return an autocomplete widget. Tags specify properties of this
     autocomplete, including "what kind of thing are we autocompleting?", "Where
@@ -30,7 +30,7 @@ def widget(tags):
         H.div(
             H.fieldset(
                 H.input(
-                    name="ac-query",
+                    name="value",
                     placeholder="Start typing...",
                     hx_get=f"/autocomplete/query?tags={tags}",
                     hx_target="next .ac-results",
@@ -38,6 +38,7 @@ def widget(tags):
                     hx_trigger="input changed delay:200ms, search",
                     autocomplete="pleaseno",
                     autofocus=True,
+                    value=value,
                 ),
                 H.input(
                     type="button",
@@ -57,21 +58,27 @@ def widget(tags):
 
 def get_results(query, tags):
     import veronique.objects as O
-    connect = tags.get("connect")
-    external_hits = "eh" in tags
-
+    from veronique.data_types import TYPES
     if not query:
         return None
-    claims = O.Claim.search(
-        q=query,
-        page_size=5,
-    )
+    connect = tags.get("connect")
+    external_hits = "eh" in tags
+    if data_type := tags.get("dt"):
+        hits = TYPES[data_type].autocomplete(query)
+    else:
+        hits = [
+            (c.id, c.html("label"))
+            for c in O.Claim.search(
+                q=query,
+                page_size=5,
+            )
+        ]
     return H(
         *(
             H.a(
-                claim.html("label"),
+                hit_label,
                 cls="clickable ac-result",
-                hx_get=f"/autocomplete/accept/{claim.id}?tags={tags}",
+                hx_get=f"/autocomplete/accept/{hit_id}?tags={tags}",
                 **({
                     "hx_target": "next .ac-hits",
                     "hx_swap": "beforeend",
@@ -79,7 +86,7 @@ def get_results(query, tags):
                     "hx_target": "closest .ac-widget",
                     "hx_swap": "outerMorph",
                 }),
-            ) for claim in claims
+            ) for hit_id, hit_label in hits
         ),
         H.a(
             H.em("Create"),
@@ -93,9 +100,13 @@ def get_results(query, tags):
 
 def accept(hit, tags):
     import veronique.objects as O
+    from veronique.data_types import TYPES
     input_ref = "ir" in tags
     input_field = tags.get("if", "value")
-    claim = O.Claim(int(hit))
+    if data_type := tags.get("dt"):
+        return TYPES[data_type].input_html(value=hit)
+    else:
+        claim = O.Claim(int(hit))
     if input_ref:
         return H(claim.html("input-widget-ref"), "&nbsp;")
     return H(

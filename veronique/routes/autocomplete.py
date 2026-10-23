@@ -11,7 +11,7 @@ autocomplete = Blueprint("autocomplete", url_prefix="/autocomplete")
 @fragment
 def query_autocomplete(request):
     args = D(request.args)
-    query = args.get("ac-query", "")
+    query = args.get("value", "")
     tags = args.get("tags", "")
     return get_results(query, Tags(tags))
 
