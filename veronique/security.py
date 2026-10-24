@@ -11,6 +11,11 @@ from veronique.constants import (
     SECURITY_SALT_SIZE,
 )
 
+# This key is randomly generated if it doesn't exist. It is used to encrypt the
+# auth tokens, but does not need to be known to anyone but the Véronique
+# instance itself. It should not be included in backups, as regenerating it
+# just invalidates existing sessions. If the key is leaked, it can be used to
+# forge session tokens and gain admin access to Véronique.
 key_path = Path(".veronique-key")
 if not key_path.exists():
     key = token_bytes(SECURITY_KEY_SIZE)
@@ -19,6 +24,10 @@ else:
     key = bytes.fromhex(key_path.read_text().strip())
 
 
+# This is similar to — but simpler than — JWTs. We don't need a header, since
+# we know the algorithm used, and we don't bother with keeping standard fields.
+# Whatever data gets passed in gets stored in the token, the authentication
+# part is responsible for choosing what to store.
 def sign(data):
     payload = json.dumps(data, sort_keys=True)
     signature = _hash_token(payload.encode(), key)
@@ -26,8 +35,11 @@ def sign(data):
 
 
 def unsign(data):
+    # We return either data (on success), or None.
     if not data:
         return
+    # The token comes either from an Authorization header (for remote access)
+    # or a cookie (regular access), so we strip a leading "Digest ":
     if data.startswith("Digest "):
         data = b64decode(data.removeprefix("Digest ")).decode()
     signature, _, payload = data.partition(".")
@@ -60,6 +72,7 @@ def hash_password(password, salt=None):
 
 
 def is_correct(password, hash, salt):
+    # This (as opposed to using `==`) is important to avoid timing attacks:
     return compare_digest(
         _hash_pwd(password.encode(), bytes.fromhex(salt)),
         hash,
