@@ -1240,7 +1240,7 @@ class Claim(Model):
                             ),
                         )
                     )
-            if context.user.is_admin or self.owner.id == context.user.id and self.deletable:
+            if (context.user.is_admin or self.owner.id == context.user.id) and self.deletable:
                 parts.append(
                     H.li(
                         H.a(
