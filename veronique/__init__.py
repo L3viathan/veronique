@@ -63,6 +63,8 @@ async def auth(request):
             # this is to support proper logouts, see logout()
             return unauthorized
         if impersonatee := request.cookies.get("impersonate"):
+            if not user.is_admin:
+                return unauthorized
             context.user = O.User(int(impersonatee))
             context.impersonator = user
         else:
