@@ -45,18 +45,29 @@ async def auth(request):
         request.route.path == "login"
         or request.route.path.endswith((".css", ".js", ".svg", ".png"))
     ):
-        # allow unauthenticated access to login page
+        # allow unauthenticated access to login page and static assets
         context.user = None
         context.payload = None
         return
     if request.method == "GET" and request.path != "/":
+        # After a successful login, we want to redirect them to the path they
+        # wanted to go to originally, if we can safely do so.
         unauthorized = redirect(f"/login?then={request.path}")
     else:
         unauthorized = redirect("/login")
     if payload := security.unsign(
         request.cookies.get("session") or request.headers.get("Authorization"),
     ):
+        # Non-empty payload means the token presented is valid, in the sense of
+        # "was legitimately issued by this instance". It does not mean that we
+        # want this to be a successful login (yet):
         if (datetime.now() - datetime.fromisoformat(payload["t"])) > SESSION_MAX_AGE:
+            # Sessions have a maximum age (which gets refreshed automatically
+            # (see refresh_session) so this only affects the user if they
+            # haven't logged in for a long time). What does this protect
+            # against? Mainly credential stealing by having taken over the
+            # computer of an (inactive) user. It does not protect the scenario
+            # of an _active_ user's computer being taken over of course.
             return unauthorized
         user = O.User(payload["u"])
         if user.generation > payload.get("g", 0):
@@ -64,8 +75,11 @@ async def auth(request):
             return unauthorized
         if impersonatee := request.cookies.get("impersonate"):
             if not user.is_admin:
+                # Only admins may impersonate, as this feature allows acting as
+                # any other user (including admins).
                 return unauthorized
             context.user = O.User(int(impersonatee))
+            # This is to allow showing in the UI who the _real_ user is:
             context.impersonator = user
         else:
             context.user = user
@@ -80,6 +94,9 @@ async def refresh_session(request, response):
     if not (payload := context.payload):
         return
     if (datetime.now() - datetime.fromisoformat(payload["t"])) > SESSION_REFRESH_AFTER:
+        # Refresh a session when it's older than SESSION_REFRESH_AFTER. By
+        # making this value larger than the SESSION_MAX_AGE, the feature could
+        # be disabled entirely.
         context.user.make_session(response)
 
 
