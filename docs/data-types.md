@@ -191,3 +191,8 @@ from which you can select one option.
 
 This behaves exactly like `choice`, except you can select multiple values in a
 single claim.
+
+## `source`
+
+This is used by the internal verb of the same name. It contains a string, a
+website, or a (soft) reference to an entity.
