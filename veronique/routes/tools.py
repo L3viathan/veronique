@@ -103,7 +103,6 @@ async def get_bulk_claim_form(request):
     return H(
         H.h2("New bulk claim"),
         H.form(
-            widget,
             widget(Tags("eh")),
             H.button(
                 "Make bulk claim",
@@ -119,7 +118,8 @@ async def get_bulk_claim_form(request):
 @tools.post("bulk-claim")
 @page
 async def start_bulk_claim(request):
-    claim_ids = request.form["value"]
+    # Need to skip the first hit — it's the value of the query
+    claim_ids = request.form["value"][1:]
     claims = [O.Claim(int(claim_id)) for claim_id in claim_ids]
     return "New bulk claim", H.article(
         H.header(
