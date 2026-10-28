@@ -122,6 +122,7 @@ def page(fn):
             ("Users", "users", True),
             ("Tools: Connections", "tools/connections", False),
             ("Tools: Merge", "tools/merge", True),
+            ("Tools: Map", "tools/map", False),
         ]:
             if restricted and not context.user.is_admin:
                 gotos.append(H.li(H.a(page_name, href="#", disabled=True)))

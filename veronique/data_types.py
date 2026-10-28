@@ -21,6 +21,7 @@ from markdown_it import MarkdownIt
 from nh3 import clean as clean_html
 
 from veronique.autocomplete import Tags, widget
+from veronique.constants import COORDS, DATE_REF, INPUT_WIDGET_REF, TEXT_REF
 from veronique.context import context
 from veronique.html import H, join
 from veronique.nomnidate import NonOmniscientDate
@@ -28,10 +29,6 @@ from veronique.settings import settings as S
 from veronique.utils import D, fragment
 
 TYPES = {}
-TEXT_REF = re.compile(r"\[@(\d+)\]")
-DATE_REF = re.compile(r"[12][0-9]{3}-[01][0-9]-[0-3][0-9]")
-INPUT_WIDGET_REF = re.compile(r'<span [^>]+data-claim-ref="(\d+)"[^>]+>.+?</span>')
-COORDS = re.compile(r"^-?\d+(.\d+)?, ?-?\d+(.\d+)?$")
 
 
 def float_int(val):
@@ -599,7 +596,7 @@ class location(DataType):
         if COORDS.match(value):
             rand = randint(1, 10000)
             return H(
-                H.div("", id=f"map{rand}", cls="map"),
+                H.div("", id=f"map{rand}", cls="map type-location"),
                 H.script(f"""
                     var map = L.map('map{rand}').setView([{value}], 13);
                     L.tileLayer('{S.map_tile_url}', {{
@@ -634,7 +631,7 @@ class location(DataType):
                 name="value",
                 id=f"input{rand}",
             ),
-            H.div("", id=f"map{rand}", cls="map"),
+            H.div("", id=f"map{rand}", cls="map type-location"),
             H.script(f"""
                 var map = L.map('map{rand}').setView([{map_coords}], 13);
                 L.tileLayer('{S.map_tile_url}', {{

@@ -1,14 +1,17 @@
 from collections import defaultdict, deque
 from itertools import combinations
+from random import randint
 from time import monotonic
 
 from sanic import Blueprint, redirect
 
 import veronique.objects as O
 from veronique.autocomplete import Tags, widget
+from veronique.constants import COORDS
 from veronique.context import context
 from veronique.html import H
 from veronique.network import network_widget
+from veronique.settings import settings as S
 from veronique.utils import admin_only, page
 
 tools = Blueprint("tools", url_prefix="/tools")
@@ -147,4 +150,36 @@ async def start_bulk_claim(request):
             ),
             cls="claims",
         )
+    )
+
+
+@tools.get("map")
+@page
+async def show_map(request):
+    markers = []
+    for location_verb in O.Verb.all(data_type="location"):
+        for claim in O.Claim.all(verb_id=location_verb.id, page_size=9999):
+            if COORDS.match(claim.object.value):
+                markers.append(f"""
+                    L.marker([{claim.object.value}], {{title: {str(claim.subject.html("label"))!r}}}).on("click", function() {{
+                        window.location = "/claims/{claim.subject.id}";
+                    }}).addTo(map);
+                """)
+
+    rand = randint(1, 10000)
+    return H.article(
+        H.header(
+            H.h2("Map"),
+        ),
+        H.div("", id=f"map{rand}", cls="map"),
+        H.script(f"""
+            var map = L.map('map{rand}').setView([0, 0], 1);
+            L.tileLayer('{S.map_tile_url}', {{
+                maxZoom: 19,
+                attribution: '&copy; <a href="{S.map_tile_attribution_link}">{S.map_tile_attribution_label}</a>',
+                referrerPolicy: 'origin',
+            }}).addTo(map);
+            """,
+            *markers,
+        ),
     )

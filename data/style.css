@@ -504,8 +504,12 @@ footer {
 }
 
 .map {
-  height: 400px;
-  min-width: 400px;
+  min-height: 400px;
+
+  &.type-location {
+    height: 400px;
+    min-width: 400px;
+  }
 
   a {
     padding: 0;

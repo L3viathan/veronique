@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 
 # Sessions older than this get re-issued
@@ -45,3 +46,8 @@ MAP_TILES_DEFAULT_PROVIDER_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png
 
 # There's (currently) three source types: Text, Website/URL, and Entity.
 DEFAULT_SOURCE_TYPE = "T"
+
+TEXT_REF = re.compile(r"\[@(\d+)\]")
+DATE_REF = re.compile(r"[12][0-9]{3}-[01][0-9]-[0-3][0-9]")
+INPUT_WIDGET_REF = re.compile(r'<span [^>]+data-claim-ref="(\d+)"[^>]+>.+?</span>')
+COORDS = re.compile(r"^-?\d+(.\d+)?, ?-?\d+(.\d+)?$")
