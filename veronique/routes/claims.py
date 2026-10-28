@@ -234,7 +234,7 @@ async def reverb_claim_form(request, claim_id: int):
     verbs = [
         H.option(v.html(), f" ({v.data_type})", value=str(v.id), selected=v.id==claim.verb.id)
         for v in verbs
-        if v.id >= 0 and claim.verb.can_turn_into(v)
+        if v.id >= 0 and claim.verb.can_turn_into(v) and context.user.can("write", "verb", v.id)
     ]
     return H.form(
         H.select(
@@ -290,12 +290,12 @@ async def edit_claim(request, claim_id: int):
 async def reverb_claim(request, claim_id: int):
     form = D(request.form)
     claim = O.Claim(claim_id)
-    if not context.user.is_admin and claim.owner.id != context.user.id:
+    verb_id = int(form.get("verb"))
+    if not context.user.is_admin and (claim.owner.id != context.user.id or not context.user.can("write", "verb", verb_id)):
         return HTTPResponse(
             body="403 Forbidden",
             status=403,
         )
-    verb_id = int(form.get("verb"))
     claim.set_verb(O.Verb(verb_id))
     return redirect(f"/claims/{claim_id}")
 
