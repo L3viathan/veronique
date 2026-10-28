@@ -7,7 +7,7 @@ from sanic import Blueprint, HTTPResponse, raw, redirect
 import veronique.objects as O
 from veronique.context import context
 from veronique.data_types import TYPES
-from veronique.db import AVATAR, COMMENT, IS_A, ROOT
+from veronique.db import AVATAR, COMMENT, IS_A, LATLON, ROOT
 from veronique.html import H
 from veronique.network import network_widget
 from veronique.settings import settings as S
@@ -434,7 +434,7 @@ async def view_claim(request, claim_id: int):
                     *(H.span(c.html("sv"), cls="row") for c in incoming_claims),
                 ),
                 H.td(
-                    *(H.span(c.html(f"vo:{claim_id}"), cls="row") for c in outgoing_claims if c.verb.id not in (IS_A, AVATAR, COMMENT)),
+                    *(H.span(c.html(f"vo:{claim_id}"), cls="row") for c in outgoing_claims if c.verb.id not in (IS_A, AVATAR, COMMENT, LATLON)),
                     *(H.span(c.html(f"vo:{claim_id}"), cls="row") for c in claim.outgoing_inferred_claims()),
                 ),
                 cls="claims",

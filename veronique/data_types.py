@@ -594,7 +594,7 @@ class boolean(DataType):
         return value == "on"
 
 
-class geocoords(DataType):
+class latlon(DataType):
     def display_html(self, value, **_):
         if context.user.redact:
             value = "0,0"
@@ -650,7 +650,7 @@ class geocoords(DataType):
 
     def extract_value(self, form):
         value = form.get("value")
-        if not COORDS.pattern.match(value):
+        if not COORDS.match(value):
             raise ValueError
         return value
 

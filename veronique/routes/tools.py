@@ -9,6 +9,7 @@ import veronique.objects as O
 from veronique.autocomplete import Tags, widget
 from veronique.constants import COORDS
 from veronique.context import context
+from veronique.db import LATLON
 from veronique.html import H
 from veronique.network import network_widget
 from veronique.settings import settings as S
@@ -157,16 +158,18 @@ async def start_bulk_claim(request):
 @page
 async def show_map(request):
     markers = []
-    for location_verb in O.Verb.all(data_type="location"):
-        if not context.user.can("read", "verb", location_verb.id):
-            continue
-        for claim in O.Claim.all(verb_id=location_verb.id, page_size=9999):
-            if COORDS.match(claim.object.value):
-                markers.append(f"""
-                    L.marker([{claim.object.value}], {{title: {str(claim.subject.html("label"))!r}}}).on("click", function() {{
-                        window.location = "/claims/{claim.subject.id}";
-                    }}).addTo(map);
-                """)
+    if not context.user.can("read", "verb", LATLON):
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
+    for claim in O.Claim.all(verb_id=LATLON, page_size=9999):
+        if COORDS.match(claim.object.value):
+            markers.append(f"""
+                L.marker([{claim.object.value}], {{title: {str(claim.subject.html("label"))!r}}}).on("click", function() {{
+                    window.location = "/claims/{claim.subject.id}";
+                }}).addTo(map);
+            """)
 
     rand = randint(1, 10000)
     return H.article(

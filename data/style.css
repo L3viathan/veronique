@@ -660,3 +660,7 @@ img#logo {
     font-size: 150%;
   }
 }
+
+.latlon a {
+  text-decoration: none;
+}

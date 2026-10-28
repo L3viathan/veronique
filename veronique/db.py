@@ -20,7 +20,8 @@ DATA_LABELS = [
     AVATAR,
     COMMENT,
     SOURCE,
-] = range(-1, -9, -1)
+    LATLON,
+] = range(-1, -10, -1)
 
 
 try:
@@ -832,6 +833,23 @@ def add_entity_id_to_users(cur):
     cur.execute("""
         ALTER TABLE users
         ADD entity_id INTEGER
+    """)
+
+
+@migration(29)
+def add_latlon(cur):
+    cur.execute(f"""
+        INSERT INTO verbs (
+            id,
+            label,
+            data_type,
+            internal
+        ) VALUES (
+            {LATLON},
+            'latlon',
+            'latlon',
+            TRUE
+        )
     """)
 
 

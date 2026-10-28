@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 from functools import cache, cached_property
 from html import escape
 from itertools import combinations, count
+from urllib.parse import quote_plus
 
 from veronique import db
 from veronique.constants import CLAIM_DATA_CACHE_TIME, SESSION_MAX_AGE
@@ -16,6 +17,7 @@ from veronique.db import (
     COMMENT,
     DATA_LABELS,
     IS_A,
+    LATLON,
     ROOT,
     SOURCE,
     VALID_FROM,
@@ -25,6 +27,7 @@ from veronique.html import H, join
 from veronique.nomnidate import NonOmniscientDate
 from veronique.search import find, update_index_for_doc
 from veronique.security import hash_password, sign
+from veronique.settings import settings as S
 from veronique.utils import timed_cache
 
 SELF = object()
@@ -1065,7 +1068,23 @@ class Claim(Model):
                     text = f"Claim #{self.id}"
                 else:
                     text = escape(self.object.value)
-                return H.h2(text, cat)
+                if LATLON in data:
+                    latlons = H(
+                        H.br(),
+                        *(
+                            H.small(
+                                H.a(
+                                    "\N{PUSHPIN}",
+                                    href=S.location_link_template.format(quote_plus(latlon.object.value)),
+                                ),
+                                cls="latlon",
+                            )
+                            for latlon in data[LATLON]
+                        ),
+                    )
+                else:
+                    latlons = None
+                return H.h2(text, cat, latlons)
             else:
                 return H.h2(self.html())
         elif fmt.startswith("vo:"):
@@ -1237,6 +1256,17 @@ class Claim(Model):
                                 H.i("\N{FRAME WITH PICTURE}\ufe0e"),
                                 hx_target="#edit-area",
                                 hx_get=f"/claims/new/verb?verb={AVATAR}&claim_ids={self.id}&direction=outgoing&standalone=1",
+                            ),
+                        )
+                    )
+                if context.user.can("write", "verb", LATLON):
+                    parts.append(
+                        H.li(
+                            H.a(
+                                "Set location ",
+                                H.i("\N{PUSHPIN}\ufe0e"),
+                                hx_target="#edit-area",
+                                hx_get=f"/claims/new/verb?verb={LATLON}&claim_ids={self.id}&direction=outgoing&standalone=1",
                             ),
                         )
                     )
