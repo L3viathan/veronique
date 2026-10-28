@@ -589,31 +589,23 @@ class boolean(DataType):
         return value == "on"
 
 
-class location(DataType):
+class geocoords(DataType):
     def display_html(self, value, **_):
         if context.user.redact:
-            value = "Point Nemo"
-        if COORDS.match(value):
-            rand = randint(1, 10000)
-            return H(
-                H.div("", id=f"map{rand}", cls="map type-location"),
-                H.script(f"""
-                    var map = L.map('map{rand}').setView([{value}], 13);
-                    L.tileLayer('{S.map_tile_url}', {{
-                        maxZoom: 19,
-                        attribution: '&copy; <a href="{S.map_tile_attribution_link}">{S.map_tile_attribution_label}</a>',
-                        referrerPolicy: 'origin',
-                    }}).addTo(map);
-                    L.marker([{value}]).addTo(map);
-                """),
-            )
-        else:
-            return H.span(
-                *join(H.br(), escape(value).split("\n")),
-                " ",
-                H.a("🌍", href=S.location_link_template.format(quote_plus(value.replace("\n", ", ")))),
-                cls="type-location",
-            )
+            value = "0,0"
+        rand = randint(1, 10000)
+        return H(
+            H.div("", id=f"map{rand}", cls="map type-geocoords"),
+            H.script(f"""
+                var map = L.map('map{rand}').setView([{value}], 13);
+                L.tileLayer('{S.map_tile_url}', {{
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="{S.map_tile_attribution_link}">{S.map_tile_attribution_label}</a>',
+                    referrerPolicy: 'origin',
+                }}).addTo(map);
+                L.marker([{value}]).addTo(map);
+            """),
+        )
 
     def input_html(self, value=None, **_):
         if value:
@@ -626,12 +618,12 @@ class location(DataType):
         else:
             map_coords = "0, 0"
         return H(
-            H.textarea(
-                value,
+            H.input(
                 name="value",
+                value=value,
                 id=f"input{rand}",
             ),
-            H.div("", id=f"map{rand}", cls="map type-location"),
+            H.div("", id=f"map{rand}", cls="map type-geocoords"),
             H.script(f"""
                 var map = L.map('map{rand}').setView([{map_coords}], 13);
                 L.tileLayer('{S.map_tile_url}', {{
@@ -649,6 +641,38 @@ class location(DataType):
                 }}
                 map.on('click', onMapClick);
             """),
+        )
+
+    def extract_value(self, form):
+        value = form.get("value")
+        if not COORDS.pattern.match(value):
+            raise ValueError
+        return value
+
+
+class location(DataType):
+    def display_html(self, value, **_):
+        if context.user.redact:
+            value = "Point Nemo"
+        return H.span(
+            *join(H.br(), escape(value).split("\n")),
+            " ",
+            H.a("🌍", href=S.location_link_template.format(quote_plus(value.replace("\n", ", ")))),
+            cls="type-location",
+        )
+
+    def input_html(self, value=None, **_):
+        if value:
+            value = value.value
+        else:
+            value = ""
+        rand = randint(1, 10000)
+        return H(
+            H.textarea(
+                value,
+                name="value",
+                id=f"input{rand}",
+            ),
         )
 
 

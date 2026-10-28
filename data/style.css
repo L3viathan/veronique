@@ -205,7 +205,7 @@ header small {
   border: 1px solid lightgrey;
 }
 
-.type-location a {
+.type-geocoords a, .type-location a {
   text-decoration: none;
 }
 
@@ -506,7 +506,7 @@ footer {
 .map {
   min-height: 400px;
 
-  &.type-location {
+  &.type-geocoords {
     height: 400px;
     min-width: 400px;
   }
