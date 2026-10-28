@@ -39,7 +39,11 @@ def float_int(val):
 
 
 class DataType:
+    # Claims can have their verb changed into a verb of the same type, _or_
+    # into verbs with types listed here.
     can_turn_into = ()
+    # Whether this data type supports looking up a value via
+    # /types/<data_type>/<value>.
     supports_value_query = False
 
     def __init_subclass__(cls):
@@ -78,6 +82,7 @@ class DataType:
         return form.get("value")
 
     def detail_for(self, verb):
+        """What to show on the detail page of a verb. Meant for verbs with extras."""
         return None
 
     def __str__(self):
