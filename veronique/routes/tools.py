@@ -158,6 +158,8 @@ async def start_bulk_claim(request):
 async def show_map(request):
     markers = []
     for location_verb in O.Verb.all(data_type="location"):
+        if not context.user.can("read", "verb", location_verb.id):
+            continue
         for claim in O.Claim.all(verb_id=location_verb.id, page_size=9999):
             if COORDS.match(claim.object.value):
                 markers.append(f"""
