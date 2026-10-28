@@ -251,6 +251,7 @@ async def view_query_graph(request, query_id: int, col: str):
         )
     query = O.Query(query_id)
     result = query.run(
+        {},  # no bindings
         page_no=0,
         page_size=9999,
     )
