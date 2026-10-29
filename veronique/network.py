@@ -33,10 +33,10 @@ def network_widget(claims, *, links_go_to="detail", force_labels=False, colormap
         function handlePlayPause() {
           if (active) {
               fa2Layout.stop();
-              document.getElementById("playpause").innerText = "▶\uFE0E";
+              document.getElementById("playpause").innerText = "\N{BLACK RIGHT-POINTING TRIANGLE}\ufe0e";
           } else {
               fa2Layout.start();
-              document.getElementById("playpause").innerText = "■";
+              document.getElementById("playpause").innerText = "\N{BLACK SQUARE}\ufe0e";
           }
           active = !active;
         }
@@ -76,7 +76,7 @@ def network_widget(claims, *, links_go_to="detail", force_labels=False, colormap
         fa2Layout.start();
     """)
     return H(
-        H.button("■", id="playpause", onclick="handlePlayPause()", style="position: fixed; z-index: 2;") if not freeze_after else None,
+        H.button("\N{BLACK SQUARE}\ufe0e", id="playpause", onclick="handlePlayPause()", style="position: fixed; z-index: 2;") if not freeze_after else None,
         H.div("", id="cy"),
         H.script(*script),
     )

@@ -427,62 +427,62 @@ class date(DataType):
             # we have day and month and want zodiac signs
             if (astronum := int(value[-5:].replace("-", ""))) < 120 or astronum > 1221:
                 astro = H.span(
-                    "♑︎",
+                    "\N{CAPRICORN}\ufe0e",
                     data_tooltip="Capricorn",
                 )
             elif astronum < 219:
                 astro = H.span(
-                    "♒︎",
+                    "\N{AQUARIUS}\ufe0e",
                     data_tooltip="Aquarius",
                 )
             elif astronum < 321:
                 astro = H.span(
-                    "♓︎",
+                    "\N{PISCES}\ufe0e",
                     data_tooltip="Pisces",
                 )
             elif astronum < 420:
                 astro = H.span(
-                    "♈︎",
+                    "\N{ARIES}\ufe0e",
                     data_tooltip="Aries",
                 )
             elif astronum < 521:
                 astro = H.span(
-                    "♉︎",
+                    "\N{TAURUS}\ufe0e",
                     data_tooltip="Taurus",
                 )
             elif astronum < 622:
                 astro = H.span(
-                    "♊︎",
+                    "\N{GEMINI}\ufe0e",
                     data_tooltip="Gemini",
                 )
             elif astronum < 723:
                 astro = H.span(
-                    "♋︎",
+                    "\N{CANCER}\ufe0e",
                     data_tooltip="Cancer",
                 )
             elif astronum < 823:
                 astro = H.span(
-                    "♌︎",
+                    "\N{LEO}\ufe0e",
                     data_tooltip="Leo",
                 )
             elif astronum < 923:
                 astro = H.span(
-                    "♍︎",
+                    "\N{VIRGO}\ufe0e",
                     data_tooltip="Virgo",
                 )
             elif astronum < 1024:
                 astro = H.span(
-                    "♎︎",
+                    "\N{LIBRA}\ufe0e",
                     data_tooltip="Libra",
                 )
             elif astronum < 1122:
                 astro = H.span(
-                    "♏︎",
+                    "\N{SCORPIUS}\ufe0e",
                     data_tooltip="Scorpio",
                 )
             elif astronum < 1222:
                 astro = H.span(
-                    "♐︎",
+                    "\N{SAGITTARIUS}\ufe0e",
                     data_tooltip="Sagittarius",
                 )
             else:
@@ -493,7 +493,7 @@ class date(DataType):
         else:
             value = value.removeprefix("????-").removesuffix("-??-??")
         return H.span(
-            "🗓️",
+            "\N{SPIRAL CALENDAR PAD}\ufe0f",
             H.a(
                 value,
                 href=f'/types/date/{value.replace("?", "%3F")}',
@@ -580,9 +580,9 @@ class date(DataType):
 class boolean(DataType):
     def display_html(self, value, **_):
         if value:
-            return H.span("✔", style="color: green;")
+            return H.span("\N{HEAVY CHECK MARK}", style="color: green;")
         else:
-            return H.span("✘", style="color: red;")
+            return H.span("\N{HEAVY BALLOT X}", style="color: red;")
 
     def input_html(self, value=None, **_):
         return H.input(type="checkbox", name="value", checked=value and value.value)
@@ -662,7 +662,10 @@ class location(DataType):
         return H.span(
             *join(H.br(), escape(value).split("\n")),
             " ",
-            H.a("🌍", href=S.location_link_template.format(quote_plus(value.replace("\n", ", ")))),
+            H.a(
+                "\N{EARTH GLOBE EUROPE-AFRICA}",
+                href=S.location_link_template.format(quote_plus(value.replace("\n", ", "))),
+            ),
             cls="type-location",
         )
 
@@ -692,7 +695,7 @@ class text(DataType):
             return str(O.Claim(int(match.group(1))).html(fmt))
         elif fmt == "date":
             value = match.group(0)
-            return f"""<span class="type-date">🗓️<a href="/types/date/{value}">{value}</a></span>"""
+            return f"""<span class="type-date">\N{SPIRAL CALENDAR PAD}\ufe0f<a href="/types/date/{value}">{value}</a></span>"""
         else:
             return f"{O.Claim(int(match.group(1)))}"
 
@@ -936,7 +939,7 @@ class social(DataType):
     def next_step(self, args):
         return H(
             H.input(name="template", placeholder="template, put {} in there somewhere", type="url"),
-            H.button("»", type="submit"),
+            H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
         )
 
     def get_extra(self, args):

@@ -140,7 +140,7 @@ async def edit_verb_form(request, verb_id: int):
     return H.form(
         H.input(name="label", value=verb.label),
         verb.html("edit"),
-        H.button("»", type="submit"),
+        H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
         action=f"/verbs/{verb_id}/edit",
         method="POST",
     )

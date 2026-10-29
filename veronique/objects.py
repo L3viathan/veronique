@@ -33,6 +33,8 @@ from veronique.utils import timed_cache
 SELF = object()
 UNSET = object()
 
+HANDLE = "\N{UPWARDS ARROW WITH TIP RIGHTWARDS}"
+
 
 class lazy:
     def __init__(self, name):
@@ -239,7 +241,7 @@ class Verb(Model):
             if context.user.is_admin:
                 parts.append(H.li(
                     H.a(
-                        H.i("✎"),
+                        H.i("\N{LOWER RIGHT PENCIL}"),
                         " Edit",
                         hx_target="#edit-area",
                         hx_get=self.url("edit"),
@@ -257,7 +259,7 @@ class Verb(Model):
                     ))
             if parts:
                 return H.details(
-                    H.summary("☰"),
+                    H.summary("\N{TRIGRAM FOR HEAVEN}"),
                     H.ul(
                         *parts,
                         dir="rtl",
@@ -1079,7 +1081,7 @@ class Claim(Model):
                         *(
                             H.small(
                                 H.a(
-                                    "↱",
+                                    HANDLE,
                                     cls="handle",
                                     href=latlon.url(),
                                 ),
@@ -1141,7 +1143,7 @@ class Claim(Model):
             )
         elif fmt == "handle":
             return H.a(
-                "↱",
+                HANDLE,
                 cls=f"handle{' more' if 'has_claims' in data else ''}",
                 href=self.url(),
             )
@@ -1177,28 +1179,28 @@ class Claim(Model):
             if self.verb.id == ROOT and (context.user.is_admin or self.owner.id == context.user.id):
                 return H.a(
                     "Rename ",
-                    H.i("✎"),
+                    H.i("\N{LOWER RIGHT PENCIL}"),
                     hx_get=self.url("edit"),
                     hx_target="#edit-area",
                 )
             else:
                 return H.a(
                     "Rename ",
-                    H.i("✎"),
+                    H.i("\N{LOWER RIGHT PENCIL}"),
                     disabled=True,
                 )
         elif fmt == "hamburger":
             parts = []
             if self.verb.id == ROOT:
                 parts.append(H.li(self.html("rename")))
-                parts.append(H.li(H.a("Network ", H.i("🕸️\ufe0e"), href=self.url("network"))))
+                parts.append(H.li(H.a("Network ", H.i("\N{SPIDER WEB}\ufe0e"), href=self.url("network"))))
             if not self.is_entity:
                 if context.user.is_admin or self.owner.id == context.user.id:
                     parts.append(
                         H.li(
                             H.a(
                                 "Edit subject ",
-                                H.i("→"),
+                                H.i("\N{RIGHTWARDS ARROW}"),
                                 hx_target="#edit-area",
                                 hx_get=self.url("move"),
                             ),
@@ -1208,7 +1210,7 @@ class Claim(Model):
                         H.li(
                             H.a(
                                 "Edit verb ",
-                                H.i("→"),
+                                H.i("\N{RIGHTWARDS ARROW}"),
                                 hx_target="#edit-area",
                                 hx_get=self.url("reverb"),
                             ),
@@ -1218,7 +1220,7 @@ class Claim(Model):
                         H.li(
                             H.a(
                                 "Edit object ",
-                                H.i("✎"),
+                                H.i("\N{LOWER RIGHT PENCIL}"),
                                 hx_target="#edit-area",
                                 hx_get=self.url("edit"),
                             ),
@@ -1240,7 +1242,7 @@ class Claim(Model):
                         H.li(
                             H.a(
                                 "Valid from ",
-                                H.i("⇤"),
+                                H.i("\N{LEFTWARDS ARROW TO BAR}"),
                                 hx_target="#edit-area",
                                 hx_get=f"/claims/new/verb?verb={VALID_FROM}&claim_ids={self.id}&direction=outgoing&standalone=1",
                             ),
@@ -1251,7 +1253,7 @@ class Claim(Model):
                         H.li(
                             H.a(
                                 "Valid until ",
-                                H.i("⇥"),
+                                H.i("\N{RIGHTWARDS ARROW TO BAR}"),
                                 hx_target="#edit-area",
                                 hx_get=f"/claims/new/verb?verb={VALID_UNTIL}&claim_ids={self.id}&direction=outgoing&standalone=1",
                             ),
@@ -1295,7 +1297,7 @@ class Claim(Model):
             if not parts:
                 return None
             return H.details(
-                H.summary("☰"),
+                H.summary("\N{TRIGRAM FOR HEAVEN}"),
                 H.ul(
                     *parts,
                     dir="rtl",
@@ -1466,11 +1468,11 @@ class Query(Model):
             parts = []
             if context.user.is_admin:
                 parts.append(
-                    H.li(H.a(H.i("✎"), " Edit", href=self.url("edit")))
+                    H.li(H.a(H.i("\N{LOWER RIGHT PENCIL}"), " Edit", href=self.url("edit")))
                 )
                 parts.append(
                     H.li(H.a(
-                        H.i("⌫"),
+                        H.i("\N{ERASE TO THE LEFT}"),
                         " Delete",
                         hx_delete=self.url(),
                         hx_confirm="Are you sure you want to delete this query?",
@@ -1479,7 +1481,7 @@ class Query(Model):
                 )
             if parts:
                 return H.details(
-                    H.summary("☰"),
+                    H.summary("\N{TRIGRAM FOR HEAVEN}"),
                     H.ul(
                         *parts,
                         dir="rtl",
@@ -1782,11 +1784,11 @@ class User(Model):
             return str(type(self.last_session_at).__name__) + str(self.last_session_at)
         elif fmt == "hamburger":
             return H.details(
-                H.summary("☰"),
+                H.summary("\N{TRIGRAM FOR HEAVEN}"),
                 H.ul(
                     H.li(
                         H.a(
-                            H.i("✎"),
+                            H.i("\N{LOWER RIGHT PENCIL}"),
                             " Edit",
                             href=self.url("edit"),
                         ),

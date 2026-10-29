@@ -21,7 +21,7 @@ def _error(msg):
         msg,
         " ",
         H.span(
-            "×",
+            "\N{MULTIPLICATION SIGN}",
             hx_get="about:blank",
             hx_on__click="document.getElementById('errors').remove()",
             cls="dismiss",
@@ -37,7 +37,7 @@ def _notice(msg):
         msg,
         " ",
         H.span(
-            "×",
+            "\N{MULTIPLICATION SIGN}",
             hx_get="about:blank",
             hx_on__click="document.getElementById('notices').remove()",
             cls="dismiss",

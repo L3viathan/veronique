@@ -47,7 +47,7 @@ async def new_entity_form(request):
                 name="category",
             ),
             connect_info,
-            H.button("»", type="submit"),
+            H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
             action="/claims/new-entity",
             method="POST",
         ),
@@ -128,7 +128,7 @@ async def new_claim_form_verb_input(request):
                 direction=args.get("direction"),
                 verb_id=verb.id,
             ),
-            H.button("»", type="submit"),
+            H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
             action=f'/claims/new/{args.get("claim_ids")}/{args.get("direction")}',
             method="POST",
             enctype="multipart/form-data",
@@ -140,7 +140,7 @@ async def new_claim_form_verb_input(request):
                 direction=args.get("direction"),
                 verb_id=verb.id,
             ),
-            H.button("»", type="submit"),
+            H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
         )
 
 
@@ -197,7 +197,7 @@ async def edit_claim_form(request, claim_id: int):
         )
     return H.form(
         claim.verb.data_type.input_html(value=claim.object, verb_id=claim.verb.id),
-        H.button("»", type="submit"),
+        H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
         action=f"/claims/{claim_id}/edit",
         method="POST",
         enctype="multipart/form-data",
@@ -215,7 +215,7 @@ async def move_claim_form(request, claim_id: int):
         )
     return H.form(
         TYPES["directed_link"].input_html(value=claim.object, allow_connect=False),
-        H.button("»", type="submit"),
+        H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
         action=f"/claims/{claim_id}/move",
         method="POST",
     )
@@ -241,7 +241,7 @@ async def reverb_claim_form(request, claim_id: int):
             *verbs,
             name="verb",
         ),
-        H.button("»", type="submit"),
+        H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
         action=f"/claims/{claim_id}/reverb",
         method="POST",
     )

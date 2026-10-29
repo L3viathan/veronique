@@ -72,7 +72,7 @@ def _queries_form_elements(query=None):
                 hx_include="#editing",
                 hx_swap="innerMorph",
             ),
-            H.button("»", type="submit"),
+            H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
             role="group",
         ),
         H.div("", id="preview"),
