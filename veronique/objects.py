@@ -104,6 +104,7 @@ class Model:
 class Verb(Model):
     fields = (
         "label",
+        "description",
         "data_type",
         "internal",
         "extra",
@@ -116,6 +117,7 @@ class Verb(Model):
             """
             SELECT
                 label,
+                description,
                 data_type,
                 internal,
                 extra
@@ -127,6 +129,7 @@ class Verb(Model):
         if not row:
             raise ValueError(f"No Verb with this ID found: {self.id}")
         self.label = row["label"]
+        self.description = row["description"] or ""
         self.data_type = TYPES[row["data_type"]]
         self.internal = row["internal"]
         self.extra = row["extra"]
@@ -136,6 +139,7 @@ class Verb(Model):
         cls,
         label,
         *,
+        description="",
         data_type,
         extra=None,
     ):
@@ -146,13 +150,15 @@ class Verb(Model):
                 verbs
                 (
                     label,
+                    description,
                     data_type,
                     internal,
                     extra
-                ) VALUES (?, ?, FALSE, ?)
+                ) VALUES (?, ?, ?, FALSE, ?)
             """,
             (
                 label,
+                description,
                 data_type.name,
                 extra,
             ),
@@ -276,6 +282,8 @@ class Verb(Model):
             if hasattr(self.data_type, "edit_verb_form"):
                 return self.data_type.edit_verb_form(self)
             return None
+        elif fmt == "description":
+            return H.p(H.em(self.description))
         else:
             return H.a(
                 self.name,
@@ -284,17 +292,20 @@ class Verb(Model):
             )
 
     def edit(self, form):
+        description = form.pop("description", "")
         self.data_type.edit_verb(self, form)
         cur = db.conn.cursor()
         cur.execute(
             """
             UPDATE verbs
-            SET extra=?
+            SET description=?, extra=?
             WHERE id = ?
             """,
-            (self.extra, self.id),
+            (description, self.extra, self.id),
         )
         db.conn.commit()
+        # evict changed verb from cache:
+        self._cache.pop(self.id, None)
 
     def rename(self, name):
         cur = db.conn.cursor()
@@ -308,6 +319,8 @@ class Verb(Model):
         )
         db.conn.commit()
         self.label = name
+        # evict changed verb from cache:
+        self._cache.pop(self.id, None)
 
     @property
     def deletable(self):
@@ -324,7 +337,7 @@ class Verb(Model):
         )
         db.conn.commit()
         # evict deleted verb from cache:
-        self._cache.pop(self.id)
+        self._cache.pop(self.id, None)
         # This is needed because even though we clear the _verb_ cache cached
         # users can still have permissions for now dead verbs.
         User._cache.clear()
@@ -746,7 +759,7 @@ class Claim(Model):
         cur.execute("DELETE FROM inverted_index WHERE table_name = 'claims' AND id = ?", (self.id,))
         # evict deleted claim from cache:
         db.conn.commit()
-        self._cache.pop(self.id)
+        self._cache.pop(self.id, None)
         if self.subject and hasattr(Claim.get_data.__wrapped__, "_cached"):
             Claim.get_data.__wrapped__._cached.pop(self.subject.id, None)
 
@@ -1596,7 +1609,7 @@ class Query(Model):
         )
         db.conn.commit()
         # evict deleted query from cache:
-        self._cache.pop(self.id)
+        self._cache.pop(self.id, None)
 
 
     def __str__(self):

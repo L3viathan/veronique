@@ -53,6 +53,7 @@ async def new_verb_form(request):
         H.header(H.h2("New verb")),
         H.form(
             H.input(name="label", placeholder="label"),
+            H.textarea("", name="description", placeholder="description"),
             H.select(
                 H.option("--Type--", selected=True, disabled=True),
                 *(H.option(data_type, value=data_type) for data_type in TYPES),
@@ -88,6 +89,7 @@ async def new_verb(request):
     extra = data_type.get_extra(form)
     verb = O.Verb.new(
         form["label"],
+        description=form["description"],
         data_type=data_type,
         extra=extra,
     )
@@ -120,6 +122,7 @@ async def view_verb(request, verb_id: int):
         H.header(
             verb.html("heading"),
             verb.html("hamburger"),
+            verb.html("description"),
             verb.html("detail"),
         ),
         H.div("", id="edit-area"),
@@ -139,6 +142,7 @@ async def edit_verb_form(request, verb_id: int):
     verb = O.Verb(verb_id)
     return H.form(
         H.input(name="label", value=verb.label),
+        H.textarea(verb.description or "", name="description"),
         verb.html("edit"),
         H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
         action=f"/verbs/{verb_id}/edit",

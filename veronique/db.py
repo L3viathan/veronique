@@ -853,6 +853,14 @@ def add_latlon(cur):
     """)
 
 
+@migration(30)
+def add_verb_description(cur):
+    cur.execute("""
+        ALTER TABLE verbs
+        ADD description TEXT
+    """)
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 
