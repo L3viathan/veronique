@@ -497,32 +497,3 @@ async def view_claim_avatar(request, claim_id: int):
         content_type=mime,
         headers=cache_pls_headers(updated_at),
     )
-
-
-@claims.get("/comments")
-@page
-async def list_comments(request):
-    page_no = int(request.args.get("page", 1))
-    parts = []
-    more_results = False
-    for i, claim in enumerate(
-        O.Claim.all_comments(
-            order_by="id DESC",
-            page_no=page_no - 1,
-            page_size=S.page_size + 1,  # so we know if there would be more results
-        )
-    ):
-        if i:
-            parts.append(H.br())
-        if i == S.page_size:
-            more_results = True
-        else:
-            parts.append(f"{claim}")
-    return "Comments", H(
-        *parts,
-        pagination(
-            "/claims/comments",
-            page_no,
-            more_results=more_results,
-        ),
-    )

@@ -9,7 +9,7 @@ from sanic.response import file_stream
 import veronique.objects as O
 from veronique.context import context
 from veronique.data_types import TYPES
-from veronique.db import ROOT
+from veronique.db import COMMENT, ROOT
 from veronique.html import H
 from veronique.settings import settings as S
 from veronique.utils import _notice, cache_pls_headers, page, pagination
@@ -52,7 +52,7 @@ def _recent_events_page(request, include_validity=False):
         ),
         _notice(H(
             "There are ",
-            H.a("unresolved comments", href="/claims/comments"),
+            H.a("unresolved comments", href=f"/verbs/{COMMENT}"),
         )) if context.user.is_admin and list(O.Claim.all_comments()) else None,
     )
 
