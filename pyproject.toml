@@ -44,4 +44,5 @@ ignore = [
   "DTZ005",  # same here
   "B020",  # loop variable overrides iterable: I do that intentionally
   "SIM103",  # return condition directly; not always more readable
+  "RET501",  # explicitly returning None should be allowed
 ]

@@ -3,7 +3,7 @@ from itertools import combinations
 from random import randint
 from time import monotonic
 
-from sanic import Blueprint, redirect
+from sanic import Blueprint, HTTPResponse, redirect
 
 import veronique.objects as O
 from veronique.autocomplete import Tags, widget
