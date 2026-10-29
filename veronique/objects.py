@@ -64,6 +64,11 @@ class Model:
     def __init__(self, id):
         self.id = id
 
+    def url(self, action=None):
+        if action:
+            return f"/{type(self).table_name}/{self.id}/{action}"
+        return f"/{type(self).table_name}/{self.id}"
+
     def __pos__(self):
         if not self._populated:
             self._populated = True
@@ -222,7 +227,7 @@ class Verb(Model):
             return H.span(
                 H.a(
                     self.name,
-                    href=f"/verbs/{self.id}",
+                    href=self.url(),
                     cls="clickable",
                 ),
                 " ",
@@ -237,7 +242,7 @@ class Verb(Model):
                         H.i("✎"),
                         " Edit",
                         hx_target="#edit-area",
-                        hx_get=f"/verbs/{self.id}/edit",
+                        hx_get=self.url("edit"),
                     ),
                 ))
                 if self.deletable:
@@ -246,7 +251,7 @@ class Verb(Model):
                             H.i("\N{WASTEBASKET}\ufe0e"),
                             " Delete",
                             hx_target="#edit-area",
-                            hx_delete=f"/verbs/{self.id}",
+                            hx_delete=self.url(),
                             hx_confirm="Are you sure you want to delete this verb?",
                         )
                     ))
@@ -273,7 +278,7 @@ class Verb(Model):
             return H.a(
                 self.name,
                 cls="clickable verb",
-                href=f"/verbs/{self.id}",
+                href=self.url(),
             )
 
     def edit(self, form):
@@ -980,7 +985,7 @@ class Claim(Model):
                     escape(self.object.value),
                     **remarks,
                     cls=f"claim-link{css_classes}",
-                    href=f"/claims/{self.id}",
+                    href=self.url(),
                 )
             elif self.is_entity:
                 return H.a(
@@ -988,7 +993,7 @@ class Claim(Model):
                     f"Claim #{self.id}",
                     **remarks,
                     cls=f"claim-link{css_classes}",
-                    href=f"/claims/{self.id}",
+                    href=self.url(),
                 )
             elif fmt == "nested":
                 return H.span(
@@ -1076,7 +1081,7 @@ class Claim(Model):
                                 H.a(
                                     "↱",
                                     cls="handle",
-                                    href=f"/claims/{latlon.id}",
+                                    href=latlon.url(),
                                 ),
                                 H.a(
                                     "\N{PUSHPIN}",
@@ -1138,16 +1143,16 @@ class Claim(Model):
             return H.a(
                 "↱",
                 cls=f"handle{' more' if 'has_claims' in data else ''}",
-                href=f"/claims/{self.id}",
+                href=self.url(),
             )
         elif fmt == "avatarsmall":
             if AVATAR not in data or context.user.redact:
                 return None
-            return H.img(src=f"/claims/{self.id}/avatar", cls="avatar")
+            return H.img(src=self.url("avatar"), cls="avatar")
         elif fmt == "avatar":
             if AVATAR not in data:
                 return None
-            return H.img(src=f"/claims/{self.id}/avatar", cls="avatar", alt="avatar")
+            return H.img(src=self.url("avatar"), cls="avatar", alt="avatar")
         elif fmt == "raw":
             if context.user.redact:
                 return f"Claim #{self.id}"
@@ -1173,7 +1178,7 @@ class Claim(Model):
                 return H.a(
                     "Rename ",
                     H.i("✎"),
-                    hx_get=f"/claims/{self.id}/edit",
+                    hx_get=self.url("edit"),
                     hx_target="#edit-area",
                 )
             else:
@@ -1186,7 +1191,7 @@ class Claim(Model):
             parts = []
             if self.verb.id == ROOT:
                 parts.append(H.li(self.html("rename")))
-                parts.append(H.li(H.a("Network ", H.i("🕸️\ufe0e"), href=f"/claims/{self.id}/network")))
+                parts.append(H.li(H.a("Network ", H.i("🕸️\ufe0e"), href=self.url("network"))))
             if not self.is_entity:
                 if context.user.is_admin or self.owner.id == context.user.id:
                     parts.append(
@@ -1195,7 +1200,7 @@ class Claim(Model):
                                 "Edit subject ",
                                 H.i("→"),
                                 hx_target="#edit-area",
-                                hx_get=f"/claims/{self.id}/move",
+                                hx_get=self.url("move"),
                             ),
                         )
                     )
@@ -1205,7 +1210,7 @@ class Claim(Model):
                                 "Edit verb ",
                                 H.i("→"),
                                 hx_target="#edit-area",
-                                hx_get=f"/claims/{self.id}/reverb",
+                                hx_get=self.url("reverb"),
                             ),
                         )
                     )
@@ -1215,7 +1220,7 @@ class Claim(Model):
                                 "Edit object ",
                                 H.i("✎"),
                                 hx_target="#edit-area",
-                                hx_get=f"/claims/{self.id}/edit",
+                                hx_get=self.url("edit"),
                             ),
                         )
                     )
@@ -1282,7 +1287,7 @@ class Claim(Model):
                             "Delete ",
                             H.i("\N{WASTEBASKET}\ufe0e"),
                             hx_target="#edit-area",
-                            hx_delete=f"/claims/{self.id}",
+                            hx_delete=self.url(),
                             hx_confirm="Are you sure you want to delete this claim?",
                         ),
                     )
@@ -1461,13 +1466,13 @@ class Query(Model):
             parts = []
             if context.user.is_admin:
                 parts.append(
-                    H.li(H.a(H.i("✎"), " Edit", href=f"/queries/{self.id}/edit"))
+                    H.li(H.a(H.i("✎"), " Edit", href=self.url("edit")))
                 )
                 parts.append(
                     H.li(H.a(
                         H.i("⌫"),
                         " Delete",
-                        hx_delete=f"/queries/{self.id}",
+                        hx_delete=self.url(),
                         hx_confirm="Are you sure you want to delete this query?",
                         cls="danger",
                     ))
@@ -1486,7 +1491,7 @@ class Query(Model):
                 H.strong(self.label),
                 cls="clickable query",
                 hx_push_url="true",
-                href=f"/queries/{self.id}",
+                href=self.url(),
                 hx_select="#container",
                 hx_target="#container",
                 hx_swap="outerMorph",
@@ -1521,7 +1526,7 @@ class Query(Model):
                 if type in ("verb",) or type.startswith("verb:"):
                     value = int(value)
                 bindings.append(value)
-            form_elements.append(self._build_form_input(i, label[1:-1], type, value, f"/queries/{self.id}"))
+            form_elements.append(self._build_form_input(i, label[1:-1], type, value, self.url()))
         return form_elements, tuple(bindings) if len(bindings) == len(form_elements) else None
 
     def _build_form_input(self, i, label, type, value, url):
@@ -1754,11 +1759,11 @@ class User(Model):
                     " (",
                     H.a(
                         self.name,
-                        href=f"/users/{self.id}",
+                        href=self.url(),
                     ),
                     ")",
                 )
-            return H.a(self.name, href=f"/users/{self.id}")
+            return H.a(self.name, href=self.url())
         elif fmt == "session":
             if not self.last_session_at:
                 return H("no active session")
@@ -1783,7 +1788,7 @@ class User(Model):
                         H.a(
                             H.i("✎"),
                             " Edit",
-                            href=f"/users/{self.id}/edit",
+                            href=self.url("edit"),
                         ),
                     ),
                     H.li(
