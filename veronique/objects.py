@@ -1074,6 +1074,11 @@ class Claim(Model):
                         *(
                             H.small(
                                 H.a(
+                                    "↱",
+                                    cls="handle",
+                                    href=f"/claims/{latlon.id}",
+                                ),
+                                H.a(
                                     "\N{PUSHPIN}",
                                     href=S.location_link_template.format(quote_plus(latlon.object.value)),
                                 ),
