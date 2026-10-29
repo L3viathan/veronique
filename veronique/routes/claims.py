@@ -77,9 +77,9 @@ async def new_entity(request):
             else:
                 O.Claim.new(conn_claim, conn_verb, claim)
             # We came from the conn_claim, so we want to go back there.
-            return redirect(f"/claims/{conn_claim.id}")
+            return redirect(conn_claim.url())
         # If we couldn't make the link, we want to go to the new entity instead.
-    return redirect(f"/claims/{claim.id}")
+    return redirect(claim.url())
 
 
 @claims.get("/new/<claim_ids>/<direction:incoming|outgoing>")
@@ -178,12 +178,12 @@ async def new_claims(request, claim_ids: list[int], direction: str):
             try:
                 value = O.Plain.from_form(verb, form)
             except ValueError:
-                return redirect(f"/claims/{claim_id}")
+                return redirect(claim.url())
         if direction == "incoming":
             O.Claim.new(value, verb, claim)
         else:
             O.Claim.new(claim, verb, value)
-    return redirect(f"/claims/{claim_id}")
+    return redirect(claim.url())
 
 
 @claims.get("/<claim_id>/edit")
@@ -198,7 +198,7 @@ async def edit_claim_form(request, claim_id: int):
     return H.form(
         claim.verb.data_type.input_html(value=claim.object, verb_id=claim.verb.id),
         H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
-        action=f"/claims/{claim_id}/edit",
+        action=claim.url("edit"),
         method="POST",
         enctype="multipart/form-data",
     )
@@ -216,7 +216,7 @@ async def move_claim_form(request, claim_id: int):
     return H.form(
         TYPES["directed_link"].input_html(value=claim.object, allow_connect=False),
         H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
-        action=f"/claims/{claim_id}/move",
+        action=claim.url("move"),
         method="POST",
     )
 
@@ -242,7 +242,7 @@ async def reverb_claim_form(request, claim_id: int):
             name="verb",
         ),
         H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
-        action=f"/claims/{claim_id}/reverb",
+        action=claim.url("reverb"),
         method="POST",
     )
 
@@ -257,7 +257,7 @@ async def delete_claim(request, claim_id: int):
             status=403,
         )
     if claim.subject:
-        redirect = f"/claims/{claim.subject.id}"
+        redirect = claim.subject.url()
     else:
         redirect = "/"
 
@@ -283,7 +283,7 @@ async def edit_claim(request, claim_id: int):
     else:
         value = O.Plain.from_form(claim.verb, form)
     claim.set_value(value)
-    return redirect(f"/claims/{claim_id}")
+    return redirect(claim.url())
 
 
 @claims.post("/<claim_id>/reverb")
@@ -297,7 +297,7 @@ async def reverb_claim(request, claim_id: int):
             status=403,
         )
     claim.set_verb(O.Verb(verb_id))
-    return redirect(f"/claims/{claim_id}")
+    return redirect(claim.url())
 
 
 @claims.post("/<claim_id>/move")
@@ -311,7 +311,7 @@ async def move_claim(request, claim_id: int):
         )
     value = form.get("value")
     claim.set_subject(O.Claim(int(value)))
-    return redirect(f"/claims/{claim_id}")
+    return redirect(claim.url())
 
 
 @claims.get("/")

@@ -93,7 +93,7 @@ async def new_verb(request):
         data_type=data_type,
         extra=extra,
     )
-    return redirect(f"/verbs/{verb.id}")
+    return redirect(verb.url())
 
 
 @verbs.get("/<verb_id>")
@@ -128,7 +128,7 @@ async def view_verb(request, verb_id: int):
         H.div("", id="edit-area"),
         *claims,
         pagination(
-            f"/verbs/{verb_id}",
+            verb.url(),
             page_no,
             more_results=more_results,
         ),
@@ -145,7 +145,7 @@ async def edit_verb_form(request, verb_id: int):
         H.textarea(verb.description or "", name="description"),
         verb.html("edit"),
         H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
-        action=f"/verbs/{verb_id}/edit",
+        action=verb.url("edit"),
         method="POST",
     )
 
@@ -158,4 +158,4 @@ async def edit_verb(request, verb_id: int):
     value = form.pop("label")
     verb.rename(value)
     verb.edit(form)
-    return redirect(f"/verbs/{verb_id}")
+    return redirect(verb.url())

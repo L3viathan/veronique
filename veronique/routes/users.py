@@ -39,7 +39,7 @@ async def list_users(request):
                         H.button(
                             "Impersonate",
                             cls="danger",
-                            hx_post=f"/users/{user.id}/impersonate",
+                            hx_post=user.url("impersonate"),
                         )
                     ) if context.user.id != user.id else H.td("")
                 ),
@@ -152,7 +152,7 @@ async def edit_user_form(request, user_id: int):
     user = O.User(user_id)
     return f"Edit user {user.name}", _user_form(
         user=user,
-        endpoint=f"/users/{user_id}/edit",
+        endpoint=user.url("edit"),
         password_input=H.label(
             "New password",
             H.input(type="password", name="password", value="", placeholder="(leave empty to keep as-is)"),
@@ -196,14 +196,14 @@ def _write_user(form, endpoint, user=None):
             redact=redact,
             entity_id=entity_id,
         )
-    return redirect(f"/users/{user.id}")
+    return redirect(user.url())
 
 
 @users.post("/<user_id>/edit")
 @admin_only
 async def edit_user(request, user_id: int):
     user = O.User(user_id)
-    return _write_user(request.form, endpoint=f"/users/{user_id}/edit", user=user)
+    return _write_user(request.form, endpoint=user.url("edit"), user=user)
 
 
 @users.post("/new")

@@ -97,7 +97,7 @@ async def edit_query_form(request, query_id: int):
     query = O.Query(query_id)
     return f"Edit {query.label!r}", H.form(
         _queries_form_elements(query),
-        hx_put=f"/queries/{query_id}",
+        hx_put=query.url(),
         hx_swap="outerMorph",
         hx_encoding="multipart/form-data",
     )
@@ -117,7 +117,7 @@ for dt_name, data_type in TYPES.items():
     SPECIAL_COL_NAMES[dt_name] = lambda value, dt=data_type: dt.display_html(value)
 
 
-def display_query_result(result, query_id=None):
+def display_query_result(result, query=None):
     if result:
         header = dict(result[0]).keys()
         colmap = {}
@@ -129,8 +129,8 @@ def display_query_result(result, query_id=None):
                 colmap[col] = {"label": col, "display": str}
         headers = []
         for col in header:
-            if col.endswith("_c") and query_id is not None:
-                headers.append(H.td(colmap[col]["label"], H.a(H.small("[N]"), href=f"/queries/{query_id}/network/{col}")))
+            if col.endswith("_c") and query is not None:
+                headers.append(H.td(colmap[col]["label"], H.a(H.small("[N]"), href=query.url(f"network/{col}"))))
             else:
                 headers.append(H.td(colmap[col]["label"]))
 
@@ -177,7 +177,7 @@ async def new_query(request):
         form["label"],
         form["sql"],
     )
-    return H.meta(http_equiv="refresh", content=f"0; url=/queries/{query.id}")
+    return H.meta(http_equiv="refresh", content=f"0; url={query.url()}")
 
 
 @queries.put("/<query_id>")
@@ -187,7 +187,7 @@ async def edit_query(request, query_id: int):
     query = O.Query(query_id)
     form = D(request.form)
     query.update(label=form["label"], sql=form["sql"])
-    return H.meta(http_equiv="refresh", content=f"0; url=/queries/{query.id}")
+    return H.meta(http_equiv="refresh", content=f"0; url={query.url()}")
 
 
 @queries.get("/<query_id>")
@@ -216,7 +216,7 @@ async def view_query(request, query_id: int):
             result = result[:-1]
         else:
             more_results = False
-        results = display_query_result(result, query_id=query_id)
+        results = display_query_result(result, query=query)
     else:
         results = None
     if request.host:
