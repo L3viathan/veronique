@@ -1501,6 +1501,12 @@ class Query(Model):
                     ),
                     cls="dropdown hamburger",
                 )
+        elif fmt == "handle":
+            return H.a(
+                HANDLE,
+                cls="handle",
+                href=self.url(),
+            )
         else:
             return H.a(
                 H.strong(self.label),

@@ -289,7 +289,10 @@ async def view_query_map(request, query_id: int, col: str):
         """,
         (db.LATLON,),
     ).fetchall()]
-    return f"{query.label} [M]", map_widget(claims)
+    return f"{query.label} [M]", H.article(
+        H.header(H.h2(query.html("handle"), query.label, "\N{RIGHTWARDS ARROW}", col)),
+        map_widget(claims),
+    )
 
 
 @queries.delete("/<query_id>")
