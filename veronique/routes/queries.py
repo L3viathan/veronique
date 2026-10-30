@@ -7,6 +7,7 @@ from veronique import db
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.html import H
+from veronique.map import map_widget
 from veronique.network import network_widget
 from veronique.settings import settings as S
 from veronique.utils import D, admin_only, fragment, page, pagination
@@ -130,7 +131,11 @@ def display_query_result(result, query=None):
         headers = []
         for col in header:
             if col.endswith("_c") and query is not None:
-                headers.append(H.td(colmap[col]["label"], H.a(H.small("[N]"), href=query.url(f"network/{col}"))))
+                headers.append(H.td(
+                    colmap[col]["label"],
+                    H.a(H.small("[N]"), href=query.url(f"network/{col}")),
+                    H.a(H.small("[M]"), href=query.url(f"map/{col}")),
+                ))
             else:
                 headers.append(H.td(colmap[col]["label"]))
 
@@ -257,6 +262,34 @@ async def view_query_graph(request, query_id: int, col: str):
     )
     claims = (O.Claim(row[col]) for row in result)
     return f"{query.label} [N]", network_widget(claims)
+
+
+@queries.get("/<query_id>/map/<col>")
+@page
+async def view_query_map(request, query_id: int, col: str):
+    if not context.user.can("view", "query", query_id):
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
+    query = O.Query(query_id)
+    result = query.run(
+        {},  # no bindings
+        page_no=0,
+        page_size=9999,
+    )
+    cur = db.conn.cursor()
+    claims = [O.Claim(latlon_row["id"]) for latlon_row in cur.execute(
+        f"""
+        SELECT
+            id
+        FROM claims c
+        WHERE subject_id IN ({",".join(str(int(row[col])) for row in result)})
+        AND verb_id = ?
+        """,
+        (db.LATLON,),
+    ).fetchall()]
+    return f"{query.label} [M]", map_widget(claims)
 
 
 @queries.delete("/<query_id>")
