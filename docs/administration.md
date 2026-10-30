@@ -42,4 +42,8 @@ There's also an option to "redact PII" for this user, which will result in all
 variable data being censored. This exists mainly to demonstrate how Véronique
 works without needing to fill it with fake data. Bear in mind that this will
 _still_ show non-textual data (such as dates) and will allow inferring PII via
-metadata and links.
+metadata and links. It also has no effect on how searches work, meaning one can
+infer the names of entities with repeated searches.
+
+**TL;DR: Do not hand control of a redacted account to someone you wouldn't give
+the same account if it were unredacted.**
