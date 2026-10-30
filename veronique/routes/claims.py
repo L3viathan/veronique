@@ -9,6 +9,7 @@ from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import AVATAR, COMMENT, IS_A, LATLON, ROOT
 from veronique.html import H
+from veronique.map import map_widget
 from veronique.network import network_widget
 from veronique.settings import settings as S
 from veronique.utils import D, cache_pls_headers, fragment, page, pagination
@@ -349,6 +350,24 @@ async def view_network(request):
         for c in O.Claim.all_labelled(page_size=9999)
     )
     return "Network", network_widget(claims)
+
+
+@claims.get("/map")
+@page
+async def view_map(request):
+    if not context.user.can("read", "verb", LATLON):
+        return HTTPResponse(
+            body="403 Forbidden",
+            status=403,
+        )
+    claims = list(O.Claim.all(verb_id=LATLON, page_size=9999))
+
+    return H.article(
+        H.header(
+            H.h2("Map"),
+        ),
+        map_widget(claims),
+    )
 
 
 @claims.get("/<claim_id>/network")

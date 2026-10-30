@@ -117,12 +117,12 @@ def page(fn):
         for page_name, path, restricted in [
             ("Claims", "claims", False),
             ("Network", "claims/network", False),
+            ("Map", "claims/map", False),
             ("Verbs", "verbs", False),
             ("Queries", "queries", False),
             ("Users", "users", True),
             ("Tools: Connections", "tools/connections", False),
             ("Tools: Merge", "tools/merge", True),
-            ("Tools: Map", "tools/map", False),
         ]:
             if restricted and not context.user.is_admin:
                 gotos.append(H.li(H.a(page_name, href="#", disabled=True)))

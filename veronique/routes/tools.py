@@ -2,14 +2,12 @@ from collections import defaultdict, deque
 from itertools import combinations
 from time import monotonic
 
-from sanic import Blueprint, HTTPResponse, redirect
+from sanic import Blueprint, redirect
 
 import veronique.objects as O
 from veronique.autocomplete import Tags, widget
 from veronique.context import context
-from veronique.db import LATLON
 from veronique.html import H
-from veronique.map import map_widget
 from veronique.network import network_widget
 from veronique.utils import admin_only, page
 
@@ -149,22 +147,4 @@ async def start_bulk_claim(request):
             ),
             cls="claims",
         )
-    )
-
-
-@tools.get("map")
-@page
-async def show_map(request):
-    if not context.user.can("read", "verb", LATLON):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
-    claims = list(O.Claim.all(verb_id=LATLON, page_size=9999))
-
-    return H.article(
-        H.header(
-            H.h2("Map"),
-        ),
-        map_widget(claims),
     )
