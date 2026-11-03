@@ -664,3 +664,9 @@ img#logo {
 .latlon a {
   text-decoration: none;
 }
+
+.depth-controls {
+  right: 5px;
+  top: 5px;
+  position: absolute;
+}

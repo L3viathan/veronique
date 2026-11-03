@@ -380,7 +380,16 @@ async def view_claim_network(request, claim_id: int):
         claims.append(claim)
         colormap[claim.id] = depth
     return source_claim.html("label"), H.article(
-        H.header(source_claim.html("handle"), source_claim.html("heading")),
+        H.header(
+            source_claim.html("handle"),
+            source_claim.html("heading"),
+            H.div(
+                H.a("-", href=source_claim.url(f"network?depth={max_depth - 1}"), role="button", disabled=max_depth <= 1),
+                f" depth: {max_depth} ",
+                H.a("+", href=source_claim.url(f"network?depth={max_depth + 1}"), role="button"),
+                cls="depth-controls",
+            ),
+        ),
         network_widget(claims, links_go_to="network", depth=max_depth, colormap=colormap, freeze_after=log(len(claims))),
         cls="network",
     )
