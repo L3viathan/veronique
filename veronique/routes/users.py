@@ -32,7 +32,6 @@ async def list_users(request):
         else:
             users.append(
                 H.tr(
-                    H.td(str(user.id)),
                     H.td(user.html("link")),
                     H.td(user.html("session")),
                     H.td(
@@ -49,7 +48,6 @@ async def list_users(request):
         H.table(
             H.thead(
                 H.tr(
-                    H.th("ID", scope="col"),
                     H.th("Name", scope="col"),
                     H.th("Session", scope="col"),
                     H.th("Impersonate", scope="col"),
