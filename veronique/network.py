@@ -5,7 +5,15 @@ from itertools import cycle
 from veronique.html import H
 
 
-def network_widget(claims, *, links_go_to="detail", force_labels=False, colormap=None, freeze_after=None):
+def network_widget(
+    claims,
+    *,
+    links_go_to="detail",
+    force_labels=False,
+    colormap=None,
+    freeze_after=None,
+    depth=1,
+):
     nodes_seen, edges_seen = set(), set()
     all_nodes, all_edges = [], []
     link_count = Counter()
@@ -69,7 +77,7 @@ def network_widget(claims, *, links_go_to="detail", force_labels=False, colormap
         }});
         sig.on("upNode", (e) => {{
           if (draggedNode) {{
-            location.href = "/claims/" + draggedNode{' + "/network"' if links_go_to == "network" else ''};
+            location.href = "/claims/" + draggedNode{f' + "/network?depth={depth}"' if links_go_to == "network" else ''};
           }}
         }});
 

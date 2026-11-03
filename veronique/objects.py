@@ -693,6 +693,21 @@ class Claim(Model):
         ).fetchall():
             yield Claim(row["id"])
 
+    def traverse(self, max_depth=1):
+        todo = [(self, 0)]
+        seen = {self.id}
+        while todo:
+            claim, depth = todo.pop()
+            yield claim, depth
+            if depth < max_depth:
+                for link in claim.all_links(page_size=999):
+                    if link.subject.id not in seen:
+                        seen.add(link.subject.id)
+                        todo.append((link.subject, depth + 1))
+                    if link.object.id not in seen:
+                        seen.add(link.object.id)
+                        todo.append((link.object, depth + 1))
+
     def outgoing_inferred_claims(self):
         inferables = Verb.get_inferables()
         for inferable in inferables:

@@ -1,5 +1,4 @@
 import base64
-from collections import defaultdict
 from math import log
 
 from sanic import Blueprint, HTTPResponse, raw, redirect
@@ -373,20 +372,16 @@ async def view_map(request):
 @claims.get("/<claim_id>/network")
 @page
 async def view_claim_network(request, claim_id: int):
-    claim = O.Claim(claim_id)
-    claims = [claim]
-    claims.extend(incoming.subject for incoming in claim.incoming_claims(page_size=999))
-    for outgoing in claim.outgoing_claims(page_size=999):
-        if outgoing.verb.data_type in (TYPES["directed_link"], TYPES["undirected_link"]) and outgoing.verb.id != IS_A:
-            if outgoing.object != claim:
-                claims.append(outgoing.object)
-            else:
-                claims.append(outgoing.subject)
-    colormap = defaultdict(lambda: 1)
-    colormap[claim_id] = 2
-    return claim.html("label"), H.article(
-        H.header(claim.html("handle"), claim.html("heading")),
-        network_widget(claims, links_go_to="network", colormap=colormap, freeze_after=log(len(claims))),
+    source_claim = O.Claim(claim_id)
+    max_depth = int(request.args.get("depth", 1))
+    claims = []
+    colormap = {}
+    for claim, depth in source_claim.traverse(max_depth=max_depth):
+        claims.append(claim)
+        colormap[claim.id] = depth
+    return source_claim.html("label"), H.article(
+        H.header(source_claim.html("handle"), source_claim.html("heading")),
+        network_widget(claims, links_go_to="network", depth=max_depth, colormap=colormap, freeze_after=log(len(claims))),
         cls="network",
     )
 
