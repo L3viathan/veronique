@@ -6,15 +6,12 @@ from veronique.context import context
 from veronique.db import LATLON
 from veronique.html import H
 from veronique.settings import settings as S
+from veronique.utils import require
 
 
 def map_widget(claims):
     markers = []
-    if not context.user.can("read", "verb", LATLON):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.can("read", "verb", LATLON))
     for claim in claims:
         markers.append(f"""
             L.marker([{claim.object.value}], {{title: {str(claim.subject.html("label"))!r}}}).on("click", function() {{

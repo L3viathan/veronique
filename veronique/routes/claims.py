@@ -11,7 +11,7 @@ from veronique.html import H
 from veronique.map import map_widget
 from veronique.network import network_widget
 from veronique.settings import settings as S
-from veronique.utils import D, cache_pls_headers, fragment, page, pagination
+from veronique.utils import D, cache_pls_headers, fragment, page, pagination, require
 
 claims = Blueprint("claims", url_prefix="/claims")
 
@@ -19,11 +19,7 @@ claims = Blueprint("claims", url_prefix="/claims")
 @claims.get("/new-entity")
 @page
 async def new_entity_form(request):
-    if not context.user.can("write", "verb", ROOT):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.can("write", "verb", ROOT))
     categories = O.Claim.all_categories()
     args = D(request.args)
     connect_info = ""
@@ -58,11 +54,7 @@ async def new_entity_form(request):
 async def new_entity(request):
     form = D(request.form)
     name = form["name"]
-    if not context.user.can("write", "verb", ROOT):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.can("write", "verb", ROOT))
     claim = O.Claim.new_entity(name)
     if form.get("category") and context.user.can("write", "verb", IS_A):
         cat = O.Claim(int(form["category"]))
@@ -114,11 +106,7 @@ async def new_claim_form(request, claim_ids: list[int], direction: str):
 @fragment
 async def new_claim_form_verb_input(request):
     args = D(request.args)
-    if not context.user.can("write", "verb", int(args["verb"])):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.can("write", "verb", int(args["verb"])))
     verb = O.Verb(int(args["verb"]))
     if args.get("standalone"):
         return H.form(
@@ -149,14 +137,10 @@ async def new_claims(request, claim_ids: list[int], direction: str):
     for claim_id in claim_ids.split(","):
         claim = O.Claim(int(claim_id))
         form = D(request.form)
-        if not (
+        require(
             context.user.can("read", "verb", claim.verb.id)
             and context.user.can("write", "verb", int(form["verb"]))
-        ):
-            return HTTPResponse(
-                body="403 Forbidden",
-                status=403,
-            )
+        )
         if "value" in request.files:
             f = request.files["value"][0]
             form["value"] = f
@@ -164,11 +148,7 @@ async def new_claims(request, claim_ids: list[int], direction: str):
         value = form.get("value")
         if verb.data_type.name.endswith("directed_link"):
             value = O.Claim(int(value))
-            if not context.user.can("read", "verb", value.verb.id):
-                return HTTPResponse(
-                    body="403 Forbidden",
-                    status=403,
-                )
+            require(context.user.can("read", "verb", value.verb.id))
         elif verb.data_type.name == "inferred":
             return HTTPResponse(
                 body="400 Bad Request",
@@ -190,11 +170,7 @@ async def new_claims(request, claim_ids: list[int], direction: str):
 @fragment
 async def edit_claim_form(request, claim_id: int):
     claim = O.Claim(claim_id)
-    if claim.owner.id != context.user.id:
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.is_admin or claim.owner.id == context.user.id)
     return H.form(
         claim.verb.data_type.input_html(value=claim.object, verb_id=claim.verb.id),
         H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
@@ -208,11 +184,7 @@ async def edit_claim_form(request, claim_id: int):
 @fragment
 async def move_claim_form(request, claim_id: int):
     claim = O.Claim(claim_id)
-    if not context.user.is_admin and claim.owner.id != context.user.id:
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.is_admin or claim.owner.id == context.user.id)
     return H.form(
         TYPES["directed_link"].input_html(value=claim.object, allow_connect=False),
         H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
@@ -225,11 +197,7 @@ async def move_claim_form(request, claim_id: int):
 @fragment
 async def reverb_claim_form(request, claim_id: int):
     claim = O.Claim(claim_id)
-    if not context.user.is_admin and claim.owner.id != context.user.id:
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.is_admin or claim.owner.id == context.user.id)
     verbs = O.Verb.all(page_size=9999)
     verbs = [
         H.option(v.html(), f" ({v.data_type})", value=str(v.id), selected=v.id==claim.verb.id)
@@ -251,11 +219,7 @@ async def reverb_claim_form(request, claim_id: int):
 @fragment
 async def delete_claim(request, claim_id: int):
     claim = O.Claim(claim_id)
-    if not context.user.is_admin and claim.owner.id != context.user.id:
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.is_admin or claim.owner.id == context.user.id)
     if claim.subject:
         redirect = claim.subject.url()
     else:
@@ -272,11 +236,7 @@ async def edit_claim(request, claim_id: int):
         f = request.files["value"][0]
         form["value"] = f
     claim = O.Claim(claim_id)
-    if claim.owner.id != context.user.id:
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.is_admin or claim.owner.id == context.user.id)
     value = form.get("value")
     if claim.verb.data_type.name.endswith("directed_link"):
         value = O.Claim(int(value))
@@ -291,11 +251,10 @@ async def reverb_claim(request, claim_id: int):
     form = D(request.form)
     claim = O.Claim(claim_id)
     verb_id = int(form.get("verb"))
-    if not context.user.is_admin and (claim.owner.id != context.user.id or not context.user.can("write", "verb", verb_id)):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(
+        context.user.is_admin
+        or (claim.owner.id == context.user.id and context.user.can("write", "verb", verb_id))
+    )
     claim.set_verb(O.Verb(verb_id))
     return redirect(claim.url())
 
@@ -304,11 +263,7 @@ async def reverb_claim(request, claim_id: int):
 async def move_claim(request, claim_id: int):
     form = D(request.form)
     claim = O.Claim(claim_id)
-    if claim.owner.id != context.user.id:
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.is_admin or claim.owner.id == context.user.id)
     value = form.get("value")
     claim.set_subject(O.Claim(int(value)))
     return redirect(claim.url())
@@ -354,11 +309,7 @@ async def view_network(request):
 @claims.get("/map")
 @page
 async def view_map(request):
-    if not context.user.can("read", "verb", LATLON):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.can("read", "verb", LATLON))
     claims = list(O.Claim.all(verb_id=LATLON, page_size=9999))
 
     return H.article(
@@ -400,11 +351,7 @@ async def view_claim_network(request, claim_id: int):
 async def view_claim(request, claim_id: int):
     page_no = int(request.args.get("page", 1))
     claim = O.Claim(claim_id)
-    if not context.user.can("read", "verb", claim.verb.id):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.can("read", "verb", claim.verb.id))
     incoming_mentions = list(claim.incoming_mentions(
         page_no=page_no - 1,
         page_size=S.page_size + 1,  # so we know if there would be more results

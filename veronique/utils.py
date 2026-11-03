@@ -14,6 +14,16 @@ from veronique.templates import TEMPLATE
 
 startup_time = datetime.now()
 
+
+class Return(Exception):
+    def __init__(self, response):
+        self.response = response
+
+
+def require(condition):
+    if not condition:
+        raise Return(HTTPResponse(status=403, body="403 Forbidden"))
+
 def _error(msg):
     return H.aside(
         H.strong("Error:"),
@@ -85,7 +95,10 @@ def fragment(fn):
 
     @functools.wraps(fn)
     async def wrapper(*args, **kwargs):
-        ret = fn(*args, **kwargs)
+        try:
+            ret = fn(*args, **kwargs)
+        except Return as ret:
+            ret = ret.response
         if isinstance(ret, CoroutineType):
             ret = await ret
         if isinstance(ret, HTTPResponse):
@@ -102,7 +115,10 @@ def page(fn):
 
     @functools.wraps(fn)
     async def wrapper(request, *args, **kwargs):
-        ret = fn(request, *args, **kwargs)
+        try:
+            ret = fn(request, *args, **kwargs)
+        except Return as ret:
+            ret = ret.response
         if isinstance(ret, CoroutineType):
             ret = await ret
         if isinstance(ret, HTTPResponse):

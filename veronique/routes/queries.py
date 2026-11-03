@@ -10,7 +10,7 @@ from veronique.html import H
 from veronique.map import map_widget
 from veronique.network import network_widget
 from veronique.settings import settings as S
-from veronique.utils import D, admin_only, fragment, page, pagination
+from veronique.utils import D, admin_only, fragment, page, pagination, require
 
 queries = Blueprint("queries", url_prefix="/queries")
 
@@ -198,11 +198,7 @@ async def edit_query(request, query_id: int):
 @queries.get("/<query_id>")
 @page
 async def view_query(request, query_id: int):
-    if not context.user.can("view", "query", query_id):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.can("view", "query", query_id))
     page_no = int(request.args.get("page", 1))
     query = O.Query(query_id)
     form_elements, bindings = query.bind(request.args)
@@ -249,11 +245,7 @@ async def view_query(request, query_id: int):
 @queries.get("/<query_id>/network/<col>")
 @page
 async def view_query_graph(request, query_id: int, col: str):
-    if not context.user.can("view", "query", query_id):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.can("view", "query", query_id))
     query = O.Query(query_id)
     result = query.run(
         {},  # no bindings
@@ -267,11 +259,7 @@ async def view_query_graph(request, query_id: int, col: str):
 @queries.get("/<query_id>/map/<col>")
 @page
 async def view_query_map(request, query_id: int, col: str):
-    if not context.user.can("view", "query", query_id):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.can("view", "query", query_id))
     query = O.Query(query_id)
     result = query.run(
         {},  # no bindings
@@ -299,11 +287,7 @@ async def view_query_map(request, query_id: int, col: str):
 @fragment
 async def delete_query(request, query_id: int):
     query = O.Query(query_id)
-    if not context.user.is_admin:
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.is_admin)
     query.delete()
     return H.meta(http_equiv="refresh", content="0; url=/queries")
 

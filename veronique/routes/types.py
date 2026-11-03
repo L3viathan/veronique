@@ -6,7 +6,7 @@ import veronique.objects as O
 from veronique.data_types import TYPES
 from veronique.html import H
 from veronique.settings import settings as S
-from veronique.utils import page, pagination
+from veronique.utils import page, pagination, require
 
 types = Blueprint("types", url_prefix="/types")
 
@@ -23,11 +23,7 @@ async def type_request_post(request, data_type: str):
 @page
 async def claims_with_value(request, data_type: str, value: str):
     value = urllib.parse.unquote(value)  # somehow this is not done by the framework
-    if not TYPES[data_type].supports_value_query:
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(TYPES[data_type].supports_value_query)
     page_no = int(request.args.get("page", 1))
     claims = []
     more_results = False

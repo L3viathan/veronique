@@ -6,7 +6,7 @@ from veronique.data_types import TYPES
 from veronique.db import ROOT
 from veronique.html import H
 from veronique.settings import settings as S
-from veronique.utils import D, admin_only, fragment, page, pagination
+from veronique.utils import D, admin_only, fragment, page, pagination, require
 
 verbs = Blueprint("verbs", url_prefix="/verbs")
 
@@ -100,11 +100,7 @@ async def new_verb(request):
 @page
 async def view_verb(request, verb_id: int):
     page_no = int(request.args.get("page", 1))
-    if not context.user.can("read", "verb", verb_id):
-        return HTTPResponse(
-            body="403 Forbidden",
-            status=403,
-        )
+    require(context.user.can("read", "verb", verb_id))
     verb = O.Verb(verb_id)
     claims = []
     more_results = False
