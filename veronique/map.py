@@ -1,7 +1,5 @@
 from random import randint
 
-from sanic import HTTPResponse
-
 from veronique.context import context
 from veronique.db import LATLON
 from veronique.html import H

@@ -1,6 +1,6 @@
 import urllib.parse
 
-from sanic import Blueprint, HTTPResponse
+from sanic import Blueprint
 
 import veronique.objects as O
 from veronique.data_types import TYPES

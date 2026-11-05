@@ -1,4 +1,4 @@
-from sanic import Blueprint, HTTPResponse, redirect
+from sanic import Blueprint, redirect
 
 import veronique.objects as O
 from veronique.context import context
