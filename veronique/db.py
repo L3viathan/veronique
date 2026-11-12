@@ -861,6 +861,18 @@ def add_verb_description(cur):
     """)
 
 
+@migration(31)
+def add_clearance_and_classification(cur):
+    cur.execute("""
+        ALTER TABLE claims
+        ADD classification INTEGER DEFAULT 0
+    """)
+    cur.execute("""
+        ALTER TABLE users
+        ADD clearance INTEGER DEFAULT 0
+    """)
+
+
 if os.environ.get("VERONIQUE_READONLY"):
     conn.execute("pragma query_only = ON;")
 

@@ -363,6 +363,7 @@ class Claim(Model):
         "verb",
         "object",
         "owner",
+        "classification",
     )
     table_name = "claims"
 
@@ -382,7 +383,8 @@ class Claim(Model):
                 object_id,
                 created_at,
                 updated_at,
-                owner_id
+                owner_id,
+                classification
             FROM
                 claims
             WHERE id IN ({",".join("?"*len(ids))})
@@ -425,7 +427,8 @@ class Claim(Model):
                     object_id,
                     created_at,
                     updated_at,
-                    owner_id
+                    owner_id,
+                    classification
                 FROM
                     claims
                 WHERE id = ?
@@ -449,6 +452,7 @@ class Claim(Model):
         self.owner = User(row["owner_id"])
         self.created_at = row["created_at"]
         self.updated_at = row["updated_at"]
+        self.classification = row["classification"]
 
     @classmethod
     def search(
@@ -465,8 +469,12 @@ class Claim(Model):
         cur = db.conn.cursor()
         for hit in find(cur, q, table="claims", page_size=page_size):
             claim = cls(hit["id"])
-            if context.user.can("read", "verb", claim.verb.id):
-                yield claim
+            if not context.user.can("read", "verb", claim.verb.id):
+                continue
+            if not context.user.cleared_for(claim):
+                continue
+
+            yield claim
 
     @classmethod
     def all(
@@ -495,12 +503,14 @@ class Claim(Model):
             conditions.append(
                 f"verb_id IN ({','.join(str(verb_id) for verb_id in verb_ids)})"
             )
+        bindings.append(context.user.clearance)
         for row in cur.execute(
             f"""
             SELECT
                 id
             FROM claims c
             WHERE {" AND ".join(conditions)}
+            AND c.classification <= ?
             ORDER BY {order_by}
             LIMIT {page_size}
             OFFSET {page_no * page_size}
@@ -540,15 +550,17 @@ class Claim(Model):
             FROM claims c
             LEFT JOIN verbs v ON c.verb_id = v.id
             WHERE {" AND ".join(conditions)}
+            AND c.classification <= ?
         """
         results = {
             d: [] for d in target_dates
         }
         for row in cur.execute(
             query,
-            () if include_validity else (
+            (context.user.clearance,) if include_validity else (
                 VALID_FROM,
                 VALID_UNTIL,
+                context.user.clearance,
             ),
         ):
             claim = cls(row[0])
@@ -579,12 +591,13 @@ class Claim(Model):
             FROM claims c
             LEFT JOIN verbs v ON c.verb_id = v.id
             WHERE {" AND ".join(conditions)}
+            AND c.classification <= ?
             LIMIT {page_size}
             OFFSET {page_no * page_size}
         """
         for row in cur.execute(
             query,
-            (data_type, value),
+            (data_type, value, context.user.clearance),
         ):
             yield cls(row[0])
 
@@ -597,10 +610,11 @@ class Claim(Model):
             FROM claims c
             WHERE c.subject_id = ?
             AND c.verb_id = ?
+            AND c.classification <= ?
             LIMIT {page_size}
             OFFSET {page_no * page_size}
             """,
-            (self.id, COMMENT),
+            (self.id, COMMENT, context.user.clearance),
         ).fetchall():
             yield Claim(row["id"])
 
@@ -620,10 +634,11 @@ class Claim(Model):
             WHERE c.object_id = ?
             AND v.data_type <> 'undirected_link'
             {cond}
+            AND c.classification <= ?
             LIMIT {page_size}
             OFFSET {page_no * page_size}
             """,
-            (self.id,),
+            (self.id, context.user.clearance),
         ).fetchall():
             yield Claim(row["id"])
 
@@ -641,10 +656,11 @@ class Claim(Model):
             LEFT JOIN verbs v
             ON c.verb_id = v.id
             WHERE c.value LIKE '%[@' || ? || ']%' {cond}
+            AND c.classification <= ?
             LIMIT {page_size}
             OFFSET {page_no * page_size}
             """,
-            (self.id,),
+            (self.id, context.user.clearance),
         ).fetchall():
             yield Claim(row["id"])
 
@@ -664,10 +680,11 @@ class Claim(Model):
             WHERE (c.subject_id = ?
             OR (v.data_type = 'undirected_link' AND c.object_id = ?))
             {cond}
+            AND c.classification <= ?
             LIMIT {page_size}
             OFFSET {page_no * page_size}
             """,
-            (self.id, self.id),
+            (self.id, self.id, context.user.clearance),
         ).fetchall():
             yield Claim(row["id"])
 
@@ -687,9 +704,10 @@ class Claim(Model):
             WHERE v.data_type LIKE '%directed_link'
             AND v.id != {IS_A}
             AND (c.subject_id = ? OR c.object_id = ?)
+            AND c.classification <= ?
             {cond}
             """,
-            (self.id, self.id),
+            (self.id, self.id, context.user.clearance),
         ).fetchall():
             yield Claim(row["id"])
 
@@ -726,11 +744,12 @@ class Claim(Model):
             SELECT
                 c.id AS id
             FROM claims c
-            WHERE c.verb_id = {ROOT} {cond}
+            WHERE c.verb_id = {ROOT} {cond} AND c.classification <= ?
             ORDER BY {order_by}
             LIMIT {page_size}
             OFFSET {page_no * page_size}
-            """
+            """,
+            (context.user.clearance,),
         ).fetchall():
             yield cls(row["id"])
 
@@ -742,11 +761,13 @@ class Claim(Model):
             SELECT
                 DISTINCT(object_id) AS id
             FROM claims c
-            WHERE c.verb_id = {IS_A}
+            LEFT JOIN oclaims o ON c.object_id = o.id
+            WHERE c.verb_id = {IS_A} AND o.classification <= ? AND c.classification <= ?
             ORDER BY {order_by}
             LIMIT {page_size}
             OFFSET {page_no * page_size}
-            """
+            """,
+            (context.user.clearance, context.user.clearance),
         ).fetchall():
             yield cls(row["id"])
 
@@ -758,12 +779,12 @@ class Claim(Model):
             SELECT
                 id
             FROM claims c
-            WHERE c.verb_id = ?
+            WHERE c.verb_id = ? AND c.classification <= ?
             ORDER BY {order_by}
             LIMIT {page_size}
             OFFSET {page_no * page_size}
             """,
-            (COMMENT,),
+            (COMMENT, context.user.clearance),
         ).fetchall():
             yield cls(row["id"])
 
@@ -999,6 +1020,8 @@ class Claim(Model):
 
     def html(self, fmt=None):
         if not context.user.can("read", "verb", self.verb.id):
+            return H("(unknown claim)")
+        if not context.user.cleared_for(self):
             return H("(unknown claim)")
         data = self.get_data()
         css_classes, remarks = self._get_remarks(data)
@@ -1652,6 +1675,7 @@ class User(Model):
         "generation",
         "redact",
         "last_session_at",
+        "clearance",
     )
 
     def populate(self):
@@ -1659,7 +1683,16 @@ class User(Model):
         row = cur.execute(
             """
                 SELECT
-                    id, name, hash, entity_id, is_admin, salt, generation, redact, last_session_at
+                    id,
+                    name,
+                    hash,
+                    entity_id,
+                    is_admin,
+                    salt,
+                    generation,
+                    redact,
+                    last_session_at,
+                    clearance
                 FROM users
                 WHERE id = ?
             """,
@@ -1673,6 +1706,10 @@ class User(Model):
         self.is_admin = row["is_admin"]
         self.redact = row["redact"]
         self.generation = row["generation"]
+        if self.is_admin:
+            self.clearance = 99999
+        else:
+            self.clearance = row["clearance"]
         if row["entity_id"]:
             self.entity = Claim(row["entity_id"])
         else:
@@ -1876,6 +1913,9 @@ class User(Model):
             return True
         return (f"{do}-{what}", whom) in self.permissions
 
+    def cleared_for(self, claim):
+        return self.is_admin or self.clearance >= claim.classification
+
     @cached_property
     def readable_verbs(self):
         if self.is_admin:
@@ -2035,6 +2075,7 @@ class InferredClaim:
         self.subject = subj
         self.verb = verb
         self.object = obj
+        self.classification = 0  # FIXME
 
     def html(self, fmt=None):
         if fmt == "handle":
