@@ -914,7 +914,7 @@ class Claim(Model):
         db.conn.commit()
         return Claim(new_id)
 
-    @timed_cache(CLAIM_DATA_CACHE_TIME, key=lambda self, *_, **__: self.id)
+    @timed_cache(CLAIM_DATA_CACHE_TIME, key=lambda self, *_, **__: (self.id, context.user.id))
     def get_data(self, claims=None):
         data = {}
         if claims is None:
