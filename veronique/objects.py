@@ -1821,9 +1821,9 @@ class User(Model):
         db.conn.commit()
         return cls(u_id)
 
-    def update(self, *, name, password, readable_verbs, writable_verbs, viewable_queries, redact, entity_id):
+    def update(self, *, name, password, readable_verbs, writable_verbs, viewable_queries, redact, clearance, entity_id):
         cur = db.conn.cursor()
-        to_set, values = ["redact=?"], [redact]
+        to_set, values = ["redact=?", "clearance=?"], [redact, clearance]
         if name != self.name:
             to_set.append("name=?")
             values.append(name)

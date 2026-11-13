@@ -325,6 +325,11 @@ async def view_map(request):
 @page
 async def view_claim_network(request, claim_id: int):
     source_claim = O.Claim(claim_id)
+    if not context.user.cleared_for(source_claim):
+        return HTTPResponse(
+            body="404 Not Found",
+            status=404,
+        )
     max_depth = int(request.args.get("depth", 1))
     claims = []
     colormap = {}
@@ -352,6 +357,11 @@ async def view_claim_network(request, claim_id: int):
 async def view_claim(request, claim_id: int):
     page_no = int(request.args.get("page", 1))
     claim = O.Claim(claim_id)
+    if not context.user.cleared_for(claim):
+        return HTTPResponse(
+            body="404 Not Found",
+            status=404,
+        )
     require(context.user.can("read", "verb", claim.verb.id))
     incoming_mentions = list(claim.incoming_mentions(
         page_no=page_no - 1,
@@ -450,6 +460,11 @@ async def view_claim(request, claim_id: int):
 @page
 async def view_claim_avatar(request, claim_id: int):
     claim = O.Claim(claim_id)
+    if not context.user.cleared_for(claim):
+        return HTTPResponse(
+            body="404 Not Found",
+            status=404,
+        )
     data = claim.get_data()
     if AVATAR not in data or context.user.redact:
         # transparent pixel

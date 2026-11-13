@@ -4,6 +4,7 @@ from sanic import Blueprint, html, redirect
 
 import veronique.objects as O
 from veronique.autocomplete import Tags, widget
+from veronique.constants import CLASSIFICATION_LEVELS
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import IS_A, ROOT
@@ -116,6 +117,14 @@ def _user_form(*, password_input, endpoint, user=None):
             H.select(*verb_options_w, name="verbs-writable", multiple=True, size="10"),
             H.h3("Viewable queries"),
             H.select(*query_options, name="queries-viewable", multiple=True, size="10"),
+            H.h3("Clearance"),
+            H.select(
+                *(
+                    H.option(level, value=str(i), selected=bool(user and user.clearance == i))
+                    for i, level in enumerate(CLASSIFICATION_LEVELS)
+                ),
+                name="clearance",
+            ),
         ),
         H.h3("Corresponding entity"),
         str(user and user.entity or ""),
@@ -162,6 +171,7 @@ def _write_user(form, endpoint, user=None):
     writable_verbs = {int(v) for v in form["verbs-writable"]} if "verbs-writable" in form else set()
     readable_verbs = {int(v) for v in form["verbs-readable"]} if "verbs-readable" in form else set()
     viewable_queries = {int(v) for v in form["queries-viewable"]} if "queries-viewable" in form else set()
+    clearance = form.get("clearance")
     redact = "redact" in form
     if "entity_id" in form:
         [entity_id] = form["entity_id"]
@@ -182,6 +192,7 @@ def _write_user(form, endpoint, user=None):
             writable_verbs=writable_verbs,
             viewable_queries=viewable_queries,
             redact=redact,
+            clearance=clearance,
             entity_id=entity_id,
         )
     else:
@@ -266,6 +277,7 @@ async def view_user(request, user_id: int):
         H.table(
             H.tr(H.th("Session", scope="row"), H.td(user.html("session"))),
             H.tr(H.th("Admin", scope="row"), H.td(TYPES["boolean"].display_html(user.is_admin))),
+            (H.tr(H.th("Clearance", scope="row"), H.td(CLASSIFICATION_LEVELS[user.clearance])) if user.clearance != 0 else None),
             H.tr(H.th("Redact", scope="row"), H.td(TYPES["boolean"].display_html(user.redact))),
             H.tr(H.th("Readable verbs", scope="row"), H.td(*join(", ", (v.html() for v in readable_verbs)))),
             H.tr(H.th("Writable verbs", scope="row"), H.td(*join(", ", (v.html() for v in writable_verbs)))),
