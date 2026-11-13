@@ -9,7 +9,11 @@ from itertools import combinations, count
 from urllib.parse import quote_plus
 
 from veronique import db
-from veronique.constants import CLAIM_DATA_CACHE_TIME, SESSION_MAX_AGE
+from veronique.constants import (
+    CLAIM_DATA_CACHE_TIME,
+    CLASSIFICATION_LEVELS,
+    SESSION_MAX_AGE,
+)
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import (
@@ -985,6 +989,8 @@ class Claim(Model):
             remarks.append(f"from {valid_from.object}")
         for valid_until in data.get(VALID_UNTIL, []):
             remarks.append(f"until {valid_until.object}")
+        if self.classification != 0:
+            remarks.append(CLASSIFICATION_LEVELS[self.classification])
         remarks.sort(key=lambda s: s.split()[-1])
 
         if remarks:
