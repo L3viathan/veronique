@@ -989,8 +989,6 @@ class Claim(Model):
             remarks.append(f"from {valid_from.object}")
         for valid_until in data.get(VALID_UNTIL, []):
             remarks.append(f"until {valid_until.object}")
-        if self.classification != 0:
-            remarks.append(CLASSIFICATION_LEVELS[self.classification])
         remarks.sort(key=lambda s: s.split()[-1])
 
         if remarks:
@@ -1056,6 +1054,7 @@ class Claim(Model):
         elif not fmt or fmt == "nested":
             if self.is_entity and not context.user.redact:
                 return H.a(
+                    self.html("classification-marker"),
                     self.html("avatarsmall"),
                     escape(self.object.value),
                     **remarks,
@@ -1064,6 +1063,7 @@ class Claim(Model):
                 )
             elif self.is_entity:
                 return H.a(
+                    self.html("classification-marker"),
                     self.html("avatarsmall"),
                     f"Claim #{self.id}",
                     **remarks,
@@ -1169,7 +1169,7 @@ class Claim(Model):
                     )
                 else:
                     latlons = None
-                return H.h2(text, cat, latlons)
+                return H.h2(self.html("classification-marker"), text, cat, latlons)
             else:
                 return H.h2(self.html())
         elif fmt.startswith("vo:"):
@@ -1214,11 +1214,22 @@ class Claim(Model):
                 ),
                 source_popover,
             )
+        elif fmt == "classification-marker":
+            if self.classification <= 0:
+                return None
+            return H.span(
+                "",
+                data_tooltip=CLASSIFICATION_LEVELS[self.classification],
+                cls=f"classification-marker classification-{self.classification}",
+            )
         elif fmt == "handle":
-            return H.a(
-                HANDLE,
-                cls=f"handle{' more' if 'has_claims' in data else ''}",
-                href=self.url(),
+            return H(
+                self.html("classification-marker"),
+                H.a(
+                    HANDLE,
+                    cls=f"handle{' more' if 'has_claims' in data else ''}",
+                    href=self.url(),
+                )
             )
         elif fmt == "avatarsmall":
             if AVATAR not in data or context.user.redact:

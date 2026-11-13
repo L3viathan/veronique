@@ -670,3 +670,20 @@ img#logo {
   top: 5px;
   position: absolute;
 }
+
+.classification-marker {
+  width: 8px;
+  display: inline-block;
+  height: 0.8em;
+  border-radius: 4px;
+  margin-left: 2px;
+  &.classification-1 {
+    background-color: #2fa5ab;
+  }
+  &.classification-2 {
+    background-color: #cb4713;
+  }
+  &.classification-3 {
+    background-color: #ec461f;
+  }
+}
