@@ -1042,7 +1042,7 @@ class Claim(Model):
         if not context.user.can("read", "verb", self.verb.id):
             return H("(unknown claim)")
         if not context.user.cleared_for(self):
-            return H("(unknown claim)")
+            return None
         data = self.get_data()
         css_classes, remarks = self._get_remarks(data)
         source_button, source_popover = self._get_source(data)
@@ -1958,6 +1958,10 @@ class User(Model):
         return (f"{do}-{what}", whom) in self.permissions
 
     def cleared_for(self, claim):
+        if claim.subject and not self.cleared_for(claim.subject):
+            return False
+        if isinstance(claim.object, Claim) and not self.cleared_for(claim.object):
+            return False
         return self.is_admin or self.clearance >= claim.classification
 
     @cached_property
