@@ -862,6 +862,22 @@ class Claim(Model):
         db.conn.commit()
         self.populate()
 
+    def classify(self, level):
+        cur = db.conn.cursor()
+        cur.execute(
+            """
+            UPDATE claims
+            SET classification = ?, updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            (
+                level,
+                self.id,
+            ),
+        )
+        db.conn.commit()
+        self.populate()
+
     @classmethod
     def new(cls, subject, verb, value_or_object):
         cur = db.conn.cursor()
@@ -1333,6 +1349,17 @@ class Claim(Model):
                             ),
                         )
                     )
+            if context.user.is_admin:  # TODO: not just admin
+                parts.append(
+                    H.li(
+                        H.a(
+                            "Classify ",
+                            H.i("\N{LOCK}\ufe0e"),
+                            hx_target="#edit-area",
+                            hx_get=self.url("classify"),
+                        ),
+                    )
+                )
             if (context.user.is_admin or self.owner.id == context.user.id) and self.deletable:
                 parts.append(
                     H.li(

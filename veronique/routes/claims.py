@@ -4,6 +4,7 @@ from math import log
 from sanic import Blueprint, HTTPResponse, raw, redirect
 
 import veronique.objects as O
+from veronique.constants import CLASSIFICATION_LEVELS
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import AVATAR, COMMENT, IS_A, LATLON, ROOT
@@ -467,3 +468,36 @@ async def view_claim_avatar(request, claim_id: int):
         content_type=mime,
         headers=cache_pls_headers(updated_at),
     )
+
+
+@claims.get("/<claim_id>/classify")
+@fragment
+async def classify_claim_form(request, claim_id: int):
+    claim = O.Claim(claim_id)
+    require(context.user.is_admin or claim.owner.id == context.user.id)
+    levels = [
+        H.option(level, value=str(i), selected=i==claim.classification)
+        for i, level in enumerate(CLASSIFICATION_LEVELS)
+    ]
+    return H.form(
+        H.select(
+            *levels,
+            name="level",
+        ),
+        H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
+        action=claim.url("classify"),
+        method="POST",
+    )
+
+
+@claims.post("/<claim_id>/classify")
+async def classify_claim(request, claim_id: int):
+    form = D(request.form)
+    claim = O.Claim(claim_id)
+    level = int(form.get("level"))
+    require(
+        context.user.is_admin
+        or claim.owner.id == context.user.id
+    )
+    claim.classify(level)
+    return redirect(claim.url())

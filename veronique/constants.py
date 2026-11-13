@@ -51,3 +51,6 @@ TEXT_REF = re.compile(r"\[@(\d+)\]")
 DATE_REF = re.compile(r"[12][0-9]{3}-[01][0-9]-[0-3][0-9]")
 INPUT_WIDGET_REF = re.compile(r'<span [^>]+data-claim-ref="(\d+)"[^>]+>.+?</span>')
 COORDS = re.compile(r"^-?\d+(.\d+)?, ?-?\d+(.\d+)?$")
+
+# TODO: make this configurable?
+CLASSIFICATION_LEVELS = ["◌ Unclassified", "◍ Confidential", "◎ Secret", "◉ Top Secret"]
