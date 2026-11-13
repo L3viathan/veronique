@@ -763,7 +763,7 @@ class Claim(Model):
         for row in cur.execute(
             f"""
             SELECT
-                DISTINCT(object_id) AS id
+                DISTINCT(c.object_id) AS id
             FROM claims c
             LEFT JOIN claims o ON c.object_id = o.id
             WHERE c.verb_id = {IS_A} AND o.classification <= ? AND c.classification <= ?
