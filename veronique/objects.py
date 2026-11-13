@@ -765,7 +765,7 @@ class Claim(Model):
             SELECT
                 DISTINCT(object_id) AS id
             FROM claims c
-            LEFT JOIN oclaims o ON c.object_id = o.id
+            LEFT JOIN claims o ON c.object_id = o.id
             WHERE c.verb_id = {IS_A} AND o.classification <= ? AND c.classification <= ?
             ORDER BY {order_by}
             LIMIT {page_size}
