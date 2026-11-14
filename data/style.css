@@ -671,6 +671,13 @@ img#logo {
   position: absolute;
 }
 
+.svo:has(.classification-marker), .claim-link:has(.classification-marker) {
+  filter: brightness(0);
+  &:hover{
+    filter: none;
+  }
+}
+
 .classification-marker {
   width: 8px;
   display: inline-block;
