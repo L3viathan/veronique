@@ -389,6 +389,7 @@ async def view_claim(request, claim_id: int):
             claim.html("avatar") if claim.is_entity else None,
             claim.html("hamburger"),
         ),
+        claim.html("classification-ribbon"),
         H.div("", id="edit-area"),
         H.table(
             H.tr(

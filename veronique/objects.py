@@ -1222,6 +1222,13 @@ class Claim(Model):
                 data_tooltip=CLASSIFICATION_LEVELS[self.classification],
                 cls=f"classification-marker classification-{self.classification}",
             )
+        elif fmt == "classification-ribbon":
+            if self.classification <= 0:
+                return None
+            return H.div(
+                CLASSIFICATION_LEVELS[self.classification],
+                cls=f"classification-ribbon classification-{self.classification}",
+            )
         elif fmt == "handle":
             return H(
                 self.html("classification-marker"),
