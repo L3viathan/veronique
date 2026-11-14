@@ -132,7 +132,7 @@ async def new_claim_form_verb_input(request):
             H.fieldset(
                 H.select(
                     *(
-                        H.option(level, value=str(i), selected=i==0)
+                        H.option(level, value=str(i), selected=i==verb.default_classification)
                         for i, level in enumerate(CLASSIFICATION_LEVELS)
                     ),
                     name="level",
@@ -155,7 +155,7 @@ async def new_claim_form_verb_input(request):
             H.fieldset(
                 H.select(
                     *(
-                        H.option(level, value=str(i), selected=i==0)
+                        H.option(level, value=str(i), selected=i==verb.default_classification)
                         for i, level in enumerate(CLASSIFICATION_LEVELS)
                     ),
                     name="level",

@@ -1,6 +1,7 @@
 from sanic import Blueprint, redirect
 
 import veronique.objects as O
+from veronique.constants import CLASSIFICATION_LEVELS
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import ROOT
@@ -54,6 +55,16 @@ async def new_verb_form(request):
         H.form(
             H.input(name="label", placeholder="label"),
             H.textarea("", name="description", placeholder="description"),
+            H.label(
+                "Default classification",
+                H.select(
+                    *(
+                        H.option(level, value=str(i), selected=i==0)
+                        for i, level in enumerate(CLASSIFICATION_LEVELS)
+                    ),
+                    name="default_level",
+                ),
+            ),
             H.select(
                 H.option("--Type--", selected=True, disabled=True),
                 *(H.option(data_type, value=data_type) for data_type in TYPES),
@@ -90,6 +101,7 @@ async def new_verb(request):
     verb = O.Verb.new(
         form["label"],
         description=form["description"],
+        default_classification=int(form["default_level"]),
         data_type=data_type,
         extra=extra,
     )
@@ -139,6 +151,16 @@ async def edit_verb_form(request, verb_id: int):
     return H.form(
         H.input(name="label", value=verb.label),
         H.textarea(verb.description or "", name="description"),
+        H.label(
+            "Default classification",
+            H.select(
+                *(
+                    H.option(level, value=str(i), selected=i==verb.default_classification)
+                    for i, level in enumerate(CLASSIFICATION_LEVELS)
+                ),
+                name="default_level",
+            ),
+        ),
         verb.html("edit"),
         H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
         action=verb.url("edit"),

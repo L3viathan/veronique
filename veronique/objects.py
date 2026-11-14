@@ -109,6 +109,7 @@ class Verb(Model):
     fields = (
         "label",
         "description",
+        "default_classification",
         "data_type",
         "internal",
         "extra",
@@ -124,7 +125,8 @@ class Verb(Model):
                 description,
                 data_type,
                 internal,
-                extra
+                extra,
+                default_classification
             FROM verbs
             WHERE id = ?
             """,
@@ -134,6 +136,7 @@ class Verb(Model):
             raise ValueError(f"No Verb with this ID found: {self.id}")
         self.label = row["label"]
         self.description = row["description"] or ""
+        self.default_classification = row["default_classification"] or 0
         self.data_type = TYPES[row["data_type"]]
         self.internal = row["internal"]
         self.extra = row["extra"]
@@ -146,6 +149,7 @@ class Verb(Model):
         description="",
         data_type,
         extra=None,
+        default_classification=0,
     ):
         cur = db.conn.cursor()
         cur.execute(
@@ -157,14 +161,16 @@ class Verb(Model):
                     description,
                     data_type,
                     internal,
-                    extra
-                ) VALUES (?, ?, ?, FALSE, ?)
+                    extra,
+                    default_classification
+                ) VALUES (?, ?, ?, FALSE, ?, ?)
             """,
             (
                 label,
                 description,
                 data_type.name,
                 extra,
+                default_classification,
             ),
         )
         verb_id = cur.lastrowid
@@ -297,15 +303,16 @@ class Verb(Model):
 
     def edit(self, form):
         description = form.pop("description", "")
+        default_classification = int(form.pop("default_level", 0))
         self.data_type.edit_verb(self, form)
         cur = db.conn.cursor()
         cur.execute(
             """
             UPDATE verbs
-            SET description=?, extra=?
+            SET description=?, extra=?, default_classification=?
             WHERE id = ?
             """,
-            (description, self.extra, self.id),
+            (description, self.extra, default_classification, self.id),
         )
         db.conn.commit()
         # evict changed verb from cache:
