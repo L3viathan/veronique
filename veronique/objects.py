@@ -883,7 +883,7 @@ class Claim(Model):
         self.populate()
 
     @classmethod
-    def new(cls, subject, verb, value_or_object):
+    def new(cls, subject, verb, value_or_object, *, classification=0):
         cur = db.conn.cursor()
         if verb.id in DATA_LABELS:
             fn = subject.get_data.__wrapped__
@@ -902,32 +902,32 @@ class Claim(Model):
             cur.execute(
                 """
                     INSERT INTO claims
-                        (subject_id, verb_id, object_id, owner_id)
+                        (subject_id, verb_id, object_id, owner_id, classification)
                     VALUES
-                        (?, ?, ?, ?)
+                        (?, ?, ?, ?, ?)
                 """,
-                (subject.id, verb.id, value_or_object.id, context.user.id),
+                (subject.id, verb.id, value_or_object.id, context.user.id, classification),
             )
         else:
             cur.execute(
                 """
                 INSERT INTO claims
-                    (subject_id, verb_id, value, owner_id)
+                    (subject_id, verb_id, value, owner_id, classification)
                 VALUES
-                    (?, ?, ?, ?)
+                    (?, ?, ?, ?, ?)
                 """,
-                (subject.id, verb.id, value_or_object.encode(), context.user.id),
+                (subject.id, verb.id, value_or_object.encode(), context.user.id, classification),
             )
 
         db.conn.commit()
         return Claim(cur.lastrowid)
 
     @classmethod
-    def new_entity(cls, name):
+    def new_entity(cls, name, *, classification=0):
         cur = db.conn.cursor()
         cur.execute(
-            "INSERT INTO claims (verb_id, value, owner_id) VALUES (?, ?, ?)",
-            (ROOT, name, context.user.id),
+            "INSERT INTO claims (verb_id, value, owner_id, classification) VALUES (?, ?, ?, ?)",
+            (ROOT, name, context.user.id, classification),
         )
         new_id = cur.lastrowid
         update_index_for_doc(cur, "claims", new_id, name)

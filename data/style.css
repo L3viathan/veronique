@@ -715,3 +715,15 @@ img#logo {
     background-color: #ec461f;
   }
 }
+
+.split-button {
+  select {
+    flex: fit-content !important;
+    background-image: none !important;
+    flex-shrink: 0 !important;
+    padding-right: 21px !important;
+  }
+  button {
+    flex: -moz-available;
+  }
+}

@@ -44,7 +44,18 @@ async def new_entity_form(request):
                 name="category",
             ),
             connect_info,
-            H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
+            H.fieldset(
+                H.select(
+                    *(
+                        H.option(level, value=str(i), selected=i==0)
+                        for i, level in enumerate(CLASSIFICATION_LEVELS)
+                    ),
+                    name="level",
+                ),
+                H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
+                role="group",
+                cls="split-button",
+            ),
             action="/claims/new-entity",
             method="POST",
         ),
@@ -55,8 +66,9 @@ async def new_entity_form(request):
 async def new_entity(request):
     form = D(request.form)
     name = form["name"]
+    level = int(form.get("level"))
     require(context.user.can("write", "verb", ROOT))
-    claim = O.Claim.new_entity(name)
+    claim = O.Claim.new_entity(name, classification=level)
     if form.get("category") and context.user.can("write", "verb", IS_A):
         cat = O.Claim(int(form["category"]))
         O.Claim.new(claim, O.Verb(IS_A), cat)
@@ -66,9 +78,9 @@ async def new_entity(request):
             conn_verb = O.Verb(int(conn_verb_id))
             conn_claim = O.Claim(int(conn_claim_id))
             if conn_dir == "incoming":
-                O.Claim.new(claim, conn_verb, conn_claim)
+                O.Claim.new(claim, conn_verb, conn_claim, classification=level)
             else:
-                O.Claim.new(conn_claim, conn_verb, claim)
+                O.Claim.new(conn_claim, conn_verb, claim, classification=level)
             # We came from the conn_claim, so we want to go back there.
             return redirect(conn_claim.url())
         # If we couldn't make the link, we want to go to the new entity instead.
@@ -117,7 +129,18 @@ async def new_claim_form_verb_input(request):
                 direction=args.get("direction"),
                 verb_id=verb.id,
             ),
-            H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
+            H.fieldset(
+                H.select(
+                    *(
+                        H.option(level, value=str(i), selected=i==0)
+                        for i, level in enumerate(CLASSIFICATION_LEVELS)
+                    ),
+                    name="level",
+                ),
+                H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
+                role="group",
+                cls="split-button",
+            ),
             action=f'/claims/new/{args.get("claim_ids")}/{args.get("direction")}',
             method="POST",
             enctype="multipart/form-data",
@@ -129,12 +152,25 @@ async def new_claim_form_verb_input(request):
                 direction=args.get("direction"),
                 verb_id=verb.id,
             ),
-            H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
+            H.fieldset(
+                H.select(
+                    *(
+                        H.option(level, value=str(i), selected=i==0)
+                        for i, level in enumerate(CLASSIFICATION_LEVELS)
+                    ),
+                    name="level",
+                ),
+                H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
+                role="group",
+                cls="split-button",
+            ),
         )
 
 
 @claims.post("/new/<claim_ids>/<direction:incoming|outgoing>")
 async def new_claims(request, claim_ids: list[int], direction: str):
+    form = D(request.form)
+    level = int(form.get("level"))
     for claim_id in claim_ids.split(","):
         claim = O.Claim(int(claim_id))
         form = D(request.form)
@@ -161,9 +197,9 @@ async def new_claims(request, claim_ids: list[int], direction: str):
             except ValueError:
                 return redirect(claim.url())
         if direction == "incoming":
-            O.Claim.new(value, verb, claim)
+            O.Claim.new(value, verb, claim, classification=level)
         else:
-            O.Claim.new(claim, verb, value)
+            O.Claim.new(claim, verb, value, classification=level)
     return redirect(claim.url())
 
 
