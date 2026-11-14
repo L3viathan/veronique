@@ -299,7 +299,10 @@ class source(string):
                 cls="type-source type-source-url",
             )
         if variant == "E":
-            entity = O.Claim(int(value))
+            try:
+                entity = O.Claim(int(value))
+            except ValueError:
+                return "INVALID"
             return H.span(entity.html(), cls="type-source type-source-entity")
 
     def _input_for_variant(self, variant, value):
