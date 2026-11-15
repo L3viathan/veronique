@@ -45,5 +45,8 @@ _still_ show non-textual data (such as dates) and will allow inferring PII via
 metadata and links. It also has no effect on how searches work, meaning one can
 infer the names of entities with repeated searches.
 
+Finally, you can set the clearance of a user. For details see the section on
+[classification](advanced.md#classification).
+
 **TL;DR: Do not hand control of a redacted account to someone you wouldn't give
 the same account if it were unredacted.**

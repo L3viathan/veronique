@@ -126,3 +126,22 @@ The visualization, powered by [Sigma.js](https://sigmajs.org) and
 [Graphology](https://graphology.github.io) will attempt to cluster related
 nodes as far as possible, and will continue doing so forever, or until you
 press the stop button.
+
+## Classification
+
+By default, every claim is visible to anyone who can see claims of that verb.
+All entities are also visible to everyone and can be found by searching.
+
+If you want to have _secrets_, you can use the built-in classification system.
+Each claim has a classification level attached (by default it's `Unclassified`;
+the lowest level that anyone can see). Users can be assigned a clearance level
+and can only ever see claims classified at their own level or below. Users can
+always (given they have the corresponding permissions for the verb) _create_
+claims on levels above their level, but can never read them. The classification
+level of a claim can be set either while initially creating it, or after the
+fact. All users can also "write down"; in terms of the Bell–LaPadula model
+everyone is a "trusted subject".
+
+All claims other than claims on the lowest level will be redacted even for
+users who have the required clearance, unless they hover over the claim. This
+is an attempt at preventing accidental information leaks to onlookers.
