@@ -491,6 +491,7 @@ class date(DataType):
             else:
                 raise RuntimeError("Unexpected date")
         fmt_flags = "a" if "a" in (prop.extra or "") else ""
+        raw_value = value
         if value == "????-??-??":
             value = "unknown"
         else:
@@ -499,7 +500,7 @@ class date(DataType):
             "\N{SPIRAL CALENDAR PAD}\ufe0f",
             H.a(
                 value,
-                href=f'/types/date/{value.replace("?", "%3F")}',
+                href=f'/types/date/{raw_value.replace("?", "%3F")}',
             ),
             astro,
             " ",

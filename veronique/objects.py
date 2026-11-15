@@ -587,6 +587,11 @@ class Claim(Model):
 
         If `like` is true, comparisons are made with `LIKE` instead of `=`.
         """
+        if data_type == "date":
+            # In dates, we use question marks to represent an unknown part. Since
+            # we're going to make a LIKE query, we can replace them with
+            # underscores and it should just work
+            value = value.replace("?", "_")
         cur = db.conn.cursor()
         conditions = [
             "v.data_type = ?",

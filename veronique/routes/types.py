@@ -27,11 +27,6 @@ async def claims_with_value(request, data_type: str, value: str):
     page_no = int(request.args.get("page", 1))
     claims = []
     more_results = False
-    if data_type == "date":
-        # In dates, we use question marks to represent an unknown part. Since
-        # we're going to make a LIKE query, we can replace them with
-        # underscores and it should just work
-        value = value.replace("?", "_")
     for i, claim in enumerate(
         O.Claim.all_with_value(
             data_type,
