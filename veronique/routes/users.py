@@ -271,7 +271,7 @@ async def view_user(request, user_id: int):
             continue
     return user.name, H.article(
         H.header(
-            H.h3(user.html("heading")),
+            H.h3(H.a("Users", href="/users"), " &gt; ", user.html("heading")),
             user.html("hamburger"),
         ),
         H.table(
