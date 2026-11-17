@@ -1576,8 +1576,8 @@ class Query(Model):
         self.label = label
 
     def html(self, fmt=None):
-        if fmt == "heading":
-            return H.h2(self.label)
+        if fmt == "label":
+            return self.label
         elif fmt == "hamburger":
             parts = []
             if context.user.is_admin:

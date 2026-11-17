@@ -226,7 +226,11 @@ async def view_query(request, query_id: int):
         qpath = request.url.removeprefix("https://").removeprefix("http://")
     return query.label, H.article(
         H.header(
-            query.html("heading"),
+            H.h2(
+                H.a("Queries", href="/queries"),
+                " &gt; ",
+                query.html("label"),
+            ),
             query.html("hamburger"),
             form_elements,
         ),
