@@ -4,7 +4,7 @@ from sanic import Blueprint, HTTPResponse, json
 
 import veronique.objects as O
 from veronique import db
-from veronique.components import hamburger, header
+from veronique.components import header
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.html import H
@@ -283,7 +283,7 @@ async def view_query_map(request, query_id: int, col: str):
         (db.LATLON,),
     ).fetchall()]
     return f"{query.label} [M]", H.article(
-        H.header(H.h2(query.html("handle"), query.label, "\N{RIGHTWARDS ARROW}", col)),
+        header(query.html("handle"), query.label, "\N{RIGHTWARDS ARROW}", col),
         map_widget(claims),
     )
 

@@ -4,7 +4,7 @@ from math import log
 from sanic import Blueprint, HTTPResponse, raw, redirect
 
 import veronique.objects as O
-from veronique.components import hamburger, header, submit_button_with_classification
+from veronique.components import header, submit_button_with_classification
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import AVATAR, COMMENT, IS_A, LATLON, ROOT
@@ -35,7 +35,7 @@ async def new_entity_form(request):
             )
     name = args.get("name", "")
     return "New entity", H.article(
-        H.header(H.h2("New entity")),
+        header("New entity"),
         H.form(
             H.input(name="name", placeholder="name", value=name),
             H.select(
@@ -317,9 +317,7 @@ async def view_map(request):
     claims = list(O.Claim.all(verb_id=LATLON, page_size=9999))
 
     return H.article(
-        H.header(
-            H.h2("Map"),
-        ),
+        header("Map"),
         map_widget(claims),
     )
 
