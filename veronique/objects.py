@@ -9,6 +9,7 @@ from itertools import combinations, count
 from urllib.parse import quote_plus
 
 from veronique import db
+from veronique.components import triple
 from veronique.constants import (
     CLAIM_DATA_CACHE_TIME,
     CLASSIFICATION_LEVELS,
@@ -945,42 +946,10 @@ class Claim(Model):
                 data["has_claims"] = True
         return data
 
-    def _get_source(self, data):
-        if SOURCE not in data:
-            return "", ""
-        src_id = f"--source-{self.id}"
-        sources = []
-        for source in data[SOURCE]:
-            if sources:
-                sources.append(H.br())
-            sources.append(H(
-                source.html("handle"),
-                " ",
-                source.object.html(),
-            ))
-        return H.button(
-            "\N{SPEECH BALLOON}",
-            cls="source-button",
-            command="toggle-popover",
-            commandfor=f"source-{self.id}",
-            interestfor=f"source-{self.id}",
-            style=f"anchor-name: {src_id};",
-        ), H.div(
-            *sources,
-            id=f"source-{self.id}",
-            popover="hint",
-            cls="inline-source",
-            style=f"position-anchor: {src_id};",
-        )
-
     def _get_remarks(self, data):
         remarks = []
         css_classes = set()
         validity = self._is_valid(data)
-        if validity is False:
-            css_classes.add("invalid")
-        elif validity is None:
-            css_classes.add("invalid invalid-maybe")
 
         for valid_from in data.get(VALID_FROM, []):
             remarks.append(f"from {valid_from.object}")
@@ -988,11 +957,7 @@ class Claim(Model):
             remarks.append(f"until {valid_until.object}")
         remarks.sort(key=lambda s: s.split()[-1])
 
-        if remarks:
-            remarks = {"data_tooltip": ", ".join(remarks)}
-        else:
-            remarks = {}
-        return f" {' '.join(css_classes)}" if css_classes else "", remarks
+        return validity, remarks
 
     def _is_valid(self, data):
         today = date.today()
@@ -1041,8 +1006,7 @@ class Claim(Model):
         if not context.user.cleared_for(self):
             return None
         data = self.get_data()
-        css_classes, remarks = self._get_remarks(data)
-        source_button, source_popover = self._get_source(data)
+        valid, remarks = self._get_remarks(data)
         if fmt == "label":
             if self.is_entity and not context.user.redact:
                 return H(escape(self.object.value))
@@ -1054,8 +1018,8 @@ class Claim(Model):
                     self.html("classification-marker"),
                     self.html("avatarsmall"),
                     escape(self.object.value),
-                    **remarks,
-                    cls=f"claim-link{css_classes}",
+                    data_tooltip=remarks or None,
+                    cls=["claim-link", "invalid" if not valid else None],
                     href=self.url(),
                 )
             elif self.is_entity:
@@ -1068,30 +1032,21 @@ class Claim(Model):
                     href=self.url(),
                 )
             elif fmt == "nested":
-                return H.span(
-                    self.html("handle"),
-                    self.subject.html("nested"),
-                    " ",
-                    self.verb.html("nested"),
-                    " ",
-                    self.object.html("nested"),
-                    cls=f"svo nested{css_classes}",
-                    **remarks,
+                return triple(
+                    self,
+                    subject=True,
+                    object=True,
+                    sources=data.get(SOURCE),
+                    tooltip=remarks,
+                    nested=True,
                 )
             else:
-                return H(
-                    H.span(
-                        self.html("handle"),
-                        self.subject.html("nested"),
-                        " ",
-                        self.verb.html("nested"),
-                        " ",
-                        self.object.html("nested"),
-                        source_button,
-                        cls=f"svo{css_classes}",
-                        **remarks,
-                    ),
-                    source_popover,
+                return triple(
+                    self,
+                    subject=True,
+                    object=True,
+                    sources=data.get(SOURCE),
+                    tooltip=remarks,
                 )
         elif fmt == "input-widget-ref":
             if self.is_entity and not context.user.redact:
@@ -1157,43 +1112,26 @@ class Claim(Model):
             subj_id = int(fmt[3:])
             # Handle undirected links properly (always display the _other_ claim)
             if self.subject.id == subj_id:
-                return H(
-                    H.span(
-                        self.html("handle"),
-                        self.verb.html(),
-                        " ",
-                        self.object.html(),
-                        source_button,
-                        **remarks,
-                        cls=f"vo{css_classes}",
-                    ),
-                    source_popover,
+                return triple(
+                    self,
+                    object=True,
+                    sources=data.get(SOURCE),
+                    tooltip=remarks,
+                    valid=valid,
                 )
             else:
-                return H(
-                    H.span(
-                        self.html("handle"),
-                        self.verb.html(),
-                        " ",
-                        self.subject.html(),
-                        source_button,
-                        **remarks,
-                        cls=f"vo{css_classes}",
-                    ),
-                    source_popover,
+                return triple(
+                    self,
+                    subject=True,
+                    sources=data.get(SOURCE),
+                    tooltip=remarks,
                 )
         elif fmt == "sv":
-            return H(
-                H.span(
-                    self.html("handle"),
-                    self.subject.html(),
-                    " ",
-                    self.verb.html(),
-                    source_button,
-                    **remarks,
-                    cls=f"sv{css_classes}",
-                ),
-                source_popover,
+            return triple(
+                self,
+                subject=True,
+                sources=data.get(SOURCE),
+                tooltip=remarks,
             )
         elif fmt == "classification-marker":
             if self.classification <= 0:
@@ -2049,7 +1987,4 @@ class InferredClaim:
         return {}
 
     def _get_remarks(self, data):
-        return "", {}
-
-    def _get_source(self, data):
-        return "", ""
+        return True, []

@@ -1,3 +1,4 @@
+import random
 from veronique.constants import CLASSIFICATION_LEVELS
 from veronique.html import H
 
@@ -40,4 +41,61 @@ def hamburger(entries):
             dir="rtl",
         ),
         cls="dropdown hamburger",
+    )
+
+
+def triple(claim, *, subject=False, object=False, sources=None, tooltip=None, valid=True, nested=False):
+    if subject and object:
+        css_classes = ["svo"]
+    elif subject:
+        css_classes = ["sv"]
+    elif object:
+        css_classes = ["vo"]
+    if not valid:
+        css_classes.append("invalid")
+    if valid is None:
+        css_classes.append("invalid-maybe")
+    if nested:
+        css_classes.append("nested")
+    return H(
+        H.span(
+            claim.html("handle"),
+            claim.subject.html("nested") if subject else None,
+            " ",
+            claim.verb.html("nested"),
+            " ",
+            claim.object.html("nested") if object else None,
+            popover_menu(
+                "\N{SPEECH BALLOON}",
+                H(*(H.div(H(
+                    source.html("handle"),
+                    " ",
+                    source.object.html(),
+                )) for source in sources))
+            ) if sources else None,
+            cls=css_classes,
+            data_tooltip=tooltip or None,
+        ),
+    )
+
+
+def popover_menu(label, content):
+    id = random.randint(1, 1000)
+    src_id = f"--popover-{id}"
+    return H(
+        H.button(
+            label,
+            cls="popover-button",
+            command="toggle-popover",
+            commandfor=f"popover-{id}",
+            interestfor=f"popover-{id}",
+            style=f"anchor-name: {src_id};",
+        ),
+        H.div(
+            content,
+            id=f"popover-{id}",
+            popover="hint",
+            cls="inline-popover",
+            style=f"position-anchor: {src_id};",
+        )
     )
