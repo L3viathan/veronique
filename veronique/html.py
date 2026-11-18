@@ -20,6 +20,12 @@ class Tag:
         if self.tag is not None:
             yield f"<{self.tag}"
             for attribute, value in self.attributes.items():
+                if isinstance(value, list):
+                    # this exists such that you can do cls=["class-one", "class-two"]
+                    value = " ".join(v for v in value if v is not None)
+                    if not value:
+                        continue
+
                 if isinstance(value, bool):
                     if value:
                         yield f" {attribute}"

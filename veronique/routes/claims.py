@@ -393,6 +393,7 @@ async def view_claim(request, claim_id: int):
             subsubtitle=claim.html("latlon"),
             avatar=claim.html("avatar") if claim.is_entity else None,
             hamburger_menu=claim.hamburger_items(),
+            center=True,
         ),
         claim.html("classification-ribbon"),
         H.div("", id="edit-area"),
