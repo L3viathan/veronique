@@ -252,6 +252,8 @@ class Verb(Model):
                 str(self.data_type),
                 cls="verb",
             )
+        elif fmt == "label":
+            return self.name
         elif fmt == "hamburger":
             parts = []
             if context.user.is_admin:
@@ -284,8 +286,6 @@ class Verb(Model):
                 )
             else:
                 return None
-        elif fmt == "heading":
-            return H.h2(self.name)
         elif fmt == "detail":
             return self.data_type.detail_for(self)
         elif fmt == "edit":

@@ -128,7 +128,11 @@ async def view_verb(request, verb_id: int):
             claims.append(H.span(str(claim), cls="row"))
     return verb.label, H.article(
         H.header(
-            verb.html("heading"),
+            H.h2(
+                H.a("Verbs", href="/verbs"),
+                " &gt; ",
+                verb.html("label"),
+            ),
             verb.html("hamburger"),
             verb.html("description"),
             verb.html("detail"),
