@@ -1,6 +1,7 @@
 from sanic import Blueprint, redirect
 
 import veronique.objects as O
+from veronique.components import header
 from veronique.constants import CLASSIFICATION_LEVELS
 from veronique.context import context
 from veronique.data_types import TYPES
@@ -51,7 +52,7 @@ async def list_verbs(request):
 @page
 async def new_verb_form(request):
     return "New verb", H.article(
-        H.header(H.h2("New verb")),
+        header("New verb"),
         H.form(
             H.input(name="label", placeholder="label"),
             H.textarea("", name="description", placeholder="description"),
@@ -127,15 +128,17 @@ async def view_verb(request, verb_id: int):
         else:
             claims.append(H.span(str(claim), cls="row"))
     return verb.label, H.article(
-        H.header(
-            H.h2(
+        header(
+            H(
                 H.a("Verbs", href="/verbs"),
                 " &gt; ",
                 verb.html("label"),
             ),
-            verb.html("hamburger"),
-            verb.html("description"),
-            verb.html("detail"),
+            hamburger_menu=verb.hamburger_items(),
+            extra=H(
+                verb.html("description"),
+                verb.html("detail"),
+            ),
         ),
         H.div("", id="edit-area"),
         *claims,

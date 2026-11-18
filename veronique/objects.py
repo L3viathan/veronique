@@ -254,38 +254,6 @@ class Verb(Model):
             )
         elif fmt == "label":
             return self.name
-        elif fmt == "hamburger":
-            parts = []
-            if context.user.is_admin:
-                parts.append(H.li(
-                    H.a(
-                        H.i("\N{LOWER RIGHT PENCIL}"),
-                        " Edit",
-                        hx_target="#edit-area",
-                        hx_get=self.url("edit"),
-                    ),
-                ))
-                if self.deletable:
-                    parts.append(H.li(
-                        H.a(
-                            H.i("\N{WASTEBASKET}\ufe0e"),
-                            " Delete",
-                            hx_target="#edit-area",
-                            hx_delete=self.url(),
-                            hx_confirm="Are you sure you want to delete this verb?",
-                        )
-                    ))
-            if parts:
-                return H.details(
-                    H.summary("\N{TRIGRAM FOR HEAVEN}"),
-                    H.ul(
-                        *parts,
-                        dir="rtl",
-                    ),
-                    cls="dropdown hamburger",
-                )
-            else:
-                return None
         elif fmt == "detail":
             return self.data_type.detail_for(self)
         elif fmt == "edit":
@@ -300,6 +268,23 @@ class Verb(Model):
                 cls="clickable verb",
                 href=self.url(),
             )
+
+    def hamburger_items(self):
+        if context.user.is_admin:
+            yield H.a(
+                    H.i("\N{LOWER RIGHT PENCIL}"),
+                    " Edit",
+                    hx_target="#edit-area",
+                    hx_get=self.url("edit"),
+            )
+            if self.deletable:
+                yield H.a(
+                    H.i("\N{WASTEBASKET}\ufe0e"),
+                    " Delete",
+                    hx_target="#edit-area",
+                    hx_delete=self.url(),
+                    hx_confirm="Are you sure you want to delete this verb?",
+                )
 
     def edit(self, form):
         description = form.pop("description", "")
@@ -1277,133 +1262,83 @@ class Claim(Model):
                     H.i("\N{LOWER RIGHT PENCIL}"),
                     disabled=True,
                 )
-        elif fmt == "hamburger":
-            parts = []
-            if self.verb.id == ROOT:
-                parts.append(H.li(self.html("rename")))
-                parts.append(H.li(H.a("Network ", H.i("\N{SPIDER WEB}\ufe0e"), href=self.url("network"))))
-            if not self.is_entity:
-                if context.user.is_admin or self.owner.id == context.user.id:
-                    parts.append(
-                        H.li(
-                            H.a(
-                                "Edit subject ",
-                                H.i("\N{RIGHTWARDS ARROW}"),
-                                hx_target="#edit-area",
-                                hx_get=self.url("move"),
-                            ),
-                        )
-                    )
-                    parts.append(
-                        H.li(
-                            H.a(
-                                "Edit verb ",
-                                H.i("\N{RIGHTWARDS ARROW}"),
-                                hx_target="#edit-area",
-                                hx_get=self.url("reverb"),
-                            ),
-                        )
-                    )
-                    parts.append(
-                        H.li(
-                            H.a(
-                                "Edit object ",
-                                H.i("\N{LOWER RIGHT PENCIL}"),
-                                hx_target="#edit-area",
-                                hx_get=self.url("edit"),
-                            ),
-                        )
-                    )
-                if context.user.can("write", "verb", SOURCE):
-                    parts.append(
-                        H.li(
-                            H.a(
-                                "Source ",
-                                H.i("\N{SPEECH BALLOON}\ufe0e"),
-                                hx_target="#edit-area",
-                                hx_get=f"/claims/new/verb?verb={SOURCE}&claim_ids={self.id}&direction=outgoing&standalone=1",
-                            ),
-                        )
-                    )
-                if context.user.can("write", "verb", VALID_FROM):
-                    parts.append(
-                        H.li(
-                            H.a(
-                                "Valid from ",
-                                H.i("\N{LEFTWARDS ARROW TO BAR}"),
-                                hx_target="#edit-area",
-                                hx_get=f"/claims/new/verb?verb={VALID_FROM}&claim_ids={self.id}&direction=outgoing&standalone=1",
-                            ),
-                        )
-                    )
-                if context.user.can("write", "verb", VALID_UNTIL):
-                    parts.append(
-                        H.li(
-                            H.a(
-                                "Valid until ",
-                                H.i("\N{RIGHTWARDS ARROW TO BAR}"),
-                                hx_target="#edit-area",
-                                hx_get=f"/claims/new/verb?verb={VALID_UNTIL}&claim_ids={self.id}&direction=outgoing&standalone=1",
-                            ),
-                        )
-                    )
-            else:
-                if context.user.can("write", "verb", AVATAR):
-                    parts.append(
-                        H.li(
-                            H.a(
-                                "Set avatar ",
-                                H.i("\N{FRAME WITH PICTURE}\ufe0e"),
-                                hx_target="#edit-area",
-                                hx_get=f"/claims/new/verb?verb={AVATAR}&claim_ids={self.id}&direction=outgoing&standalone=1",
-                            ),
-                        )
-                    )
-                if context.user.can("write", "verb", LATLON):
-                    parts.append(
-                        H.li(
-                            H.a(
-                                "Set location ",
-                                H.i("\N{PUSHPIN}\ufe0e"),
-                                hx_target="#edit-area",
-                                hx_get=f"/claims/new/verb?verb={LATLON}&claim_ids={self.id}&direction=outgoing&standalone=1",
-                            ),
-                        )
-                    )
-            if context.user.is_admin:  # TODO: not just admin
-                parts.append(
-                    H.li(
-                        H.a(
-                            "Classify ",
-                            H.i("\N{LOCK}\ufe0e"),
-                            hx_target="#edit-area",
-                            hx_get=self.url("classify"),
-                        ),
-                    )
-                )
-            if (context.user.is_admin or self.owner.id == context.user.id) and self.deletable:
-                parts.append(
-                    H.li(
-                        H.a(
-                            "Delete ",
-                            H.i("\N{WASTEBASKET}\ufe0e"),
-                            hx_target="#edit-area",
-                            hx_delete=self.url(),
-                            hx_confirm="Are you sure you want to delete this claim?",
-                        ),
-                    )
-                )
-            if not parts:
-                return None
-            return H.details(
-                H.summary("\N{TRIGRAM FOR HEAVEN}"),
-                H.ul(
-                    *parts,
-                    dir="rtl",
-                ),
-                cls="dropdown hamburger",
-            )
         return f"TODO: {fmt!r}"
+
+    def hamburger_items(self):
+        if self.verb.id == ROOT:
+            yield self.html("rename")
+            yield H.a("Network ", H.i("\N{SPIDER WEB}\ufe0e"), href=self.url("network"))
+        if not self.is_entity:
+            if context.user.is_admin or self.owner.id == context.user.id:
+                yield H.a(
+                    "Edit subject ",
+                    H.i("\N{RIGHTWARDS ARROW}"),
+                    hx_target="#edit-area",
+                    hx_get=self.url("move"),
+                )
+                yield H.a(
+                    "Edit verb ",
+                    H.i("\N{RIGHTWARDS ARROW}"),
+                    hx_target="#edit-area",
+                    hx_get=self.url("reverb"),
+                )
+                yield H.a(
+                    "Edit object ",
+                    H.i("\N{LOWER RIGHT PENCIL}"),
+                    hx_target="#edit-area",
+                    hx_get=self.url("edit"),
+                )
+            if context.user.can("write", "verb", SOURCE):
+                yield H.a(
+                    "Source ",
+                    H.i("\N{SPEECH BALLOON}\ufe0e"),
+                    hx_target="#edit-area",
+                    hx_get=f"/claims/new/verb?verb={SOURCE}&claim_ids={self.id}&direction=outgoing&standalone=1",
+                )
+            if context.user.can("write", "verb", VALID_FROM):
+                yield H.a(
+                    "Valid from ",
+                    H.i("\N{LEFTWARDS ARROW TO BAR}"),
+                    hx_target="#edit-area",
+                    hx_get=f"/claims/new/verb?verb={VALID_FROM}&claim_ids={self.id}&direction=outgoing&standalone=1",
+                )
+            if context.user.can("write", "verb", VALID_UNTIL):
+                yield H.a(
+                    "Valid until ",
+                    H.i("\N{RIGHTWARDS ARROW TO BAR}"),
+                    hx_target="#edit-area",
+                    hx_get=f"/claims/new/verb?verb={VALID_UNTIL}&claim_ids={self.id}&direction=outgoing&standalone=1",
+                )
+        else:
+            if context.user.can("write", "verb", AVATAR):
+                yield H.a(
+                    "Set avatar ",
+                    H.i("\N{FRAME WITH PICTURE}\ufe0e"),
+                    hx_target="#edit-area",
+                    hx_get=f"/claims/new/verb?verb={AVATAR}&claim_ids={self.id}&direction=outgoing&standalone=1",
+                )
+            if context.user.can("write", "verb", LATLON):
+                yield H.a(
+                    "Set location ",
+                    H.i("\N{PUSHPIN}\ufe0e"),
+                    hx_target="#edit-area",
+                    hx_get=f"/claims/new/verb?verb={LATLON}&claim_ids={self.id}&direction=outgoing&standalone=1",
+                )
+        if context.user.is_admin:  # TODO: not just admin
+            yield H.a(
+                "Classify ",
+                H.i("\N{LOCK}\ufe0e"),
+                hx_target="#edit-area",
+                hx_get=self.url("classify"),
+            )
+        if (context.user.is_admin or self.owner.id == context.user.id) and self.deletable:
+            yield H.a(
+                "Delete ",
+                H.i("\N{WASTEBASKET}\ufe0e"),
+                hx_target="#edit-area",
+                hx_delete=self.url(),
+                hx_confirm="Are you sure you want to delete this claim?",
+            )
 
     @property
     def deletable(self):
@@ -1563,30 +1498,6 @@ class Query(Model):
     def html(self, fmt=None):
         if fmt == "label":
             return self.label
-        elif fmt == "hamburger":
-            parts = []
-            if context.user.is_admin:
-                parts.append(
-                    H.li(H.a(H.i("\N{LOWER RIGHT PENCIL}"), " Edit", href=self.url("edit")))
-                )
-                parts.append(
-                    H.li(H.a(
-                        H.i("\N{ERASE TO THE LEFT}"),
-                        " Delete",
-                        hx_delete=self.url(),
-                        hx_confirm="Are you sure you want to delete this query?",
-                        cls="danger",
-                    ))
-                )
-            if parts:
-                return H.details(
-                    H.summary("\N{TRIGRAM FOR HEAVEN}"),
-                    H.ul(
-                        *parts,
-                        dir="rtl",
-                    ),
-                    cls="dropdown hamburger",
-                )
         elif fmt == "handle":
             return H.a(
                 HANDLE,
@@ -1604,6 +1515,17 @@ class Query(Model):
                 hx_swap="outerMorph",
             )
         return None
+
+    def hamburger_items(self):
+        if context.user.is_admin:
+            yield H.a(H.i("\N{LOWER RIGHT PENCIL}"), " Edit", href=self.url("edit"))
+            yield H.a(
+                H.i("\N{ERASE TO THE LEFT}"),
+                " Delete",
+                hx_delete=self.url(),
+                hx_confirm="Are you sure you want to delete this query?",
+                cls="danger",
+            )
 
     def run(self, bindings, *, page_no, page_size):
         cur = db.conn.cursor()
@@ -1901,29 +1823,6 @@ class User(Model):
                     delta = f"{delta} (expired)"
                 return H(f"last refreshed {diff}")
             return str(type(self.last_session_at).__name__) + str(self.last_session_at)
-        elif fmt == "hamburger":
-            return H.details(
-                H.summary("\N{TRIGRAM FOR HEAVEN}"),
-                H.ul(
-                    H.li(
-                        H.a(
-                            H.i("\N{LOWER RIGHT PENCIL}"),
-                            " Edit",
-                            href=self.url("edit"),
-                        ),
-                    ),
-                    H.li(
-                        H.a(
-                            H.i("\N{WASTEBASKET}\ufe0e"),
-                            " Delete",
-                            cls="danger",
-                            disabled=True,
-                        ),
-                    ),
-                    dir="rtl",
-                ),
-                cls="dropdown hamburger",
-            )
         elif fmt == "label":
             if self.entity:
                 return self.entity.html("label")
@@ -1931,6 +1830,19 @@ class User(Model):
         if self.entity:
             return self.entity.html()
         return H(self.name)
+
+    def hamburger_items(self):
+        yield H.a(
+            H.i("\N{LOWER RIGHT PENCIL}"),
+            " Edit",
+            href=self.url("edit"),
+        )
+        yield H.a(
+            H.i("\N{WASTEBASKET}\ufe0e"),
+            " Delete",
+            cls="danger",
+            disabled=True,
+        )
 
     def __str__(self):
         tags = self.html()

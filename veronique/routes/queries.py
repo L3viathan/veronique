@@ -4,6 +4,7 @@ from sanic import Blueprint, HTTPResponse, json
 
 import veronique.objects as O
 from veronique import db
+from veronique.components import hamburger, header
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.html import H
@@ -225,14 +226,14 @@ async def view_query(request, query_id: int):
     else:
         qpath = request.url.removeprefix("https://").removeprefix("http://")
     return query.label, H.article(
-        H.header(
-            H.h2(
+        header(
+            H(
                 H.a("Queries", href="/queries"),
                 " &gt; ",
                 query.html("label"),
             ),
-            query.html("hamburger"),
-            form_elements,
+            hamburger_menu=query.hamburger_items(),
+            extra=form_elements,
         ),
         H.div(
             results,

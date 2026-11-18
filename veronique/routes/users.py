@@ -4,6 +4,7 @@ from sanic import Blueprint, html, redirect
 
 import veronique.objects as O
 from veronique.autocomplete import Tags, widget
+from veronique.components import header
 from veronique.constants import CLASSIFICATION_LEVELS
 from veronique.context import context
 from veronique.data_types import TYPES
@@ -45,7 +46,7 @@ async def list_users(request):
                 ),
             )
     return "Users", H.article(
-        H.header(H.h3("Users")),
+        header("Users"),
         H.table(
             H.thead(
                 H.tr(
@@ -270,9 +271,9 @@ async def view_user(request, user_id: int):
         except ValueError:
             continue
     return user.name, H.article(
-        H.header(
-            H.h3(H.a("Users", href="/users"), " &gt; ", user.html("heading")),
-            user.html("hamburger"),
+        header(
+            H(H.a("Users", href="/users"), " &gt; ", user.html()),
+            hamburger_menu=user.hamburger_items(),
         ),
         H.table(
             H.tr(H.th("Session", scope="row"), H.td(user.html("session"))),

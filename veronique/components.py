@@ -17,7 +17,8 @@ def submit_button_with_classification(selected_level=0):
     )
 
 
-def header(title, subtitle=None, subsubtitle=None, hamburger=None, avatar=None):
+def header(title, subtitle=None, subsubtitle=None, hamburger_menu=(), avatar=None, extra=None):
+    hamburger_menu = list(hamburger_menu)
     return H.header(
         H.h2(
             title,
@@ -25,5 +26,17 @@ def header(title, subtitle=None, subsubtitle=None, hamburger=None, avatar=None):
             H(H.br(), H.small(subsubtitle)) if subsubtitle else None,
         ),
         avatar,
-        hamburger,
+        hamburger(hamburger_menu) if hamburger_menu else None,
+        extra,
+    )
+
+
+def hamburger(entries):
+    return H.details(
+        H.summary("\N{TRIGRAM FOR HEAVEN}"),
+        H.ul(
+            *(H.li(entry) for entry in entries),
+            dir="rtl",
+        ),
+        cls="dropdown hamburger",
     )
