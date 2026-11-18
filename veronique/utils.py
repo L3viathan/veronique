@@ -61,32 +61,9 @@ def D(multival_dict):
 
 
 def mobile(mob, nomob):
-    return f"""<span class="mobile-only">{mob}</span><span class="no-mobile">{nomob}</span>"""
-
-
-def pagination(url, page_no, *, more_results=True, allow_negative=False):
-    if page_no == 1 and not more_results:
-        return ""
-    q = "&" if "?" in url else "?"
-    if "page=" in url or "page=" in url:
-        url_template = re.sub(r"page=\d+", "page={}", url)
-    else:
-        url_template = f"{url}{q}page={{}}"
-    return H.footer(
-        H.a(
-            "&lt;",
-            role="button",
-            cls="prev",
-            href=url_template.format(page_no - 1),
-            disabled=page_no==1 and not allow_negative,
-        ),
-        H.a(
-            "&gt;",
-            role="button",
-            cls="next",
-            href=url_template.format(page_no + 1),
-            disabled=not more_results,
-        ),
+    return H(
+        H.span(mob, cls="mobile-only"),
+        H.span(nomob, cls="no-mobile"),
     )
 
 

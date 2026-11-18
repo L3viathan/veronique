@@ -4,7 +4,7 @@ from math import log
 from sanic import Blueprint, HTTPResponse, raw, redirect
 
 import veronique.objects as O
-from veronique.components import header, submit_button_with_classification, popover_menu
+from veronique.components import header, pagination, popover_menu, submit_button_with_classification
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import AVATAR, COMMENT, IS_A, LATLON, ROOT
@@ -12,7 +12,7 @@ from veronique.html import H
 from veronique.map import map_widget
 from veronique.network import network_widget
 from veronique.settings import settings as S
-from veronique.utils import D, cache_pls_headers, fragment, page, pagination, require
+from veronique.utils import D, cache_pls_headers, fragment, page, require
 
 claims = Blueprint("claims", url_prefix="/claims")
 

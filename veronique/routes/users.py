@@ -4,14 +4,14 @@ from sanic import Blueprint, html, redirect
 
 import veronique.objects as O
 from veronique.autocomplete import Tags, widget
-from veronique.components import header
+from veronique.components import header, pagination
 from veronique.constants import CLASSIFICATION_LEVELS
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import IS_A, ROOT
 from veronique.html import H, join
 from veronique.settings import settings as S
-from veronique.utils import admin_only, page, pagination
+from veronique.utils import admin_only, page
 
 users = Blueprint("users", url_prefix="/users")
 

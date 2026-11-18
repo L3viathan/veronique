@@ -1,14 +1,14 @@
 from sanic import Blueprint, redirect
 
 import veronique.objects as O
-from veronique.components import header
+from veronique.components import header, pagination
 from veronique.constants import CLASSIFICATION_LEVELS
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import ROOT
 from veronique.html import H
 from veronique.settings import settings as S
-from veronique.utils import D, admin_only, fragment, page, pagination, require
+from veronique.utils import D, admin_only, fragment, page, require
 
 verbs = Blueprint("verbs", url_prefix="/verbs")
 

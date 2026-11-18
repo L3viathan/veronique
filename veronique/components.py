@@ -99,3 +99,29 @@ def popover_menu(label, content):
             style=f"position-anchor: {src_id};",
         )
     )
+
+
+def pagination(url, page_no, *, more_results=True, allow_negative=False):
+    if page_no == 1 and not more_results:
+        return ""
+    q = "&" if "?" in url else "?"
+    if "page=" in url or "page=" in url:
+        url_template = re.sub(r"page=\d+", "page={}", url)
+    else:
+        url_template = f"{url}{q}page={{}}"
+    return H.footer(
+        H.a(
+            "&lt;",
+            role="button",
+            cls="prev",
+            href=url_template.format(page_no - 1),
+            disabled=page_no==1 and not allow_negative,
+        ),
+        H.a(
+            "&gt;",
+            role="button",
+            cls="next",
+            href=url_template.format(page_no + 1),
+            disabled=not more_results,
+        ),
+    )

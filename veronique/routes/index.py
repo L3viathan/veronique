@@ -7,12 +7,13 @@ from sanic import Blueprint
 from sanic.response import file_stream
 
 import veronique.objects as O
+from veronique.components import pagination
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import COMMENT, ROOT
 from veronique.html import H
 from veronique.settings import settings as S
-from veronique.utils import _notice, cache_pls_headers, page, pagination
+from veronique.utils import _notice, cache_pls_headers, page
 
 index = Blueprint("index")
 

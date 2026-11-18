@@ -3,10 +3,11 @@ import urllib.parse
 from sanic import Blueprint
 
 import veronique.objects as O
+from veronique.components import pagination
 from veronique.data_types import TYPES
 from veronique.html import H
 from veronique.settings import settings as S
-from veronique.utils import page, pagination, require
+from veronique.utils import page, require
 
 types = Blueprint("types", url_prefix="/types")
 

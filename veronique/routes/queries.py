@@ -4,14 +4,14 @@ from sanic import Blueprint, HTTPResponse, json
 
 import veronique.objects as O
 from veronique import db
-from veronique.components import header
+from veronique.components import header, pagination
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.html import H
 from veronique.map import map_widget
 from veronique.network import network_widget
 from veronique.settings import settings as S
-from veronique.utils import D, admin_only, fragment, page, pagination, require
+from veronique.utils import D, admin_only, fragment, page, require
 
 queries = Blueprint("queries", url_prefix="/queries")
 
