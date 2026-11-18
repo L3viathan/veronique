@@ -4,7 +4,7 @@ from math import log
 from sanic import Blueprint, HTTPResponse, raw, redirect
 
 import veronique.objects as O
-from veronique.constants import CLASSIFICATION_LEVELS
+from veronique.components import header, submit_button_with_classification
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import AVATAR, COMMENT, IS_A, LATLON, ROOT
@@ -44,18 +44,7 @@ async def new_entity_form(request):
                 name="category",
             ),
             connect_info,
-            H.fieldset(
-                H.select(
-                    *(
-                        H.option(level, value=str(i), selected=i==0)
-                        for i, level in enumerate(CLASSIFICATION_LEVELS)
-                    ),
-                    name="level",
-                ),
-                H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
-                role="group",
-                cls="split-button",
-            ),
+            submit_button_with_classification(),
             action="/claims/new-entity",
             method="POST",
         ),
@@ -129,18 +118,7 @@ async def new_claim_form_verb_input(request):
                 direction=args.get("direction"),
                 verb_id=verb.id,
             ),
-            H.fieldset(
-                H.select(
-                    *(
-                        H.option(level, value=str(i), selected=i==verb.default_classification)
-                        for i, level in enumerate(CLASSIFICATION_LEVELS)
-                    ),
-                    name="level",
-                ),
-                H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
-                role="group",
-                cls="split-button",
-            ),
+            submit_button_with_classification(selected_level=verb.default_classification),
             action=f'/claims/new/{args.get("claim_ids")}/{args.get("direction")}',
             method="POST",
             enctype="multipart/form-data",
@@ -152,18 +130,7 @@ async def new_claim_form_verb_input(request):
                 direction=args.get("direction"),
                 verb_id=verb.id,
             ),
-            H.fieldset(
-                H.select(
-                    *(
-                        H.option(level, value=str(i), selected=i==verb.default_classification)
-                        for i, level in enumerate(CLASSIFICATION_LEVELS)
-                    ),
-                    name="level",
-                ),
-                H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
-                role="group",
-                cls="split-button",
-            ),
+            submit_button_with_classification(selected_level=verb.default_classification),
         )
 
 
@@ -373,10 +340,12 @@ async def view_claim_network(request, claim_id: int):
         claims.append(claim)
         colormap[claim.id] = depth
     return source_claim.html("label"), H.article(
-        H.header(
-            source_claim.html("handle"),
-            source_claim.html("heading"),
-            H.div(
+        header(
+            H(
+                source_claim.html("handle"),
+                source_claim.html("label"),
+            ),
+            subtitle=H.div(
                 H.a("-", href=source_claim.url(f"network?depth={max_depth - 1}"), role="button", disabled=max_depth <= 1),
                 f" depth: {max_depth} ",
                 H.a("+", href=source_claim.url(f"network?depth={max_depth + 1}"), role="button"),
@@ -420,10 +389,12 @@ async def view_claim(request, claim_id: int):
     else:
         more_results = False
     return claim.html("label"), H.article(
-        H.header(
-            claim.html("heading"),
-            claim.html("avatar") if claim.is_entity else None,
-            claim.html("hamburger"),
+        header(
+            claim.html("label") if claim.is_entity else claim.html(),
+            subtitle=claim.html("cats") if claim.is_entity else None,
+            subsubtitle=claim.html("latlon"),
+            avatar=claim.html("avatar") if claim.is_entity else None,
+            hamburger=claim.html("hamburger"),
         ),
         claim.html("classification-ribbon"),
         H.div("", id="edit-area"),
@@ -527,16 +498,8 @@ async def view_claim_avatar(request, claim_id: int):
 async def classify_claim_form(request, claim_id: int):
     claim = O.Claim(claim_id)
     require(context.user.is_admin or claim.owner.id == context.user.id)
-    levels = [
-        H.option(level, value=str(i), selected=i==claim.classification)
-        for i, level in enumerate(CLASSIFICATION_LEVELS)
-    ]
     return H.form(
-        H.select(
-            *levels,
-            name="level",
-        ),
-        H.button("\N{RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK}", type="submit"),
+        submit_button_with_classification(selected_level=claim.classification),
         action=claim.url("classify"),
         method="POST",
     )

@@ -1060,7 +1060,7 @@ class Claim(Model):
         source_button, source_popover = self._get_source(data)
         if fmt == "label":
             if self.is_entity and not context.user.redact:
-                return H(self.object.value)
+                return H(escape(self.object.value))
             else:
                 return H(f"Claim #{self.id}")
         elif not fmt or fmt == "nested":
@@ -1124,7 +1124,7 @@ class Claim(Model):
                     data_claim_ref=str(self.id),
                     cls="input-widget-ref",
                 )
-        elif fmt == "heading":
+        elif fmt == "cats":
             if context.user.can("write", "verb", IS_A):
                 new_cat = H.span(
                     ", +",
@@ -1135,55 +1135,40 @@ class Claim(Model):
             else:
                 new_cat = None
             if IS_A in data:
-                cat = H(
+                return H(
+                    "&lt;",
+                    *join(",", (H.span(c.html("handle"), c.object.html()) for c in data[IS_A])),
+                    new_cat,
+                    "&gt;",
+                )
+            else:
+                return H(
+                    "&lt;",
+                    new_cat,
+                    "&gt;",
+                )
+        elif fmt == "latlon":
+            if LATLON in data:
+                return H(
                     H.br(),
-                    H.small(
-                        "&lt;",
-                        *join(",", (H.span(c.html("handle"), c.object.html()) for c in data[IS_A])),
-                        new_cat,
-                        "&gt;",
-                        cls="cats",
+                    *(
+                        H.small(
+                            H.a(
+                                HANDLE,
+                                cls="handle",
+                                href=latlon.url(),
+                            ),
+                            H.a(
+                                "\N{PUSHPIN}",
+                                href=S.location_link_template.format(quote_plus(latlon.object.value)),
+                            ),
+                            cls="latlon",
+                        )
+                        for latlon in data[LATLON]
                     ),
                 )
             else:
-                cat = H(
-                    H.br(),
-                    H.small(
-                        "&lt;",
-                        new_cat,
-                        "&gt;",
-                        cls="cats",
-                    ),
-                )
-            if self.is_entity:
-                if context.user.redact:
-                    text = f"Claim #{self.id}"
-                else:
-                    text = escape(self.object.value)
-                if LATLON in data:
-                    latlons = H(
-                        H.br(),
-                        *(
-                            H.small(
-                                H.a(
-                                    HANDLE,
-                                    cls="handle",
-                                    href=latlon.url(),
-                                ),
-                                H.a(
-                                    "\N{PUSHPIN}",
-                                    href=S.location_link_template.format(quote_plus(latlon.object.value)),
-                                ),
-                                cls="latlon",
-                            )
-                            for latlon in data[LATLON]
-                        ),
-                    )
-                else:
-                    latlons = None
-                return H.h2(self.html("classification-marker"), text, cat, latlons)
-            else:
-                return H.h2(self.html())
+                return None
         elif fmt.startswith("vo:"):
             subj_id = int(fmt[3:])
             # Handle undirected links properly (always display the _other_ claim)
