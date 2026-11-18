@@ -1135,9 +1135,8 @@ class Claim(Model):
         elif fmt == "latlon":
             if LATLON in data:
                 return H(
-                    H.br(),
                     *(
-                        H.small(
+                        H.span(
                             H.a(
                                 HANDLE,
                                 cls="handle",
