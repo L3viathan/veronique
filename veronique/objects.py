@@ -269,7 +269,7 @@ class Verb(Model):
                 cls="clickable verb",
                 href=self.url(),
             )
-        return f"TODO: {fmt}"
+        return H(f"TODO: {type(self).__name__}.{fmt!r}")
 
     def hamburger_items(self):
         if context.user.is_admin:
@@ -1202,7 +1202,7 @@ class Claim(Model):
                     H.i("\N{LOWER RIGHT PENCIL}"),
                     disabled=True,
                 )
-        return f"TODO: {fmt!r}"
+        return H(f"TODO: {type(self).__name__}.{fmt!r}")
 
     def hamburger_items(self):
         if self.verb.id == ROOT:
@@ -1454,7 +1454,7 @@ class Query(Model):
                 hx_target="#container",
                 hx_swap="outerMorph",
             )
-        return f"TODO: {fmt!r}"
+        return H(f"TODO: {type(self).__name__}.{fmt!r}")
 
     def hamburger_items(self):
         if context.user.is_admin:
@@ -1771,7 +1771,7 @@ class User(Model):
             if self.entity:
                 return self.entity.html()
             return H(self.name)
-        return f"TODO: {fmt}"
+        return H(f"TODO: {type(self).__name__}.{fmt!r}")
 
     def hamburger_items(self):
         yield H.a(

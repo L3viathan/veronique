@@ -451,7 +451,7 @@ async def view_claim(request, claim_id: int):
             H.small(
                 f"Created at: {claim.created_at}",
                 f", updated at: {claim.updated_at}" if claim.updated_at != claim.created_at else None,
-                f", by {claim.owner}" if claim.owner else None,
+                H(", by ", claim.owner.html("plain")) if claim.owner else None,
                 cls="dim",
             ),
         ),
