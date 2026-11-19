@@ -1039,6 +1039,7 @@ class Claim(Model):
                     sources=data.get(SOURCE),
                     tooltip=remarks,
                     nested=True,
+                    valid=valid,
                 )
             else:
                 return triple(
@@ -1047,6 +1048,7 @@ class Claim(Model):
                     object=True,
                     sources=data.get(SOURCE),
                     tooltip=remarks,
+                    valid=valid,
                 )
         elif fmt == "input-widget-ref":
             if self.is_entity and not context.user.redact:
@@ -1127,6 +1129,7 @@ class Claim(Model):
                     swap=True,
                     sources=data.get(SOURCE),
                     tooltip=remarks,
+                    valid=valid,
                     abbreviate=False,
                 )
         elif fmt == "sv":
@@ -1135,6 +1138,7 @@ class Claim(Model):
                 subject=True,
                 sources=data.get(SOURCE),
                 tooltip=remarks,
+                valid=valid,
             )
         elif fmt == "classification-marker":
             if self.classification <= 0:
