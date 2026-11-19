@@ -30,13 +30,13 @@ async def perform_search(request):
             more_results = True
         else:
             if hit["table_name"] == "claims":
-                parts.append(O.Claim(hit['id']).html())
+                parts.append(O.Claim(hit['id']).html("link"))
             elif hit["table_name"] == "queries":
                 if context.user.can("read", "query", hit["id"]):
-                    parts.append(O.Query(hit['id']).html())
+                    parts.append(O.Query(hit['id']).html("link"))
             elif hit["table_name"] == "verbs":
                 if context.user.can("read", "verb", hit["id"]):
-                    parts.append(O.Verb(hit['id']).html())
+                    parts.append(O.Verb(hit['id']).html("link"))
             else:
                 parts.append(f"TODO: implement for {hit['table_name']}")
     return H.article(

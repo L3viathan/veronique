@@ -1012,7 +1012,7 @@ class Claim(Model):
                 return H(escape(self.object.value))
             else:
                 return H(f"Claim #{self.id}")
-        elif not fmt or fmt == "nested":
+        elif not fmt or fmt in ("nested", "link"):
             if self.is_entity and not context.user.redact:
                 return H.a(
                     self.html("classification-marker"),

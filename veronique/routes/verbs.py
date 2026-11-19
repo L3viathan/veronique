@@ -101,7 +101,7 @@ async def new_verb(request):
     extra = data_type.get_extra(form)
     verb = O.Verb.new(
         form["label"],
-        description=form["description"],
+        description=form.get("description", ""),
         default_classification=int(form["default_level"]),
         data_type=data_type,
         extra=extra,
