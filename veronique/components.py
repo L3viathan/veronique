@@ -56,6 +56,7 @@ def triple(
     valid=True,
     nested=False,
     swap=False,
+    abbreviate=True,
 ):
     if subject and object:
         css_classes = ["svo"]
@@ -76,11 +77,11 @@ def triple(
     return H(
         H.span(
             claim.html("handle"),
-            s.html("nested") if subject else None,
+            s.html("nested" if abbreviate else None) if subject else None,
             " ",
             claim.verb.html("nested"),
             " ",
-            o.html("nested") if object else None,
+            o.html("nested" if abbreviate else None) if object else None,
             popover_menu(
                 "\N{SPEECH BALLOON}",
                 H(*(H.div(H(

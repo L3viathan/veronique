@@ -1118,6 +1118,7 @@ class Claim(Model):
                     sources=data.get(SOURCE),
                     tooltip=remarks,
                     valid=valid,
+                    abbreviate=False,
                 )
             else:
                 return triple(
@@ -1126,6 +1127,7 @@ class Claim(Model):
                     swap=True,
                     sources=data.get(SOURCE),
                     tooltip=remarks,
+                    abbreviate=False,
                 )
         elif fmt == "sv":
             return triple(
