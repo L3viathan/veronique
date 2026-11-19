@@ -272,7 +272,7 @@ async def view_user(request, user_id: int):
             continue
     return user.name, H.article(
         header(
-            H(H.a("Users", href="/users"), " &gt; ", user.html()),
+            H(H.a("Users", href="/users"), " &gt; ", user.html("plain")),
             hamburger_menu=user.hamburger_items(),
         ),
         H.table(
@@ -280,8 +280,8 @@ async def view_user(request, user_id: int):
             H.tr(H.th("Admin", scope="row"), H.td(TYPES["boolean"].display_html(user.is_admin))),
             (H.tr(H.th("Clearance", scope="row"), H.td(CLASSIFICATION_LEVELS[user.clearance])) if not user.is_admin and user.clearance != 0 else None),
             H.tr(H.th("Redact", scope="row"), H.td(TYPES["boolean"].display_html(user.redact))),
-            H.tr(H.th("Readable verbs", scope="row"), H.td(*join(", ", (v.html() for v in readable_verbs)))),
-            H.tr(H.th("Writable verbs", scope="row"), H.td(*join(", ", (v.html() for v in writable_verbs)))),
-            H.tr(H.th("Viewable queries", scope="row"), H.td(*join(", ", (q.html() for q in viewable_queries)))),
+            H.tr(H.th("Readable verbs", scope="row"), H.td(*join(", ", (v.html("link") for v in readable_verbs)))),
+            H.tr(H.th("Writable verbs", scope="row"), H.td(*join(", ", (v.html("link") for v in writable_verbs)))),
+            H.tr(H.th("Viewable queries", scope="row"), H.td(*join(", ", (q.html("link") for q in viewable_queries)))),
         )
     )

@@ -79,7 +79,7 @@ def triple(
             claim.html("handle"),
             s.html("nested" if abbreviate else None) if subject else None,
             " ",
-            claim.verb.html("nested"),
+            claim.verb.html("link"),
             " ",
             o.html("nested" if abbreviate else None) if object else None,
             popover_menu(

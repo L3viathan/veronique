@@ -263,12 +263,13 @@ class Verb(Model):
             return None
         elif fmt == "description":
             return H.p(H.em(self.description))
-        else:
+        elif fmt == "link":
             return H.a(
                 self.name,
                 cls="clickable verb",
                 href=self.url(),
             )
+        return f"TODO: {fmt}"
 
     def hamburger_items(self):
         if context.user.is_admin:
@@ -948,7 +949,6 @@ class Claim(Model):
 
     def _get_remarks(self, data):
         remarks = []
-        css_classes = set()
         validity = self._is_valid(data)
 
         for valid_from in data.get(VALID_FROM, []):
@@ -1001,10 +1001,10 @@ class Claim(Model):
         return self.verb.id == ROOT
 
     def html(self, fmt=None):
-        if not context.user.can("read", "verb", self.verb.id):
-            return H("(unknown claim)")
         if not context.user.cleared_for(self):
             return None
+        if not context.user.can("read", "verb", self.verb.id):
+            return H("(unknown claim)")
         data = self.get_data()
         valid, remarks = self._get_remarks(data)
         if fmt == "label":
@@ -1027,8 +1027,8 @@ class Claim(Model):
                     self.html("classification-marker"),
                     self.html("avatarsmall"),
                     f"Claim #{self.id}",
-                    **remarks,
-                    cls=f"claim-link{css_classes}",
+                    data_tooltip=remarks or None,
+                    cls=["claim-link", "invalid" if not valid else None],
                     href=self.url(),
                 )
             elif fmt == "nested":
@@ -1444,7 +1444,7 @@ class Query(Model):
                 cls="handle",
                 href=self.url(),
             )
-        else:
+        elif fmt == "link":
             return H.a(
                 H.strong(self.label),
                 cls="clickable query",
@@ -1454,7 +1454,7 @@ class Query(Model):
                 hx_target="#container",
                 hx_swap="outerMorph",
             )
-        return None
+        return f"TODO: {fmt!r}"
 
     def hamburger_items(self):
         if context.user.is_admin:
@@ -1767,9 +1767,11 @@ class User(Model):
             if self.entity:
                 return self.entity.html("label")
             return H(self.name)
-        if self.entity:
-            return self.entity.html()
-        return H(self.name)
+        elif fmt == "plain":
+            if self.entity:
+                return self.entity.html()
+            return H(self.name)
+        return f"TODO: {fmt}"
 
     def hamburger_items(self):
         yield H.a(

@@ -31,8 +31,9 @@ async def list_queries(request):
         if i == S.page_size:
             more_results = True
         else:
-            queries.append(H.span(query.html("full"), cls="row"))
+            queries.append(H.span(query.html("link"), cls="row"))
     return "Queries", H.article(
+        header("Queries"),
         *queries,
         pagination(
             "/queries",

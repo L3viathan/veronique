@@ -1,5 +1,4 @@
 import functools
-import re
 from datetime import datetime
 from time import monotonic
 from types import CoroutineType
