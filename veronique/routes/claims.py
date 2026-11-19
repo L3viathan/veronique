@@ -4,7 +4,7 @@ from math import log
 from sanic import Blueprint, HTTPResponse, raw, redirect
 
 import veronique.objects as O
-from veronique.components import header, pagination, popover_menu, submit_button_with_classification
+from veronique.components import header, pagination, submit_button_with_classification
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import AVATAR, COMMENT, IS_A, LATLON, ROOT

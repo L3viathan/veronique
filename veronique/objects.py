@@ -1122,7 +1122,8 @@ class Claim(Model):
             else:
                 return triple(
                     self,
-                    subject=True,
+                    object=True,
+                    swap=True,
                     sources=data.get(SOURCE),
                     tooltip=remarks,
                 )

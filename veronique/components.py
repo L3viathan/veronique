@@ -1,4 +1,6 @@
 import random
+import re
+
 from veronique.constants import CLASSIFICATION_LEVELS
 from veronique.html import H
 
@@ -44,7 +46,17 @@ def hamburger(entries):
     )
 
 
-def triple(claim, *, subject=False, object=False, sources=None, tooltip=None, valid=True, nested=False):
+def triple(
+    claim,
+    *,
+    subject=False,
+    object=False,
+    sources=None,
+    tooltip=None,
+    valid=True,
+    nested=False,
+    swap=False,
+):
     if subject and object:
         css_classes = ["svo"]
     elif subject:
@@ -57,14 +69,18 @@ def triple(claim, *, subject=False, object=False, sources=None, tooltip=None, va
         css_classes.append("invalid-maybe")
     if nested:
         css_classes.append("nested")
+
+    s, o = claim.subject, claim.object
+    if swap:
+        s, o = o, s
     return H(
         H.span(
             claim.html("handle"),
-            claim.subject.html("nested") if subject else None,
+            s.html("nested") if subject else None,
             " ",
             claim.verb.html("nested"),
             " ",
-            claim.object.html("nested") if object else None,
+            o.html("nested") if object else None,
             popover_menu(
                 "\N{SPEECH BALLOON}",
                 H(*(H.div(H(
