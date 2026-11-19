@@ -2,6 +2,7 @@ from base64 import b64encode
 
 from sanic import Blueprint, redirect
 
+from veronique.components import header
 from veronique.context import context
 from veronique.html import H
 from veronique.security import sign
@@ -15,7 +16,7 @@ settings = Blueprint("settings", url_prefix="/settings")
 @page
 async def settings_form(request):
     return "Settings", H.article(
-        H.header(H.h2("Settings")),
+        header("Settings", center=True),
         H.form(
             H.h4("General"),
             H.fieldset(

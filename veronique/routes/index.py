@@ -7,7 +7,7 @@ from sanic import Blueprint
 from sanic.response import file_stream
 
 import veronique.objects as O
-from veronique.components import pagination
+from veronique.components import header, pagination
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import COMMENT, ROOT
@@ -41,9 +41,7 @@ def _recent_events_page(request, include_validity=False):
 
     return H(
         H.article(
-            H.header(
-                H.h2(heading),
-            ),
+            header(heading, center=True),
             *recent_events,
             pagination("/",
                 page_no,
@@ -73,9 +71,7 @@ def _newest_claims(request, only_entities=True):
         else:
             claims.append(H.span(claim, cls="row"))
     return H.article(
-        H.header(
-            H.h2("Newest claims"),
-        ),
+        header("Newest claims", center=True),
         *claims,
         pagination(
             "/",
@@ -107,9 +103,7 @@ async def about(request):
     except PackageNotFoundError:
         v = "?.?.? (local Git checkout)"
     return H.article(
-        H.header(
-            H.h2(f"Véronique v{v}"),
-        ),
+        header(f"Véronique v{v}", center=True),
         H.table(
             H.tr(
                 H.td("Source code"),

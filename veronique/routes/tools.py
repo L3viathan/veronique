@@ -6,6 +6,7 @@ from sanic import Blueprint, redirect
 
 import veronique.objects as O
 from veronique.autocomplete import Tags, widget
+from veronique.components import header
 from veronique.context import context
 from veronique.html import H
 from veronique.network import network_widget
@@ -122,9 +123,9 @@ async def start_bulk_claim(request):
     claim_ids = request.form["value"][1:]
     claims = [O.Claim(int(claim_id)) for claim_id in claim_ids]
     return "New bulk claim", H.article(
-        H.header(
-            H.h2("New bulk claim"),
-            ' '.join(f"{claim}" for claim in claims),
+        header(
+            "New bulk claim",
+            subtitle=' '.join(f"{claim}" for claim in claims),
         ),
         H.table(
             H.tr(

@@ -3,7 +3,7 @@ import urllib.parse
 from sanic import Blueprint
 
 import veronique.objects as O
-from veronique.components import pagination
+from veronique.components import header, pagination
 from veronique.data_types import TYPES
 from veronique.html import H
 from veronique.settings import settings as S
@@ -41,9 +41,9 @@ async def claims_with_value(request, data_type: str, value: str):
         else:
             claims.append(H.span(str(claim), cls="row"))
     return "Claims", H.article(
-        H.header(
-            H.h2(f"Claims of {data_type} {TYPES[data_type].display_html(value)}"),
-            TYPES[data_type].value_query_extra(value) if hasattr(TYPES[data_type], "value_query_extra") else None,
+        header(
+            f"Claims of {data_type} {TYPES[data_type].display_html(value)}",
+            subtitle=TYPES[data_type].value_query_extra(value) if hasattr(TYPES[data_type], "value_query_extra") else None,
         ),
         *claims,
         pagination(
