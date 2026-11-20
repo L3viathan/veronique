@@ -142,3 +142,10 @@ def pagination(url, page_no, *, more_results=True, allow_negative=False):
             disabled=not more_results,
         ),
     )
+
+
+def action_button(content):
+    return H.div(
+        content,
+        cls="top-right-button",
+    )

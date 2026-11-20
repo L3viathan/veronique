@@ -1,7 +1,7 @@
 from sanic import Blueprint, redirect
 
 import veronique.objects as O
-from veronique.components import header, pagination
+from veronique.components import action_button, header, pagination
 from veronique.constants import CLASSIFICATION_LEVELS
 from veronique.context import context
 from veronique.data_types import TYPES
@@ -38,6 +38,16 @@ async def list_verbs(request):
         elif verb.id != ROOT:
             verbs.append(H.span(verb.html("full"), cls="row"))
     return "Verbs", H.article(
+        header(
+            "Verbs",
+            extra=action_button(
+                H.a(
+                    "+",
+                    href="/verbs/new",
+                    role="button",
+                )
+            ),
+        ),
         *verbs,
         pagination(
             "/verbs",

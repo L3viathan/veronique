@@ -4,7 +4,7 @@ from sanic import Blueprint, HTTPResponse, json
 
 import veronique.objects as O
 from veronique import db
-from veronique.components import header, pagination
+from veronique.components import action_button, header, pagination
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.html import H
@@ -33,7 +33,16 @@ async def list_queries(request):
         else:
             queries.append(H.span(query.html("link"), cls="row"))
     return "Queries", H.article(
-        header("Queries"),
+        header(
+            "Queries",
+            extra=action_button(
+                H.a(
+                    "+",
+                    href="/queries/new",
+                    role="button",
+                )
+            )
+        ),
         *queries,
         pagination(
             "/queries",

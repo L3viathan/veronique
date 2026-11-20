@@ -4,7 +4,12 @@ from math import log
 from sanic import Blueprint, HTTPResponse, raw, redirect
 
 import veronique.objects as O
-from veronique.components import header, pagination, submit_button_with_classification
+from veronique.components import (
+    action_button,
+    header,
+    pagination,
+    submit_button_with_classification,
+)
 from veronique.context import context
 from veronique.data_types import TYPES
 from veronique.db import AVATAR, COMMENT, IS_A, LATLON, ROOT
@@ -343,12 +348,11 @@ async def view_claim_network(request, claim_id: int):
                 source_claim.html("handle"),
                 source_claim.html("label"),
             ),
-            subtitle=H.div(
+            extra=action_button(H(
                 H.a("-", href=source_claim.url(f"network?depth={max_depth - 1}"), role="button", disabled=max_depth <= 1),
                 f" depth: {max_depth} ",
                 H.a("+", href=source_claim.url(f"network?depth={max_depth + 1}"), role="button"),
-                cls="depth-controls",
-            ),
+            )),
         ),
         network_widget(claims, links_go_to="network", depth=max_depth, colormap=colormap, freeze_after=log(len(claims))),
         cls="network",

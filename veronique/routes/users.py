@@ -4,7 +4,7 @@ from sanic import Blueprint, html, redirect
 
 import veronique.objects as O
 from veronique.autocomplete import Tags, widget
-from veronique.components import header, pagination
+from veronique.components import action_button, header, pagination
 from veronique.constants import CLASSIFICATION_LEVELS
 from veronique.context import context
 from veronique.data_types import TYPES
@@ -46,7 +46,16 @@ async def list_users(request):
                 ),
             )
     return "Users", H.article(
-        header("Users"),
+        header(
+            "Users",
+            extra=action_button(
+                H.a(
+                    "+",
+                    href="/users/new",
+                    role="button",
+                )
+            ),
+        ),
         H.table(
             H.thead(
                 H.tr(
