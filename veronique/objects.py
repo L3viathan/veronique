@@ -1175,7 +1175,7 @@ class Claim(Model):
         elif fmt == "raw":
             if context.user.redact:
                 return f"Claim #{self.id}"
-            return escape(self.object.value)
+            return self.object.value
         elif fmt == "comment":
             if context.user.redact:
                 text = "..."
@@ -1301,7 +1301,7 @@ class Claim(Model):
     def graph_elements(self, verbs=None):
         data = self.get_data()
         node = {
-            "label": str(self.html("label")).replace('"', "'"),
+            "label": str(self.html("raw")).replace('"', "'"),
             "id": str(self.id),
             "cat": data[IS_A][0].object.id if data.get(IS_A) else None,
         }
