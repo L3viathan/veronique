@@ -164,11 +164,6 @@ table.claims td {
   margin: 3px;
   border: 1px solid #fda;
   border-radius: 2px;
-
-  &:has(>.date-today) {
-    box-shadow: green 0 0 10px;
-    border: 4px solid green;
-  }
 }
 
 .verb {
@@ -734,4 +729,10 @@ img#logo {
   border: none;
   cursor: help;
   color: black;
+}
+
+.today {
+  padding-left: 2px;
+  border-left: 4px solid green;
+  transform: translateX(-6px);
 }

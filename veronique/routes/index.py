@@ -29,14 +29,21 @@ def _recent_events_page(request, include_validity=False):
         for d in range(-S.index_days_back, S.index_days_ahead+1)
     ]
     for d, claims in O.Claim.all_at_dates(target_days, include_validity=include_validity):
-        if d == f"{reference_date:%m-%d}" and not claims:
-            recent_events.append(H.hr(cls="date-today"))
+        events_on_d = []
+        is_today = d == f"{reference_date:%m-%d}"
         for claim in claims:
             years = re.search(r"(\d+|last|next) years?", str(claim))
             if years:
                 years = 1 if years.group(1) in ("last", "next") else int(years.group(1))
             if not years or years % S.index_recent_events_mod(years) == 0:
-                recent_events.append(H.span(str(claim), cls="row"))
+                events_on_d.append(H.span(str(claim), cls="row"))
+        if events_on_d:
+            recent_events.append(H.div(
+                *events_on_d,
+                cls=["today" if is_today else None],
+            ))
+        elif is_today:
+            recent_events.append(H.div("&nbsp;", style="height: 4px;", cls="today"))
     heading = f"Events near {'today' if page_no == 1 else f'{reference_date:%m-%d}'}"
 
     return H(
