@@ -35,7 +35,7 @@ async def new_entity_form(request):
             conn_verb = O.Verb(int(conn_verb_id))
             conn_claim = O.Claim(int(conn_claim_id))
             connect_info = H(
-                H.p(f"After creation, an {conn_dir} {conn_verb} link will be made to {conn_claim}."),
+                H.p(f"After creation, an {conn_dir} {conn_verb.html('link')} link will be made to {conn_claim}."),
                 H.input(type="hidden", name="connect", value=connect),
             )
     name = args.get("name", "")
