@@ -424,10 +424,12 @@ async def view_claim(request, claim_id: int):
             H.tr(
                 H.td(
                     *(H.span(c.html("sv"), cls="row") for c in incoming_claims),
+                    cls="claims-sv",
                 ),
                 H.td(
                     *(H.span(c.html(f"vo:{claim_id}"), cls="row") for c in outgoing_claims if c.verb.id not in (IS_A, AVATAR, COMMENT, LATLON)),
                     *(H.span(c.html(f"vo:{claim_id}"), cls="row") for c in claim.outgoing_inferred_claims()),
+                    cls="claims-vo",
                 ),
                 cls="claims",
             ),

@@ -736,3 +736,7 @@ img#logo {
   border-left: 4px solid green;
   transform: translateX(-6px);
 }
+
+.claims-sv {
+  text-align: right;
+}
